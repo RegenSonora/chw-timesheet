@@ -4,10 +4,18 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { build as esbuild } from 'esbuild';
 import { injectCsp } from './lib/csp.mjs';
+import { checkFundingSources } from './lib/funding-sources.mjs';
 import { readJson } from './lib/json.mjs';
 
 const root = join(import.meta.dirname, '..');
 const dist = join(root, 'dist');
+
+// CLAUDE.md rule 6: funding sources are validated at build time.
+const sourceProblems = checkFundingSources(root);
+if (sourceProblems.length) {
+  console.error(`Funding source problems:\n- ${sourceProblems.join('\n- ')}`);
+  process.exit(1);
+}
 
 const pkg = /** @type {{ version: string }} */ (readJson(join(root, 'package.json')));
 

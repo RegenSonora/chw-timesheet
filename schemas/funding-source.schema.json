@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://regensonora.github.io/chw-timesheet/schemas/funding-source.schema.json",
+  "title": "Funding source",
+  "description": "One funding source: its tasks, budget lines, certification text and contract settings (SPEC §3). Format version 1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format_version",
+    "id",
+    "code",
+    "name",
+    "version",
+    "has_nte",
+    "default_rate_cents",
+    "certification_text",
+    "tasks",
+    "budget_lines"
+  ],
+  "properties": {
+    "format_version": {
+      "description": "Version of this file format.",
+      "const": 1
+    },
+    "id": {
+      "description": "Stable id stored on entries and invoices. Never changes once released.",
+      "$ref": "#/$defs/slug"
+    },
+    "code": {
+      "description": "Short name shown on the source chip and used in file names, e.g. TISUPP.",
+      "type": "string",
+      "pattern": "^[A-Z0-9][A-Z0-9_-]{0,15}$"
+    },
+    "name": {
+      "description": "Full name printed on the invoice.",
+      "$ref": "#/$defs/text"
+    },
+    "version": {
+      "description": "Release number of this source's content. Bump it when tasks, lines or text change.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "has_nte": {
+      "description": "Whether the CHW's agreement has a not-to-exceed amount tracked on invoices.",
+      "type": "boolean"
+    },
+    "default_rate_cents": {
+      "description": "Hourly rate prefilled at setup, in cents, or null for none.",
+      "oneOf": [{ "type": "integer", "minimum": 1 }, { "type": "null" }]
+    },
+    "certification_text": {
+      "description": "Certification printed above the CHW signature.",
+      "$ref": "#/$defs/text"
+    },
+    "tasks": {
+      "description": "Tasks in display and timesheet order.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "core_competency"],
+        "properties": {
+          "id": { "$ref": "#/$defs/slug" },
+          "name": { "$ref": "#/$defs/text" },
+          "core_competency": {
+            "description": "Core competency, or null when the task has none.",
+            "oneOf": [{ "$ref": "#/$defs/text" }, { "type": "null" }]
+          }
+        }
+      }
+    },
+    "budget_lines": {
+      "description": "Budget lines in invoice order (decision 0002).",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name"],
+        "properties": {
+          "id": { "$ref": "#/$defs/slug" },
+          "name": { "$ref": "#/$defs/text" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 64
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^\\S(.*\\S)?$"
+    }
+  }
+}

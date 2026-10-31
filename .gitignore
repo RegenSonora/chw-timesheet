@@ -1,0 +1,8 @@
+# Source documents kept locally only (not public)
+docs/source/
+
+node_modules/
+dist/
+coverage/
+test-results/
+playwright-report/

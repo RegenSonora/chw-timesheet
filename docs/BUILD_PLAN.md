@@ -56,17 +56,20 @@ every rule gets tests that try to break it. No DOM or storage imports in src/cor
    notes, invoice id or null, created_at/updated_at), Invoice (UUID, number, source, invoice date, period,
    rate cents, lines, totals, counts this period and all time, NTE snapshot, fingerprint, canonical form version).
 2. schemas/funding-source.schema.json + the two source files from SPEC §3 (TISUPP; Regen General Operating with
-   Domestic support as both a task with no core competency and a budget line, no NTE). Build-time validation.
-3. Time: rounding raw seconds to the nearest quarter-hour (SPEC §5; the 0-hour case per SPEC §12 Q2); end before
-   start = next day; entry date = start date; overlap check on raw times across all sources.
+   Domestic support as both a task with no core competency and a budget line, no NTE). The default rate
+   (TISUPP $20.00, SPEC §4) is data in the source file, not code. Build-time validation.
+3. Time: rounding raw seconds to the nearest quarter-hour (SPEC §5); an entry that rounds to 0 h is blocked
+   (SPEC §5 "Too short"); end before start = next day; entry date = start date; overlap check on raw times
+   across all sources, back-to-back allowed (decision 0004).
 4. Money: integer cents and quarter-hours; line amount = quarters × rate ÷ 4 rounded half up; total = sum of lines.
    Test odd rates such as $22.37.
-5. Invoice builder: all uninvoiced entries for one source; period = first to last entry date; lines by budget line;
-   NTE tracker (billed before = earlier invoices for this source; warning only; "not entered" state; none for
-   sources without NTE); counts this period and all time for the source.
-6. Invoice numbers: <INITIALS>-<YYYY>-<NNN>, one counter shared by all sources, never reset by year or initials.
+5. Invoice builder: all uninvoiced entries for one source; period = first to last entry date; lines by budget line
+   in source order (decision 0002); NTE tracker (billed before = earlier invoices for this source; warning only;
+   "not entered" state; none for sources without NTE); counts this period and all time for the source.
+6. Invoice numbers: <INITIALS>-<YYYY>-<NNN>, one counter shared by all sources, never reset by year or initials;
+   starting number set once at setup (decision 0005).
 7. Timesheet pages: next 7 unique dates with entries per page; rows = task + budget line pairs on that page; joined
-   notes; totals per date, subtotals by budget line, page total.
+   notes (decision 0003); totals per date, subtotals by budget line, page total.
 8. Rate change check: given a new rate and uninvoiced entries for that source, return what the dialog must say.
 9. Canonical JSON (sorted keys, no whitespace, integers only) versioned as v1, and SHA-256 fingerprint via
    WebCrypto; short form XXXX-XXXX. A golden-file test pins v1 forever.

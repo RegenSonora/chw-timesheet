@@ -1,0 +1,15 @@
+CHW Time Tracker
+Copyright 2026 Regenerating Sonora, Inc.
+
+This product is developed by Regenerating Sonora, Inc.
+https://github.com/RegenSonora/chw-timesheet
+
+Licensing
+
+- Code and everything not listed below: Apache License, Version 2.0 (see LICENSE).
+- Documentation, task lists and certification text, Creative Commons Attribution 4.0
+  International (CC BY 4.0, see LICENSE-docs):
+    docs/**
+    src/funding-sources/**
+
+Third-party software that ships in the app is listed in THIRD_PARTY_LICENSES.md.

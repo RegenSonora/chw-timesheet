@@ -62,4 +62,22 @@ Runtime: Preact and one small QR library, nothing else without asking. PDF writi
 
 ## Commands
 
-Filled in by milestone M0.
+Node 22.12+, pnpm (pinned in `package.json`). All scripts are Node scripts (Windows and macOS).
+
+```
+pnpm install                                  install from the lockfile
+pnpm exec playwright install chromium webkit  once, for e2e
+pnpm dev                                      dev server (no CSP)
+pnpm build                                    dist/: index.html, sw.js, manifest.webmanifest, icons/
+pnpm preview                                  serve dist/ at http://localhost:4173/chw-timesheet/
+pnpm test                                     Vitest unit tests (tests/)
+pnpm test:e2e                                 Playwright, WebKit + Chromium, 390×844, axe
+pnpm lint | format | format:check | typecheck
+pnpm check:dist                               single-file, file allowlist, CSP
+pnpm check:size                               150 KB gzip budget (index.html + sw.js + manifest)
+pnpm licenses:update                          regenerate THIRD_PARTY_LICENSES.md
+pnpm licenses:check                           fail if stale or a runtime license is not allowed
+pnpm check                                    everything CI runs except e2e, in order
+```
+
+CI (`.github/workflows/ci.yml`) runs `check` steps, then e2e, then deploys `dist/` to Pages on pushes to `main`.

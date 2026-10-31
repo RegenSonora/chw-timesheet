@@ -1,0 +1,11 @@
+dist/
+coverage/
+test-results/
+playwright-report/
+pnpm-lock.yaml
+docs/
+LICENSE
+LICENSE-docs
+NOTICE
+THIRD_PARTY_LICENSES.md
+CLAUDE.md

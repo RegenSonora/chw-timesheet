@@ -1,0 +1,68 @@
+/* SPEC §10: gray tones, one accent (#1f5fc8), high contrast, follows light/dark. */
+:root {
+  color-scheme: light dark;
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --fg: #16181c;
+  --muted: #4a4f57;
+  --border: #c4c8ce;
+  --accent: #1f5fc8;
+  --accent-fg: #ffffff;
+  /* Accent used as text (links, labels). Dark mode uses a lighter tint; see SPEC §10 note in README. */
+  --accent-text: #1f5fc8;
+  --tap-min: 44px;
+  --button-min: 56px;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 17px;
+  line-height: 1.4;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16181c;
+    --surface: #22252b;
+    --fg: #f4f5f7;
+    --muted: #b8bdc5;
+    --border: #4a4f57;
+    --accent-text: #8fb3ff;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.placeholder {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  text-align: center;
+}
+
+.placeholder h1 {
+  margin: 0 0 8px;
+  font-size: 1.75rem;
+}
+
+.placeholder .version {
+  margin: 0;
+  color: var(--muted);
+}

@@ -1,0 +1,3 @@
+# pnpm settings only. This is a single package, not a monorepo.
+allowBuilds:
+  esbuild: true

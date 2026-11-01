@@ -20,9 +20,12 @@ test('changing the rate with entries waiting asks first', async ({ page }) => {
   await expect(heading(page, 'Settings')).toBeVisible();
 
   await page.getByRole('button', { name: 'Save changes' }).click();
+  // "Create invoice first" keeps the old rate and opens the invoice preview (SPEC §4).
   await page.getByRole('dialog').getByRole('button', { name: 'Create invoice first' }).click();
+  await expect(heading(page, 'New invoice')).toBeVisible();
+  await expect(page.getByText('$20.00 / h')).toBeVisible();
+  await page.getByRole('button', { name: 'Back' }).click();
   await expect(heading(page, 'CHW Time Tracker')).toBeVisible();
-  await expect(page.getByRole('status')).toContainText('Rate not changed.');
   await expect(page.getByText('1 entry · 1.5 h · $30.00')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Generate TISUPP invoice' })).toBeVisible();
 

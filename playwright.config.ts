@@ -7,7 +7,8 @@ const phone = {
   hasTouch: true,
 };
 
-const port = 4173;
+// E2E_PORT lets a second checkout run e2e while another serves 4173.
+const port = Number(process.env['E2E_PORT'] ?? 4173);
 
 export default defineConfig({
   testDir: 'e2e',

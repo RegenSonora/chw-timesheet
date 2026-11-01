@@ -1,6 +1,6 @@
 // Production build: Vite single-file page, service worker, version stamp, CSP.
 import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { build as esbuild } from 'esbuild';
 import { injectCsp } from './lib/csp.mjs';
@@ -38,6 +38,17 @@ process.env['APP_VERSION'] = version;
 const { build: viteBuild } = await import('vite');
 await viteBuild({ root, logLevel: 'warn' });
 
+// The app shell the service worker caches (SPEC §2 "Offline"): everything in dist/ but itself.
+const shell = readdirSync(dist, { recursive: true, withFileTypes: true })
+  .filter((d) => d.isFile())
+  .map((d) =>
+    join(d.parentPath, d.name)
+      .slice(dist.length + 1)
+      .replaceAll('\\', '/'),
+  )
+  .filter((f) => f !== 'sw.js')
+  .sort();
+
 await esbuild({
   entryPoints: [join(root, 'src', 'sw.ts')],
   outfile: join(dist, 'sw.js'),
@@ -46,6 +57,10 @@ await esbuild({
   target: 'es2022',
   minify: true,
   legalComments: 'none',
+  define: {
+    __APP_VERSION__: JSON.stringify(version),
+    __SHELL__: JSON.stringify(shell),
+  },
   banner: { js: `// CHW Time Tracker ${version}` },
   logLevel: 'warning',
 });

@@ -99,3 +99,9 @@ export function localDateTime(iso: string, zone?: Zone): { date: string; time: s
 export function plural(n: number, one: string, many: string): string {
   return `${String(n)} ${n === 1 ? one : many}`;
 }
+
+/** "0.9.0 (a1b2c3d)" from the build's "0.9.0+a1b2c3d" (decision 0016). */
+export function versionLabel(version: string): string {
+  const [release, commit] = version.split('+');
+  return commit ? `${release ?? ''} (${commit})` : version;
+}

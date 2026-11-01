@@ -15,6 +15,7 @@ Preact screens. They only display and collect; rules live in `src/core`, data go
 | `format.ts`                  | Dates, times, hours and clock in the phone's time zone                        | §5                       |
 | `platform.ts`                | iPhone and Home Screen detection for the install gate                         | §2                       |
 | `share.ts`                   | Share sheet with the invoice files, download fallback                         | §7                       |
+| `update.ts`                  | Registers the service worker; "Updated, tap to reload" between entries        | §2, decision 0014        |
 | `components.tsx`             | Page, dialogs, list picker, chip, steppers, fields, toast, entry row          | §10                      |
 | `screens/InstallGate.tsx`    | iPhone: add to Home Screen first                                              | §2                       |
 | `screens/Setup.tsx`          | Details, next invoice #, sources and rates, storage status                    | §2, §4, decision 0005    |

@@ -74,3 +74,88 @@ export async function pickTaskAndLine(page: Page, task: string, line: string): P
   await page.getByRole('button', { name: 'Next' }).click();
   await expect(page.getByText('Step 2 of 2')).toBeVisible();
 }
+
+// --- Sharing ------------------------------------------------------------------------------
+
+export interface SharedFile {
+  name: string;
+  type: string;
+  bytes: number[];
+}
+
+/** Replace the share sheet with one that records the files, as a phone's would receive them. */
+export async function stubShare(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const shared: unknown[][] = [];
+    Object.assign(window, { __shared: shared });
+    Object.defineProperty(navigator, 'canShare', {
+      configurable: true,
+      value: (data: ShareData) => Boolean(data.files?.length),
+    });
+    Object.defineProperty(navigator, 'share', {
+      configurable: true,
+      value: async (data: ShareData) => {
+        const files = await Promise.all(
+          (data.files ?? []).map(async (f) => ({
+            name: f.name,
+            type: f.type,
+            bytes: [...new Uint8Array(await f.arrayBuffer())],
+          })),
+        );
+        shared.push(files);
+      },
+    });
+  });
+}
+
+/** A browser that can't share files: the app falls back to downloads. */
+export async function noShare(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'canShare', { configurable: true, value: undefined });
+    Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
+  });
+}
+
+/** Every share so far, oldest first. */
+export const sharedFiles = (page: Page) =>
+  page.evaluate(() => (window as unknown as { __shared: SharedFile[][] }).__shared);
+
+// --- CSV ----------------------------------------------------------------------------------
+
+/** Parse RFC 4180 CSV (UTF-8 with BOM, CRLF) into rows of fields. Throws on a malformed file. */
+export function parseCsv(bytes: number[]): string[][] {
+  const text = new TextDecoder('utf-8', { ignoreBOM: true }).decode(new Uint8Array(bytes));
+  if (!text.startsWith('\uFEFF')) throw new Error('CSV has no byte-order mark');
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = '';
+  let quoted = false;
+  for (let i = 1; i < text.length; i++) {
+    const c = text[i] ?? '';
+    if (quoted) {
+      if (c === '"' && text[i + 1] === '"') {
+        field += '"';
+        i++;
+      } else if (c === '"') quoted = false;
+      else field += c;
+    } else if (c === '"') {
+      if (field !== '') throw new Error(`Quote inside an unquoted field at ${String(i)}`);
+      quoted = true;
+    } else if (c === ',') {
+      row.push(field);
+      field = '';
+    } else if (c === '\r' && text[i + 1] === '\n') {
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = '';
+      i++;
+    } else field += c;
+  }
+  if (quoted) throw new Error('Unclosed quote');
+  if (field !== '' || row.length) {
+    row.push(field);
+    rows.push(row);
+  }
+  return rows;
+}

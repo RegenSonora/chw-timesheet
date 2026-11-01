@@ -1,51 +1,9 @@
 // Invoices (SPEC §6–§8, decisions 0007, 0012): preview, create files, share, re-share.
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { readPdf } from '../tests/files/pdf-reader.js';
-import { addEntry, heading, setUp, ZONE } from './helpers.js';
+import { addEntry, heading, noShare, setUp, sharedFiles, stubShare, ZONE } from './helpers.js';
 
 test.use({ timezoneId: ZONE });
-
-interface SharedFile {
-  name: string;
-  type: string;
-  bytes: number[];
-}
-
-/** Replace the share sheet with one that records the files, as a phone's would receive them. */
-async function stubShare(page: Page): Promise<void> {
-  await page.addInitScript(() => {
-    const shared: unknown[][] = [];
-    Object.assign(window, { __shared: shared });
-    Object.defineProperty(navigator, 'canShare', {
-      configurable: true,
-      value: (data: ShareData) => Boolean(data.files?.length),
-    });
-    Object.defineProperty(navigator, 'share', {
-      configurable: true,
-      value: async (data: ShareData) => {
-        const files = await Promise.all(
-          (data.files ?? []).map(async (f) => ({
-            name: f.name,
-            type: f.type,
-            bytes: [...new Uint8Array(await f.arrayBuffer())],
-          })),
-        );
-        shared.push(files);
-      },
-    });
-  });
-}
-
-/** A browser that can't share files: the app falls back to downloads. */
-async function noShare(page: Page): Promise<void> {
-  await page.addInitScript(() => {
-    Object.defineProperty(navigator, 'canShare', { configurable: true, value: undefined });
-    Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
-  });
-}
-
-const sharedFiles = (page: Page) =>
-  page.evaluate(() => (window as unknown as { __shared: SharedFile[][] }).__shared);
 
 const DATES = [
   '2026-10-20',

@@ -1,5 +1,5 @@
 // Settings (SPEC §4, decisions 0005, 0010): details, next invoice #, rates and NTE, storage, version.
-import { useEffect, useState } from 'preact/hooks';
+import { useLayoutEffect, useState } from 'preact/hooks';
 import {
   formatDollars,
   formatInvoiceNumber,
@@ -11,7 +11,7 @@ import {
 } from '../../core';
 import { FUNDING_SOURCES } from '../../funding-sources';
 import { Confirm, Field, Page } from '../components';
-import { plural } from '../format';
+import { plural, versionLabel } from '../format';
 import { sourceById, useApp } from '../store';
 import { validNextNumber } from './Setup';
 import { StorageStatus } from './StorageStatus';
@@ -59,7 +59,8 @@ export function Settings() {
   } | null>(null);
 
   const dirty = JSON.stringify(form) !== JSON.stringify(saved);
-  useEffect(() => {
+  // Layout effect: set before paint, so a fast back gesture can't slip past.
+  useLayoutEffect(() => {
     actions.setGuard(
       dirty
         ? () => ({
@@ -369,7 +370,7 @@ export function Settings() {
 
       <h2 class="sec">This phone</h2>
       <StorageStatus status={data.persistence} />
-      <p class="hint">Version {__APP_VERSION__} · Open source (Apache 2.0)</p>
+      <p class="hint">Version {versionLabel(__APP_VERSION__)} · Open source (Apache 2.0)</p>
 
       {leaving && (
         <Confirm

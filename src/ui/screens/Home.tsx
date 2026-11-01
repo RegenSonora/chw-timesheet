@@ -4,6 +4,7 @@ import { formatDollars, uninvoicedEntries, uninvoicedSummary } from '../../core'
 import { EntryRow, Page, SettingsIcon, SourceChip, ToastBar, ListPicker } from '../components';
 import { hoursLabel, plural } from '../format';
 import { sourceById, useApp } from '../store';
+import { isMidEntry, useUpdate } from '../update';
 
 /** How many entries Home lists before "Show all". */
 export const HOME_ENTRIES = 3;
@@ -52,6 +53,7 @@ export function HomeHeaderAside({ onChip }: { onChip: () => void }) {
 export function Home() {
   const { data, selectedSource, actions } = useApp();
   const [picking, setPicking] = useState(false);
+  const update = useUpdate();
   if (!selectedSource) return null;
 
   const rate = data.settings.find((s) => s.source_id === selectedSource.id)?.rate_cents ?? null;
@@ -70,6 +72,12 @@ export function Home() {
       }
       footer={
         <>
+          {/* Decision 0014: offered only between entries, so a reload never loses work. */}
+          {update && !isMidEntry(data.app) && (
+            <button type="button" class="update-bar" onClick={update}>
+              Updated, tap to reload
+            </button>
+          )}
           {summary.count > 0 && (
             <button
               type="button"

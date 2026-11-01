@@ -3,9 +3,11 @@
   "short_name": "CHW Time",
   "description": "Log time and create invoices for Regenerating Sonora.",
   "lang": "en",
+  "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#f4f5f7",
   "theme_color": "#f4f5f7",
   "icons": [

@@ -1,5 +1,5 @@
 // Edit entry (SPEC §5, decision 0008): every field of an uninvoiced entry, Save and Delete with Undo.
-import { useEffect, useState } from 'preact/hooks';
+import { useLayoutEffect, useState } from 'preact/hooks';
 import type { EntryDraft } from '../../storage';
 import { ChangeRow } from './entry-parts';
 import { Confirm, Page, entryNames } from '../components';
@@ -23,7 +23,8 @@ export function EditEntry() {
   const [deleting, setDeleting] = useState(false);
 
   const dirty = draft !== null && entry !== undefined && changed(draft, editDraft(entry));
-  useEffect(() => {
+  // Layout effect: set before paint, so a fast back gesture can't slip past.
+  useLayoutEffect(() => {
     actions.setGuard(
       dirty
         ? () => ({

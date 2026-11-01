@@ -1,5 +1,5 @@
 // Settings (SPEC §4, decisions 0005, 0010): details, next invoice #, rates and NTE, storage, version.
-import { useEffect, useState } from 'preact/hooks';
+import { useLayoutEffect, useState } from 'preact/hooks';
 import {
   formatDollars,
   formatInvoiceNumber,
@@ -59,7 +59,8 @@ export function Settings() {
   } | null>(null);
 
   const dirty = JSON.stringify(form) !== JSON.stringify(saved);
-  useEffect(() => {
+  // Layout effect: set before paint, so a fast back gesture can't slip past.
+  useLayoutEffect(() => {
     actions.setGuard(
       dirty
         ? () => ({

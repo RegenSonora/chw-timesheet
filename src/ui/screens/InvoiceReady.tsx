@@ -1,6 +1,6 @@
 // Invoice created (SPEC §6–§8, wireframe Share): the three files, Share, and the signing steps.
 // The same screen re-shares a past invoice, re-creating its files from stored data.
-import { useEffect, useMemo, useState } from 'preact/hooks';
+import { useLayoutEffect, useMemo, useState } from 'preact/hooks';
 import { formatDollars, paginateTimesheet, shortFingerprint } from '../../core';
 import { buildInvoiceFiles } from '../../files';
 import { dateRange } from '../../files/text';
@@ -35,7 +35,8 @@ export function InvoiceReady() {
   }, [invoice]);
 
   // A new invoice's files must leave the phone: ask before the back gesture leaves unshared.
-  useEffect(() => {
+  // Layout effect: set before paint, so a fast back gesture can't slip past.
+  useLayoutEffect(() => {
     actions.setGuard(
       created && !shared
         ? () => ({

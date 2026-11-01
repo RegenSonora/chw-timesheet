@@ -4,5 +4,6 @@ export type { OpenProblem } from './idb';
 export { createMemoryStorage, type MemoryOptions } from './memory-storage';
 export { persistenceStatus, requestPersistence, type PersistenceStatus } from './persist';
 export { DATA_VERSION } from './records';
+export { byStartThenId, phoneNow } from './storage';
 export { emptyAppState, rememberPicks } from './storage';
 export * from './types';

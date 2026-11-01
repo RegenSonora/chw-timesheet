@@ -3,7 +3,7 @@
 A lightweight, offline phone app for Community Health Workers at Regenerating Sonora, Inc. CHWs log time against a funding source, then create an invoice PDF and two CSV files to sign and email.
 
 - Live app: https://regensonora.github.io/chw-timesheet/
-- Status: **scaffold only, not usable yet.** The page shows "CHW Time Tracker" and its version.
+- Status: **in development, not ready for real use.** Setup, the timer, entering and editing time work in the browser; invoice files come next (build plan M4).
 - Product spec: [docs/SPEC.md](docs/SPEC.md). Build plan: [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md). Decisions: [docs/decisions/](docs/decisions/).
 
 A guide for CHWs (install and daily use) comes with the first release.
@@ -49,7 +49,7 @@ Pushes to `main` run CI and, when every check passes, deploy `dist/` to GitHub P
 | `src/files/`           | PDF, CSV and QR writers                 |
 | `src/funding-sources/` | One JSON file per funding source        |
 | `schemas/`             | JSON Schemas                            |
-| `tests/`               | Unit tests                              |
+| `tests/`               | Unit tests (core, storage, UI helpers)  |
 | `e2e/`                 | Playwright tests                        |
 | `scripts/`             | Build, check and license scripts (Node) |
 | `docs/`                | Spec, build plan, decisions             |

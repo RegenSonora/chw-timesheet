@@ -1,10 +1,12 @@
-// Stored layout, data format version 1 (CLAUDE.md rule 7). Change it only with a new version
-// and an upgrade step in upgrades.ts.
+// Stored layout and data format version (CLAUDE.md rule 7). Change either only with a new
+// version and an upgrade step in upgrades.ts.
 import type { SourceSettings } from '../core/types';
 import type { StoreName, StoredRecord, Tx } from './types';
 
-export const DATA_VERSION = 1;
+/** v1: first release. v2: app state gains `draft` (the half-entered record, SPEC §10). */
+export const DATA_VERSION = 2;
 
+/** The stores of v1. v2 keeps the same stores. */
 export const STORES_V1: readonly StoreName[] = [
   'meta',
   'profile',

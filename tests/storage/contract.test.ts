@@ -1,9 +1,10 @@
 // The Storage contract, run on the in-memory and IndexedDB adapters alike.
 import { describe, expect, it } from 'vitest';
+import { emptyCounts } from '../../src/core/counts';
 import { verifyFingerprint } from '../../src/core/fingerprint';
 import type { Entry } from '../../src/core/types';
 import { emptyAppState, rememberPicks } from '../../src/storage/storage';
-import { RECENT_TASKS_MAX, type Storage } from '../../src/storage/types';
+import { RECENT_TASKS_MAX, type AppState, type Storage } from '../../src/storage/types';
 import {
   makeEntry,
   must,
@@ -121,6 +122,29 @@ describe.each(adapters)('$name adapter', (adapter) => {
         'outreach-and-marketing',
       );
       await storage.saveAppState(state);
+      expect(await storage.getAppState()).toEqual(state);
+      storage.close();
+    });
+
+    it('keeps a half-entered entry draft (SPEC §10)', async () => {
+      const storage = await adapter.make();
+      const state: AppState = {
+        ...emptyAppState(),
+        draft: {
+          kind: 'entry',
+          entry_id: null,
+          step: 'counts',
+          hand: null,
+          start: '2026-10-30T09:12:04-07:00',
+          stop: '2026-10-30T10:37:10-07:00',
+          source_id: 'tisupp',
+          task_id: 'client-check-in',
+          budget_line_id: 'chw-referrals',
+          counts: { ...emptyCounts(), contacts: 1, other: [{ label: 'Food boxes', value: 2 }] },
+          notes: 'Library',
+        },
+      };
+      await storage.saveAppState(structuredClone(state));
       expect(await storage.getAppState()).toEqual(state);
       storage.close();
     });

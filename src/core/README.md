@@ -17,6 +17,8 @@ Pure rules: money, time, rounding, overlap, page-splitting, invoice, counter and
 | `invoice.ts`                     | Invoice draft (preview) and finished invoice: lines, NTE tracker, counts, snapshot           | §6, decision 0002        |
 | `timesheet.ts`                   | Timesheet pages: 7 dates per page, rows, joined notes, totals                                | §7, decisions 0002, 0003 |
 | `rate-change.ts`                 | What the rate change dialog must say                                                         | §4                       |
+| `summary.ts`                     | Home's not-yet-invoiced count, hours and amount, rounded like the invoice                    | §5, §6                   |
+| `picks.ts`                       | Recent tasks first, default budget line, picks kept when an entry changes source             | §5, decision 0008        |
 | `canonical.ts`, `fingerprint.ts` | Canonical JSON and SHA-256 fingerprint, versioned (v1)                                       | §7, rule 8               |
 
 Tests live in `tests/core/`. `tests/core/golden/fingerprint-v1.json` pins canonical form v1: never edit it; add a new canonical version instead.

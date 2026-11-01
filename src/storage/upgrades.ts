@@ -19,11 +19,16 @@ export interface Schema {
   steps: Record<number, UpgradeStep>;
 }
 
-/** v1 is the first release; there is nothing to upgrade from yet. */
+/** v1 → v2: app state gains `draft`, empty until the CHW starts an entry or setup. */
+export const v1ToV2: UpgradeStep = (snapshot) => ({
+  ...snapshot,
+  app_state: (snapshot['app_state'] ?? []).map((record) => ({ ...record, draft: null })),
+});
+
 export const SCHEMA: Schema = {
   version: DATA_VERSION,
-  layouts: { 1: STORES_V1 },
-  steps: {},
+  layouts: { 1: STORES_V1, 2: STORES_V1 },
+  steps: { 1: v1ToV2 },
 };
 
 /** Run every step from `from` up to `to`. Throws if one is missing or fails. */

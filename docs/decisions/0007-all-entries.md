@@ -11,6 +11,6 @@
 
 The list matches Home's count and the invoice the Generate button would create, and keeps the rule that the chip decides what the CHW is looking at. Showing every source would make the count differ from Home and put rows from two invoices in one list. A toggle for all sources can be added after the pilot if CHWs ask for it.
 
-## Open for M4
+## Re-sharing past invoices (decided for M4)
 
-Chris said there is no need for past invoice access, as long as the files were actually shared. SPEC §6 ("re-create and re-share any past invoice") and the M4 plan still include re-sharing. Confirm with Chris before M4 whether re-share stays, and make the share step confirm that the files were shared.
+Chris said there is no need for past invoice access, as long as the files were actually shared. On November 1, 2026 he decided to **keep** re-sharing a past invoice as SPEC §6 says ("re-create and re-share any past invoice"). Re-sharing is the only way to reach an invoiced entry in the app; where the CHW finds past invoices is decision 0012. The share step also checks that the files were shared: tapping Done before a successful share asks first.

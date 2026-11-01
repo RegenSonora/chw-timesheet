@@ -52,6 +52,7 @@ export function Settings() {
   const [form, setForm] = useState<Form>(initialForm);
   const [saved, setSaved] = useState<Form>(form);
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
+  const [leaving, setLeaving] = useState(false);
   const [question, setQuestion] = useState<{
     asks: RateQuestion[];
     settings: SourceSettings[];
@@ -167,11 +168,7 @@ export function Settings() {
       // Keep the old rate for this source; save everything else, then go make the invoice.
       setQuestion(null);
       await commit(question.settings, [ask.source_id]);
-      await actions.selectSource(ask.source_id);
-      actions.showToast(
-        `Rate not changed. Create your ${sourceById(ask.source_id).code} invoice first.`,
-      );
-      actions.leave();
+      await actions.openInvoicePreview(ask.source_id, 'replace');
       return;
     }
     if (rest.length) {
@@ -352,9 +349,42 @@ export function Settings() {
         </>
       )}
 
+      <h2 class="sec">Invoices</h2>
+      <button
+        type="button"
+        class="card nav-row"
+        onClick={() => {
+          if (dirty) setLeaving(true);
+          else actions.push('invoices');
+        }}
+      >
+        <span>Past invoices</span>
+        <span class="nav-row-detail">
+          {data.invoices.length > 0
+            ? plural(data.invoices.length, 'invoice', 'invoices')
+            : 'None yet'}
+        </span>
+      </button>
+      <p class="hint">Share an invoice's files again.</p>
+
       <h2 class="sec">This phone</h2>
       <StorageStatus status={data.persistence} />
       <p class="hint">Version {__APP_VERSION__} · Open source (Apache 2.0)</p>
+
+      {leaving && (
+        <Confirm
+          title="Discard your changes?"
+          confirm="Discard changes"
+          cancel="Keep editing"
+          onConfirm={() => {
+            setLeaving(false);
+            actions.push('invoices');
+          }}
+          onCancel={() => {
+            setLeaving(false);
+          }}
+        />
+      )}
 
       {ask && (
         <Confirm

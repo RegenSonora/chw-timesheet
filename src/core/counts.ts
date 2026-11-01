@@ -1,6 +1,23 @@
 // Summing counts across entries and invoices (SPEC §5, §6).
 import type { Counts, OtherCount } from './types';
 
+/** The five fixed counts (SPEC §5), in the order screens and invoice files list them. */
+export const COUNT_FIELDS: readonly {
+  key: Exclude<keyof Counts, 'other'>;
+  label: string;
+  noun: string;
+}[] = [
+  { key: 'contacts', label: 'Contacts', noun: 'contacts' },
+  { key: 'referrals_given', label: 'Referrals given', noun: 'referrals given' },
+  { key: 'referral_followups', label: 'Referral follow-ups', noun: 'referral follow-ups' },
+  { key: 'rides_provided', label: 'Rides provided', noun: 'rides provided' },
+  {
+    key: 'applications_completed',
+    label: 'Applications completed',
+    noun: 'applications completed',
+  },
+];
+
 export function emptyCounts(): Counts {
   return {
     contacts: 0,

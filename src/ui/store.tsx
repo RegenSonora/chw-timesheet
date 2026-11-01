@@ -7,6 +7,7 @@ import {
   findOverlaps,
   type Entry,
   type FundingSourceConfig,
+  type Invoice,
   type InvoiceCounter,
   type Profile,
   type SourceSettings,
@@ -34,7 +35,17 @@ import {
 } from './draft';
 import { hoursLabel, localDateTime } from './format';
 
-export type Screen = 'home' | 'times' | 'task' | 'counts' | 'edit' | 'all' | 'settings';
+export type Screen =
+  | 'home'
+  | 'times'
+  | 'task'
+  | 'counts'
+  | 'edit'
+  | 'all'
+  | 'settings'
+  | 'invoice'
+  | 'invoice-ready'
+  | 'invoices';
 
 const ENTRY_SCREENS: readonly Screen[] = ['times', 'task', 'counts', 'edit'];
 
@@ -42,10 +53,30 @@ export interface Data {
   profile: Profile | null;
   settings: SourceSettings[];
   entries: Entry[];
+  /** Sorted by invoice number sequence. */
+  invoices: Invoice[];
   counter: InvoiceCounter;
   app: AppState;
   persistence: PersistenceStatus;
 }
+
+/** The invoice the "Invoice created" screen shows: just made, or a past one to share again. */
+export interface Viewing {
+  invoice_id: string;
+  created: boolean;
+}
+
+/** Why "Create invoice files" saved nothing, in plain words (SPEC §10). */
+const CREATE_PROBLEMS: Record<string, string> = {
+  changed:
+    'Your entries changed while the invoice was being made. Nothing was locked. Check the invoice and try again.',
+  no_entries: 'There are no entries left to invoice.',
+  no_rate: 'Enter your hourly rate in Settings first.',
+  bad_settings: 'Enter your hourly rate in Settings first.',
+  no_profile: 'Enter your details in Settings first.',
+  bad_initials: 'Check your initials in Settings.',
+  bad_entry: "One entry can't be invoiced. Open it from Home and check its task and times.",
+};
 
 export interface Toast {
   id: number;
@@ -116,15 +147,16 @@ function initialSetupDraft(): SetupDraft {
 }
 
 export async function loadData(storage: Storage): Promise<Data> {
-  const [profile, settings, entries, counter, app, persistence] = await Promise.all([
+  const [profile, settings, entries, invoices, counter, app, persistence] = await Promise.all([
     storage.getProfile(),
     storage.listSourceSettings(),
     storage.listEntries(),
+    storage.listInvoices(),
     storage.getCounter(),
     storage.getAppState(),
     persistenceStatus(),
   ]);
-  return { profile, settings, entries, counter, app, persistence };
+  return { profile, settings, entries, invoices, counter, app, persistence };
 }
 
 function useStore(storage: Storage, initial: Data) {
@@ -210,6 +242,18 @@ function useStore(storage: Storage, initial: Data) {
   const back = useCallback(() => {
     history.back();
   }, []);
+
+  /** Swap the top screen for another, so Back skips the one replaced. */
+  const replaceTop = useCallback(
+    (screen: Screen) => {
+      const next = [...stackRef.current.slice(0, -1), screen];
+      setStack(next);
+      history.replaceState({ depth: next.length - 1 }, '');
+    },
+    [setStack],
+  );
+
+  const [viewing, setViewing] = useState<Viewing | null>(null);
 
   /** One screen back without asking, e.g. after Save. */
   const leave = useCallback(() => {
@@ -439,6 +483,55 @@ function useStore(storage: Storage, initial: Data) {
         setToast(null);
       },
 
+      /** Invoice preview for a funding source (SPEC §6), replacing Settings when it asks first. */
+      async openInvoicePreview(sourceId: string, from: 'push' | 'replace' = 'push') {
+        setToast(null);
+        await saveApp({ ...d().app, selected_source_id: sourceId });
+        if (from === 'replace') replaceTop('invoice');
+        else push('invoice');
+      },
+
+      /**
+       * Lock the entries, save the invoice and advance the counter in one transaction, then show
+       * the files. Returns what went wrong in plain words, or null.
+       */
+      async createInvoice(sourceId: string): Promise<string | null> {
+        const now = phoneNow();
+        let result;
+        try {
+          result = await serial(() =>
+            storage.generateInvoice({
+              source: sourceOf(sourceId),
+              now,
+              invoice_date: now.slice(0, 10),
+            }),
+          );
+        } catch {
+          result = null;
+        }
+        const [entries, invoices, counter] = await Promise.all([
+          storage.listEntries(),
+          storage.listInvoices(),
+          storage.getCounter(),
+        ]);
+        setData({ ...d(), entries, invoices, counter });
+        if (!result?.ok) {
+          return (
+            (result && CREATE_PROBLEMS[result.reason]) ??
+            "The invoice couldn't be created. Nothing was locked. Try again."
+          );
+        }
+        setViewing({ invoice_id: result.invoice.id, created: true });
+        replaceTop('invoice-ready');
+        return null;
+      },
+
+      /** Share a past invoice's files again (SPEC §6, decision 0012). */
+      openPastInvoice(id: string) {
+        setViewing({ invoice_id: id, created: false });
+        push('invoice-ready');
+      },
+
       async requestPersistence() {
         const persistence = await requestPersistence();
         setData({ ...d(), persistence });
@@ -491,7 +584,20 @@ function useStore(storage: Storage, initial: Data) {
       showToast,
     };
     // `toast` is read for undo; everything else goes through refs.
-  }, [home, leave, push, back, reloadEntries, saveApp, serial, setData, showToast, storage, toast]);
+  }, [
+    home,
+    leave,
+    push,
+    back,
+    replaceTop,
+    reloadEntries,
+    saveApp,
+    serial,
+    setData,
+    showToast,
+    storage,
+    toast,
+  ]);
 
   const selectedSource = useMemo((): FundingSourceConfig | null => {
     const id =
@@ -510,6 +616,7 @@ function useStore(storage: Storage, initial: Data) {
     asking,
     answerLeave,
     selectedSource,
+    viewing,
     actions,
   };
 }

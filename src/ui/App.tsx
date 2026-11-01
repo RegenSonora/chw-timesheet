@@ -8,6 +8,9 @@ import { EditEntry } from './screens/EditEntry';
 import { CountsStep, EnterTimes, TaskStep } from './screens/EntrySteps';
 import { Home } from './screens/Home';
 import { InstallGate } from './screens/InstallGate';
+import { InvoicePreview } from './screens/InvoicePreview';
+import { InvoiceReady } from './screens/InvoiceReady';
+import { PastInvoices } from './screens/PastInvoices';
 import { Settings } from './screens/Settings';
 import { Setup } from './screens/Setup';
 import { TimerRunning } from './screens/TimerRunning';
@@ -41,6 +44,15 @@ function Screens() {
       break;
     case 'settings':
       view = <Settings />;
+      break;
+    case 'invoice':
+      view = <InvoicePreview />;
+      break;
+    case 'invoice-ready':
+      view = <InvoiceReady />;
+      break;
+    case 'invoices':
+      view = <PastInvoices />;
       break;
     default:
       view = data.app.running_timer ? <TimerRunning /> : <Home />;

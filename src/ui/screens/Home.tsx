@@ -1,15 +1,7 @@
 // Home (SPEC §5, §6): source chip, "Not yet invoiced", Generate, Start, Enter times.
 import { useState } from 'preact/hooks';
 import { formatDollars, uninvoicedEntries, uninvoicedSummary } from '../../core';
-import {
-  EntryRow,
-  Page,
-  SettingsIcon,
-  SourceChip,
-  ToastBar,
-  ListPicker,
-  Dialog,
-} from '../components';
+import { EntryRow, Page, SettingsIcon, SourceChip, ToastBar, ListPicker } from '../components';
 import { hoursLabel, plural } from '../format';
 import { sourceById, useApp } from '../store';
 
@@ -60,7 +52,6 @@ export function HomeHeaderAside({ onChip }: { onChip: () => void }) {
 export function Home() {
   const { data, selectedSource, actions } = useApp();
   const [picking, setPicking] = useState(false);
-  const [generating, setGenerating] = useState(false);
   if (!selectedSource) return null;
 
   const rate = data.settings.find((s) => s.source_id === selectedSource.id)?.rate_cents ?? null;
@@ -83,9 +74,7 @@ export function Home() {
             <button
               type="button"
               class="btn2"
-              onClick={() => {
-                setGenerating(true);
-              }}
+              onClick={() => void actions.openInvoicePreview(selectedSource.id)}
             >
               Generate {selectedSource.code} invoice
             </button>
@@ -145,30 +134,6 @@ export function Home() {
             setPicking(false);
           }}
         />
-      )}
-      {generating && (
-        <Dialog
-          title="Invoices are coming next"
-          onClose={() => {
-            setGenerating(false);
-          }}
-        >
-          <p>
-            Creating the invoice files arrives in the next update of the app. Your entries are safe
-            on this phone until then.
-          </p>
-          <div class="sheet-actions">
-            <button
-              type="button"
-              class="btn"
-              onClick={() => {
-                setGenerating(false);
-              }}
-            >
-              OK
-            </button>
-          </div>
-        </Dialog>
       )}
     </Page>
   );

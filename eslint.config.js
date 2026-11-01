@@ -55,5 +55,29 @@ export default defineConfig(
       ],
     },
   },
+  {
+    // File writers are pure too: an invoice in, bytes out (src/files/README.md).
+    files: ['src/files/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            { group: ['preact', 'preact/*'], message: 'src/files must not import UI code.' },
+            {
+              group: ['**/storage', '**/storage/**', '**/ui', '**/ui/**'],
+              message: 'src/files must not import storage or UI code.',
+            },
+          ],
+        },
+      ],
+      'no-restricted-globals': [
+        'error',
+        ...['window', 'document', 'indexedDB', 'localStorage', 'sessionStorage', 'navigator'].map(
+          (name) => ({ name, message: 'src/files must not touch the DOM or storage.' }),
+        ),
+      ],
+    },
+  },
   prettier,
 );

@@ -1,7 +1,7 @@
 // Shared pieces for every screen (SPEC §10: main actions low, big targets, plain words).
 import type { ComponentChildren, JSX } from 'preact';
 import { useEffect, useId, useRef } from 'preact/hooks';
-import type { Counts, Entry, FundingSourceConfig } from '../core';
+import type { Entry, FundingSourceConfig } from '../core';
 import { checkEntryTimes } from '../core';
 import { dateLabel, hoursLabel, timeRangeLabel } from './format';
 import { sourceById, useApp } from './store';
@@ -387,21 +387,8 @@ export function Stepper({
   );
 }
 
-export const COUNT_FIELDS: readonly {
-  key: Exclude<keyof Counts, 'other'>;
-  label: string;
-  noun: string;
-}[] = [
-  { key: 'contacts', label: 'Contacts', noun: 'contacts' },
-  { key: 'referrals_given', label: 'Referrals given', noun: 'referrals given' },
-  { key: 'referral_followups', label: 'Referral follow-ups', noun: 'referral follow-ups' },
-  { key: 'rides_provided', label: 'Rides provided', noun: 'rides provided' },
-  {
-    key: 'applications_completed',
-    label: 'Applications completed',
-    noun: 'applications completed',
-  },
-];
+/** The five fixed counts (SPEC §5); kept in src/core so the invoice files use the same labels. */
+export { COUNT_FIELDS } from '../core';
 
 // --- Entries ----------------------------------------------------------------------------------
 

@@ -71,18 +71,39 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expectAccessible(page, 'timer running');
       await page.getByRole('button', { name: 'Discard timer' }).click();
       await expectAccessible(page, 'discard dialog');
+      await page.getByRole('dialog').getByRole('button', { name: 'Discard timer' }).click();
+
+      // Invoices (M4): preview, created, the unshared question, past invoices.
+      await page.getByRole('button', { name: 'Generate TISUPP invoice' }).click();
+      await expect(heading(page, 'New invoice')).toBeVisible();
+      await expectAccessible(page, 'invoice preview');
+      await page.getByRole('button', { name: 'Create invoice files' }).click();
+      await expect(heading(page, 'Invoice created')).toBeVisible();
+      await expectAccessible(page, 'invoice created');
+      await page.getByRole('button', { name: 'Done' }).click();
+      await expect(page.getByRole('dialog')).toBeVisible();
+      await expectAccessible(page, 'share first dialog');
+      await page.getByRole('dialog').getByRole('button', { name: 'Done anyway' }).click();
+      await page.getByRole('button', { name: 'Settings' }).click();
+      await page.getByRole('button', { name: /Past invoices/ }).click();
+      await expect(heading(page, 'Past invoices')).toBeVisible();
+      await expectAccessible(page, 'past invoices');
+      await page.getByRole('button', { name: /CC-\d{4}-001/ }).click();
+      await expect(heading(page, /^Invoice CC-/)).toBeVisible();
+      await expectAccessible(page, 're-share invoice');
     });
   });
 }
 
-test('install gate passes axe', async ({ browser }) => {
+test('install gate passes axe', async ({ browser, baseURL }) => {
   const context = await browser.newContext({
+    ...(baseURL ? { baseURL } : {}),
     userAgent:
       'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
     viewport: { width: 390, height: 844 },
   });
   const page = await context.newPage();
-  await page.goto('http://localhost:4173/chw-timesheet/');
+  await page.goto('./');
   await expect(heading(page, 'Add CHW Time Tracker to your Home Screen')).toBeVisible();
   await expectAccessible(page, 'install gate');
   await context.close();

@@ -45,12 +45,18 @@ function findPackageDir(name, fromDir) {
   }
 }
 
+/** License texts kept in the repo for packages that publish none: scripts/license-texts/<name>.txt. */
+const FALLBACK_TEXTS = join(import.meta.dirname, '..', 'license-texts');
+
 /**
  * @param {string} dir
+ * @param {string} name
  */
-function readLicenseText(dir) {
+function readLicenseText(dir, name) {
   const file = readdirSync(dir).find((f) => /^(licen[cs]e|copying)(\.|$)/i.test(f));
-  return file ? readFileSync(join(dir, file), 'utf8').replace(/\r\n?/g, '\n').trim() : '';
+  const fallback = join(FALLBACK_TEXTS, `${name.replace('/', '__')}.txt`);
+  const path = file ? join(dir, file) : existsSync(fallback) ? fallback : null;
+  return path ? readFileSync(path, 'utf8').replace(/\r\n?/g, '\n').trim() : '';
 }
 
 /**
@@ -91,7 +97,7 @@ export function collectRuntimeLicenses(root) {
         version: pkg.version,
         license: pkg.license ?? 'UNKNOWN',
         source: repositoryUrl(pkg.repository),
-        text: readLicenseText(dir),
+        text: readLicenseText(dir, pkg.name),
       });
       visit(pkg.dependencies ?? {}, dir);
     }

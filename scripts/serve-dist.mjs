@@ -1,11 +1,13 @@
 // Serves dist/ under /chw-timesheet/, the same path GitHub Pages uses. For preview and e2e only.
+// Usage: node scripts/serve-dist.mjs [port] [folder]; the folder (default dist/) lets the update
+// e2e serve a copy it changes.
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
-import { extname, join, normalize, sep } from 'node:path';
+import { extname, join, normalize, resolve, sep } from 'node:path';
 
 const BASE = '/chw-timesheet/';
 const port = Number(process.argv[2] ?? 4173);
-const dist = join(import.meta.dirname, '..', 'dist');
+const dist = process.argv[3] ? resolve(process.argv[3]) : join(import.meta.dirname, '..', 'dist');
 
 /** @type {Record<string, string>} */
 const TYPES = {
@@ -37,5 +39,5 @@ createServer((req, res) => {
   });
   createReadStream(file).pipe(res);
 }).listen(port, () => {
-  console.log(`Serving dist/ at http://localhost:${String(port)}${BASE}`);
+  console.log(`Serving ${dist} at http://localhost:${String(port)}${BASE}`);
 });

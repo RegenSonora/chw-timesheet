@@ -369,9 +369,9 @@ export function Stepper({
         >
           −
         </button>
-        <output class="val" aria-live="polite">
+        <span class="val" aria-live="polite">
           {value}
-        </output>
+        </span>
         <button
           type="button"
           class="stp"

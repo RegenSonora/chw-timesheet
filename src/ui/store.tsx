@@ -70,6 +70,22 @@ export interface SettingsChanges {
   settings: SourceSettings[];
 }
 
+/**
+ * Leaving the first step of a new timed entry would lose the timer's times, so it always asks.
+ * Kept here, not in the screen, so a fast back gesture can't slip past before effects run.
+ */
+function timedEntryGuard(stack: readonly Screen[], app: AppState): LeaveConfirm | null {
+  const d = app.draft;
+  if (stack[stack.length - 1] !== 'task' || d?.kind !== 'entry') return null;
+  if (d.entry_id !== null || d.hand !== null) return null;
+  return {
+    title: 'Discard this entry?',
+    body: "The timed hours won't be saved.",
+    confirm: 'Discard entry',
+    cancel: 'Keep it',
+  };
+}
+
 /** The stack of screens for a stored draft, so a reload returns to where the CHW was. */
 function stackFor(app: AppState): Screen[] {
   const d = app.draft;
@@ -160,7 +176,7 @@ function useStore(storage: Storage, initial: Data) {
       const current = stackRef.current;
       if (depth >= current.length - 1) return;
       if (!bypass.current) {
-        const ask = guard.current?.() ?? null;
+        const ask = guard.current?.() ?? timedEntryGuard(current, dataRef.current.app);
         if (ask) {
           history.pushState({ depth: current.length - 1 }, '');
           setAsking(ask);

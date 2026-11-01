@@ -1,5 +1,5 @@
 // New entry: Enter times → task and budget line → counts and notes → Save (SPEC §5).
-import { useEffect, useState } from 'preact/hooks';
+import { useState } from 'preact/hooks';
 import type { EntryDraft } from '../../storage';
 import { Page } from '../components';
 import { checkDraftTimes } from '../draft';
@@ -19,30 +19,9 @@ function useEntryDraft(): EntryDraft | null {
   return draft?.kind === 'entry' ? draft : null;
 }
 
-/** Leaving the first step of a timed entry asks first: the timer's times would be lost. */
-function useDiscardGuard(active: boolean) {
-  const { actions } = useApp();
-  useEffect(() => {
-    actions.setGuard(
-      active
-        ? () => ({
-            title: 'Discard this entry?',
-            body: "The timed hours won't be saved.",
-            confirm: 'Discard entry',
-            cancel: 'Keep it',
-          })
-        : null,
-    );
-    return () => {
-      actions.setGuard(null);
-    };
-  }, [actions, active]);
-}
-
 export function EnterTimes() {
   const { data, actions } = useApp();
   const draft = useEntryDraft();
-  useDiscardGuard(false);
   if (!draft) return null;
   const check = checkDraftTimes(draft, data.entries);
   const ready = check.state === 'ok';
@@ -72,7 +51,6 @@ export function TaskStep() {
   const { data, actions } = useApp();
   const draft = useEntryDraft();
   const [tried, setTried] = useState(false);
-  useDiscardGuard(draft !== null && draft.hand === null);
   if (!draft) return null;
   const check = checkDraftTimes(draft, data.entries);
   const missingTask = !draft.task_id;

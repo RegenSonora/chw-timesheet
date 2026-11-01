@@ -227,6 +227,20 @@ p {
   cursor: not-allowed;
 }
 
+/* Decision 0014: a new version is ready. Slim, but still a full-size target. */
+.update-bar {
+  width: 100%;
+  min-height: var(--button-min);
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 2px solid var(--accent-text);
+  background: var(--accent-tint);
+  color: var(--fg);
+  font-size: 17px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
 .btn-start {
   min-height: 72px;
   font-size: 22px;

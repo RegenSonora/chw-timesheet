@@ -9,6 +9,7 @@ import {
   shortDateLabel,
   timeLabel,
   timeRangeLabel,
+  versionLabel,
 } from '../../src/ui/format';
 
 const AZ = 'America/Phoenix';
@@ -67,5 +68,15 @@ describe('display formats (wireframes)', () => {
   it('plurals', () => {
     expect(plural(1, 'entry', 'entries')).toBe('1 entry');
     expect(plural(8, 'entry', 'entries')).toBe('8 entries');
+  });
+});
+
+describe('version label (decision 0016)', () => {
+  it('shows the release and the commit', () => {
+    expect(versionLabel('0.9.0+a1b2c3d')).toBe('0.9.0 (a1b2c3d)');
+  });
+
+  it('shows a dev build as is', () => {
+    expect(versionLabel('dev')).toBe('dev');
   });
 });

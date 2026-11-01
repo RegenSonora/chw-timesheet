@@ -11,7 +11,7 @@ import {
 } from '../../core';
 import { FUNDING_SOURCES } from '../../funding-sources';
 import { Confirm, Field, Page } from '../components';
-import { plural } from '../format';
+import { plural, versionLabel } from '../format';
 import { sourceById, useApp } from '../store';
 import { validNextNumber } from './Setup';
 import { StorageStatus } from './StorageStatus';
@@ -369,7 +369,7 @@ export function Settings() {
 
       <h2 class="sec">This phone</h2>
       <StorageStatus status={data.persistence} />
-      <p class="hint">Version {__APP_VERSION__} · Open source (Apache 2.0)</p>
+      <p class="hint">Version {versionLabel(__APP_VERSION__)} · Open source (Apache 2.0)</p>
 
       {leaving && (
         <Confirm

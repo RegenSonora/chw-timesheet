@@ -3,7 +3,7 @@
 A lightweight, offline phone app for Community Health Workers at Regenerating Sonora, Inc. CHWs log time against a funding source, then create an invoice PDF and two CSV files to sign and email.
 
 - Live app: https://regensonora.github.io/chw-timesheet/
-- Status: **in development, not ready for real use.** Setup, the timer, entering and editing time work in the browser; invoice files come next (build plan M4).
+- Status: **in development, not ready for real use.** Setup, the timer, entering and editing time, and invoice files (PDF, two CSVs, share and re-share) work in the browser; offline release work comes next (build plan M5).
 - Product spec: [docs/SPEC.md](docs/SPEC.md). Build plan: [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md). Decisions: [docs/decisions/](docs/decisions/).
 
 A guide for CHWs (install and daily use) comes with the first release.

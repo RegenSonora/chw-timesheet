@@ -1,0 +1,176 @@
+{
+  "format_version": 1,
+  "id": "regen-general-operating",
+  "code": "REGEN-GO",
+  "name": "Regen General Operating",
+  "version": 1,
+  "has_nte": false,
+  "default_rate_cents": null,
+  "certification_text": "I certify that the services listed were performed on the dates shown on the attached timesheet pages, the hours are accurate, and no participant names are included.",
+  "tasks": [
+    {
+      "id": "outreach",
+      "name": "Outreach",
+      "core_competency": "Outreach"
+    },
+    {
+      "id": "interview-and-intake",
+      "name": "Interview and intake",
+      "core_competency": "Individual & Community Assessment"
+    },
+    {
+      "id": "screening-and-referrals",
+      "name": "Screening and referrals",
+      "core_competency": "Individual & Community Assessment"
+    },
+    {
+      "id": "resource-research",
+      "name": "Resource research",
+      "core_competency": "Knowledge Base"
+    },
+    {
+      "id": "resource-acquisition",
+      "name": "Resource acquisition",
+      "core_competency": "Service Coordination & Navigation"
+    },
+    {
+      "id": "application-assistance",
+      "name": "Application assistance",
+      "core_competency": "Service Coordination & Navigation"
+    },
+    {
+      "id": "transportation",
+      "name": "Transportation",
+      "core_competency": "Service Coordination & Navigation"
+    },
+    {
+      "id": "advocacy",
+      "name": "Advocacy",
+      "core_competency": "Advocacy"
+    },
+    {
+      "id": "conversational-support",
+      "name": "Conversational support",
+      "core_competency": "Communication Skills"
+    },
+    {
+      "id": "supporting-client-self-efficacy",
+      "name": "Supporting client self-efficacy",
+      "core_competency": "Capacity-Building"
+    },
+    {
+      "id": "technical-assistance",
+      "name": "Technical assistance",
+      "core_competency": "Education & Facilitation"
+    },
+    {
+      "id": "client-or-community-workshops",
+      "name": "Client or community workshops",
+      "core_competency": "Education & Facilitation"
+    },
+    {
+      "id": "client-check-in",
+      "name": "Client check in",
+      "core_competency": "Interpersonal & Relationship-Building"
+    },
+    {
+      "id": "client-follow-up",
+      "name": "Client follow up",
+      "core_competency": "Service Coordination & Navigation"
+    },
+    {
+      "id": "re-screening",
+      "name": "Re-screening",
+      "core_competency": "Individual & Community Assessment"
+    },
+    {
+      "id": "planning-and-conducting-surveys",
+      "name": "Planning and conducting surveys",
+      "core_competency": "Individual & Community Assessment"
+    },
+    {
+      "id": "documentation",
+      "name": "Documentation",
+      "core_competency": "Professional Skills & Conduct"
+    },
+    {
+      "id": "data-analysis-and-reporting",
+      "name": "Data analysis and reporting",
+      "core_competency": "Evaluation & Research Skills"
+    },
+    {
+      "id": "developing-tools-processes",
+      "name": "Developing tools/processes",
+      "core_competency": "Professional Skills & Conduct"
+    },
+    {
+      "id": "meetings",
+      "name": "Meetings",
+      "core_competency": "Professional Skills & Conduct"
+    },
+    {
+      "id": "training-continuing-education",
+      "name": "Training / continuing education",
+      "core_competency": "Professional Skills & Conduct"
+    },
+    {
+      "id": "domestic-support",
+      "name": "Domestic support",
+      "core_competency": null
+    }
+  ],
+  "budget_lines": [
+    {
+      "id": "new-chws",
+      "name": "New CHWs: training, stipends, field hours"
+    },
+    {
+      "id": "chw-referrals",
+      "name": "CHW referrals"
+    },
+    {
+      "id": "outreach-and-marketing",
+      "name": "Outreach and marketing"
+    },
+    {
+      "id": "listening-sessions",
+      "name": "Listening sessions"
+    },
+    {
+      "id": "community-atlas",
+      "name": "Community Atlas"
+    },
+    {
+      "id": "family-tree",
+      "name": "Family Tree"
+    },
+    {
+      "id": "family-resilience-workshops",
+      "name": "Family Resilience Workshops"
+    },
+    {
+      "id": "youth-leadership-academy",
+      "name": "Youth Leadership Academy"
+    },
+    {
+      "id": "green-thumb-warriors",
+      "name": "Green Thumb Warriors"
+    },
+    {
+      "id": "full-moon-garden-parties",
+      "name": "Full Moon Garden Parties"
+    },
+    {
+      "id": "youth-and-family-field-trips",
+      "name": "Youth and family field trips"
+    },
+    {
+      "id": "quarterly-partnership-meetings",
+      "name": "Quarterly partnership meetings"
+    },
+    {
+      "id": "domestic-support",
+      "name": "Domestic support"
+    }
+  ]
+}

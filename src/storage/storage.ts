@@ -27,7 +27,7 @@ export function phoneNow(): string {
 }
 
 export function emptyAppState(): AppState {
-  return { running_timer: null, selected_source_id: null, per_source: {} };
+  return { running_timer: null, selected_source_id: null, per_source: {}, draft: null };
 }
 
 /** After an entry is saved: its budget line becomes the default, its task moves to the front (SPEC §5). */

@@ -1,6 +1,7 @@
 // The Storage interface screens use, and the small transaction interface both adapters implement.
 import type { InvoiceResult } from '../core/invoice';
 import type {
+  Counts,
   Entry,
   FundingSourceConfig,
   Invoice,
@@ -17,6 +18,40 @@ export interface AppState {
   selected_source_id: string | null;
   /** Kept per source because each source has its own tasks and budget lines. */
   per_source: Record<string, SourcePicks>;
+  /** The half-entered record, saved on every tap so an interruption never loses it (SPEC §10). */
+  draft: Draft | null;
+}
+
+export type Draft = EntryDraft | SetupDraft;
+
+/** A new entry or an edit in progress (SPEC §5). */
+export interface EntryDraft {
+  kind: 'entry';
+  /** Null for a new entry; the entry's id when editing. */
+  entry_id: string | null;
+  /** The screen to return to after an interruption. */
+  step: 'times' | 'task' | 'counts' | 'edit';
+  /** "Enter times" fields as typed: YYYY-MM-DD, HH:MM, HH:MM. Null for a timer entry. */
+  hand: { date: string; start: string; end: string } | null;
+  /** Raw times, ISO 8601 with offset. Null until valid times are known. */
+  start: string | null;
+  stop: string | null;
+  source_id: string;
+  task_id: string | null;
+  budget_line_id: string | null;
+  counts: Counts;
+  notes: string;
+}
+
+/** The setup form as typed, before the profile exists. */
+export interface SetupDraft {
+  kind: 'setup';
+  name: string;
+  initials: string;
+  mailing_address: string;
+  next_number: string;
+  /** Per funding source id: picked or not, and the rate as typed. */
+  sources: Record<string, { picked: boolean; rate: string }>;
 }
 
 export interface SourcePicks {

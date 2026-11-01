@@ -5,7 +5,14 @@ import { request } from '../../src/storage/idb';
 import { openIdbStorage } from '../../src/storage/idb-storage';
 import { DATA_VERSION, STORES_V1 } from '../../src/storage/records';
 import type { StoredRecord } from '../../src/storage/types';
-import { runUpgrades, SCHEMA, type Schema, type Snapshot } from '../../src/storage/upgrades';
+import { emptyAppState } from '../../src/storage/storage';
+import {
+  runUpgrades,
+  SCHEMA,
+  v1ToV2,
+  type Schema,
+  type Snapshot,
+} from '../../src/storage/upgrades';
 import { must, sampleEntries } from '../core/fixtures/wireframe-sample';
 import { NOW, profile, testIds } from './helpers';
 
@@ -96,23 +103,26 @@ const fakeV0Step = (snap: Snapshot): Snapshot => {
   };
 };
 
-describe('data format version 1', () => {
+/** The layout the first release (data v1) wrote, with no upgrade steps. */
+const releasedV1: Schema = { version: 1, layouts: { 1: STORES_V1 }, steps: {} };
+
+describe('data format version 2', () => {
   it('is what this release writes', () => {
-    expect(DATA_VERSION).toBe(1);
+    expect(DATA_VERSION).toBe(2);
     expect(SCHEMA.version).toBe(DATA_VERSION);
     expect(SCHEMA.layouts[DATA_VERSION]).toEqual(STORES_V1);
   });
 
-  it('a new phone gets every v1 store and a meta record with the version', async () => {
+  it('a new phone gets every store and a meta record with the version', async () => {
     const factory = new IDBFactory();
     const opened = await open(factory);
     if (!opened.ok) throw new Error(opened.reason);
     opened.storage.close();
     const { version, data } = await rawDump(factory);
-    expect(version).toBe(1);
+    expect(version).toBe(2);
     expect(Object.keys(data).sort()).toEqual([...STORES_V1].sort());
     expect(data['meta']).toEqual([
-      { id: 'data', data_version: 1, created_at: NOW, updated_at: NOW },
+      { id: 'data', data_version: 2, created_at: NOW, updated_at: NOW },
     ]);
   });
 
@@ -178,37 +188,37 @@ describe('upgrading stored data', () => {
     expect(must(data['meta'])[0]).toMatchObject({ data_version: 2 });
   });
 
-  it('the current v1 layout upgrades to a fake v2 and keeps its records', async () => {
+  it('the current layout upgrades to a fake v3 and keeps its records', async () => {
     const factory = new IDBFactory();
-    const v1 = await open(factory);
-    if (!v1.ok) throw new Error(v1.reason);
-    await v1.storage.saveProfile({ ...profile });
-    for (const e of sampleEntries) await v1.storage.saveEntry(e);
-    v1.storage.close();
+    const current = await open(factory);
+    if (!current.ok) throw new Error(current.reason);
+    await current.storage.saveProfile({ ...profile });
+    for (const e of sampleEntries) await current.storage.saveEntry(e);
+    current.storage.close();
 
-    const v2: Schema = {
-      version: 2,
-      layouts: { 1: STORES_V1, 2: STORES_V1 },
+    const v3: Schema = {
+      version: 3,
+      layouts: { 2: STORES_V1, 3: STORES_V1 },
       steps: {
-        1: (s) => ({
+        2: (s) => ({
           ...s,
           entries: (s['entries'] ?? []).map((e) => ({
             ...e,
-            notes: `v2:${(e as StoredRecord & { notes: string }).notes}`,
+            notes: `v3:${(e as StoredRecord & { notes: string }).notes}`,
           })),
         }),
       },
     };
-    const opened = await open(factory, v2);
+    const opened = await open(factory, v3);
     if (!opened.ok) throw new Error(opened.reason);
     const entries = await opened.storage.listEntries();
     expect(entries).toHaveLength(sampleEntries.length);
-    expect(entries.every((e) => e.notes.startsWith('v2:'))).toBe(true);
+    expect(entries.every((e) => e.notes.startsWith('v3:'))).toBe(true);
     expect(await opened.storage.getProfile()).toEqual(profile);
     opened.storage.close();
 
     const meta = must(must((await rawDump(factory)).data['meta'])[0]);
-    expect(meta).toMatchObject({ data_version: 2, created_at: NOW });
+    expect(meta).toMatchObject({ data_version: 3, created_at: NOW });
   });
 
   it('a failed upgrade leaves the old data and version untouched', async () => {
@@ -251,5 +261,57 @@ describe('upgrading stored data', () => {
 
     expect(await open(factory)).toMatchObject({ ok: false, reason: 'newer_data' });
     expect(await rawDump(factory)).toEqual(before);
+  });
+});
+
+describe('v1 → v2: app state gains draft', () => {
+  const v1State = {
+    running_timer: { start: NOW, source_id: 'tisupp' },
+    selected_source_id: 'tisupp',
+    per_source: { tisupp: { last_budget_line_id: 'chw-referrals', recent_task_ids: ['outreach'] } },
+  };
+
+  it('the step adds an empty draft and changes nothing else', () => {
+    const record = { id: 'state-1', created_at: NOW, updated_at: NOW, ...v1State };
+    const entry = { id: 'e1' };
+    expect(v1ToV2({ app_state: [record], entries: [entry] })).toEqual({
+      app_state: [{ ...record, draft: null }],
+      entries: [entry],
+    });
+    expect(v1ToV2({ entries: [] })).toEqual({ entries: [], app_state: [] });
+  });
+
+  it('a phone with released v1 data opens with every record kept', async () => {
+    const factory = new IDBFactory();
+    const v1 = await open(factory, releasedV1);
+    if (!v1.ok) throw new Error(v1.reason);
+    await v1.storage.saveProfile({ ...profile });
+    for (const e of sampleEntries) await v1.storage.saveEntry(e);
+    // The v1 app state had no draft field.
+    await v1.storage.saveAppState(v1State as unknown as ReturnType<typeof emptyAppState>);
+    v1.storage.close();
+    expect((await rawDump(factory)).version).toBe(1);
+
+    const opened = await open(factory);
+    if (!opened.ok) throw new Error(opened.reason);
+    expect(await opened.storage.getAppState()).toEqual({ ...v1State, draft: null });
+    expect(await opened.storage.listEntries()).toHaveLength(sampleEntries.length);
+    expect(await opened.storage.getProfile()).toEqual(profile);
+    opened.storage.close();
+
+    const { version, data } = await rawDump(factory);
+    expect(version).toBe(2);
+    expect(must(data['meta'])[0]).toMatchObject({ data_version: 2 });
+  });
+
+  it('a phone with no v1 app state upgrades cleanly', async () => {
+    const factory = new IDBFactory();
+    const v1 = await open(factory, releasedV1);
+    if (!v1.ok) throw new Error(v1.reason);
+    v1.storage.close();
+    const opened = await open(factory);
+    if (!opened.ok) throw new Error(opened.reason);
+    expect(await opened.storage.getAppState()).toEqual(emptyAppState());
+    opened.storage.close();
   });
 });

@@ -1,6 +1,6 @@
 {
   "name": "chw-timesheet",
-  "version": "0.0.0",
+  "version": "0.9.0",
   "private": true,
   "description": "Offline phone app for Community Health Workers to log time and generate invoices.",
   "license": "Apache-2.0",

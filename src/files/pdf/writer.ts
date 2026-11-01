@@ -141,7 +141,7 @@ export class PdfDocument {
   }
 
   /** The finished file. Every byte is written here; offsets in the xref table are exact. */
-  bytes(info: PdfInfo): Uint8Array {
+  bytes(info: PdfInfo): Uint8Array<ArrayBuffer> {
     const objects: string[] = [];
     const add = (body: string) => {
       objects.push(body);

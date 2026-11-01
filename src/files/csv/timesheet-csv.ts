@@ -9,7 +9,7 @@ const hours = (q: number | null) => (q === null ? '' : formatQuarters(q));
 export function timesheetCsv(
   invoice: Invoice,
   source: Pick<FundingSourceConfig, 'tasks' | 'budget_lines'>,
-): Uint8Array {
+): Uint8Array<ArrayBuffer> {
   const rows: string[][] = [
     ['Invoice #', invoice.number],
     ['Funding source', invoice.source.code],

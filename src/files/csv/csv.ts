@@ -14,7 +14,7 @@ export function csvRow(cells: readonly string[]): string {
 }
 
 /** Rows → file bytes. An empty row is a blank line. */
-export function csvFile(rows: readonly (readonly string[])[]): Uint8Array {
+export function csvFile(rows: readonly (readonly string[])[]): Uint8Array<ArrayBuffer> {
   const text = rows.map((r) => `${csvRow(r)}\r\n`).join('');
   return new TextEncoder().encode(`\uFEFF${text}`);
 }

@@ -20,7 +20,7 @@ export async function readPdf(bytes: Uint8Array): Promise<ReadPage[]> {
     const [, , width = 0, height = 0] = page.view;
     const content = await page.getTextContent();
     const items = content.items.flatMap((item) => ('str' in item && item.str ? [item.str] : []));
-    pages.push({ width, height, text: items.join(' '), items });
+    pages.push({ width, height, text: items.join(' ').replace(/\s+/g, ' ').trim(), items });
   }
   await task.destroy();
   return pages;

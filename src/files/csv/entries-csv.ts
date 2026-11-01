@@ -38,7 +38,7 @@ export function durationText(seconds: number): string {
   return `${String(Math.floor(s / 3600))}:${mm}:${ss}`;
 }
 
-export function entriesCsv(invoice: Invoice): Uint8Array {
+export function entriesCsv(invoice: Invoice): Uint8Array<ArrayBuffer> {
   const rate = formatCentsPlain(invoice.rate_cents);
   const rows = invoice.entries.map((e) => [
     invoice.number,

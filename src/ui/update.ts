@@ -42,8 +42,10 @@ export async function watchForUpdate(container: ServiceWorkerContainer): Promise
 
   const offer = () => {
     const waiting = registration.waiting;
-    // No controller means this is the first install, not an update.
-    if (!waiting || !container.controller) return;
+    // An update needs an older release running. On the first install there is none, though
+    // WebKit can already report the new worker as the controller while it is still waiting.
+    const running = registration.active;
+    if (!waiting || !running || !container.controller || container.controller === waiting) return;
     ready(() => {
       container.addEventListener('controllerchange', () => {
         if (reloading) return;

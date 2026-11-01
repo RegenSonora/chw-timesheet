@@ -47,9 +47,16 @@ export async function addEntry(
 ): Promise<void> {
   await page.getByRole('button', { name: 'Enter times instead' }).click();
   await expect(heading(page, 'Enter times')).toBeVisible();
-  await page.getByLabel('Date').fill(entry.date);
-  await page.getByLabel('Start').fill(entry.start);
-  await page.getByLabel('End').fill(entry.end);
+  // In WebKit a fill right after the screen mounts sometimes fires no input event, and the
+  // field shows today's date again. Fill until all three values stick.
+  await expect(async () => {
+    await page.getByLabel('Date').fill(entry.date);
+    await page.getByLabel('Start').fill(entry.start);
+    await page.getByLabel('End').fill(entry.end);
+    await expect(page.getByLabel('Date')).toHaveValue(entry.date, { timeout: 500 });
+    await expect(page.getByLabel('Start')).toHaveValue(entry.start, { timeout: 500 });
+    await expect(page.getByLabel('End')).toHaveValue(entry.end, { timeout: 500 });
+  }).toPass();
   await page.getByRole('button', { name: 'Next' }).click();
   await pickTaskAndLine(page, entry.task ?? 'Client check in', entry.line ?? 'CHW referrals');
   await page.getByRole('button', { name: 'Save entry' }).click();

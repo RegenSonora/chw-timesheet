@@ -1,6 +1,6 @@
 {
-  "name": "CHW Time Tracker",
-  "short_name": "CHW Time",
+  "name": "Regen Time Tracking",
+  "short_name": "Regen Time",
   "description": "Log time and create invoices for Regenerating Sonora.",
   "lang": "en",
   "id": "./",

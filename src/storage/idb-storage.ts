@@ -4,7 +4,7 @@ import { createStorage, phoneNow, type StorageOptions } from './storage';
 import { SCHEMA, type Schema } from './upgrades';
 import type { BeforeWrite, Storage } from './types';
 
-export const DB_NAME = 'chw-timesheet';
+export const DB_NAME = 'regen-time-tracking';
 
 export interface IdbOptions extends StorageOptions {
   /** Defaults to the browser's indexedDB. */

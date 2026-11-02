@@ -25,7 +25,7 @@ test('changing the rate with entries waiting asks first', async ({ page }) => {
   await expect(heading(page, 'New invoice')).toBeVisible();
   await expect(page.getByText('$20.00 / h')).toBeVisible();
   await page.getByRole('button', { name: 'Back' }).click();
-  await expect(heading(page, 'CHW Time Tracker')).toBeVisible();
+  await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
   await expect(page.getByText('1 entry · 1.5 h · $30.00')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Generate TISUPP invoice' })).toBeVisible();
 
@@ -33,7 +33,7 @@ test('changing the rate with entries waiting asks first', async ({ page }) => {
   await page.getByLabel('Hourly rate for TISUPP').fill('22.00');
   await page.getByRole('button', { name: 'Save changes' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Change rate now' }).click();
-  await expect(heading(page, 'CHW Time Tracker')).toBeVisible();
+  await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
   await expect(page.getByText('1 entry · 1.5 h · $33.00')).toBeVisible();
 });
 

@@ -62,7 +62,7 @@ describe('page 1 as shapes, for the picture (decision 0018)', () => {
     const invoice = await invoiceFrom({ source: { ...tisupp, version: 1 } });
     const files = buildInvoiceFiles(invoice, tisupp);
     expect(await Promise.all(files.map((f) => sha256(f.bytes)))).toEqual([
-      '70abc2b72e5d12c387478c3d417408b57844659bd78cd52bfe045a30a1fb4863',
+      '24c1b85d1145e391ef0c3358355f52a32a77972e5193a53dfc306fcdcebb5dce',
       '6efa866b91e9dac673a6b7bd66a471fe4707dd382ac95e50807737418a710ad4',
       'c3e167e974ba2b63a43e67217e13efef14847e1b54fe18cfca2f12b8dd2575ab',
     ]);

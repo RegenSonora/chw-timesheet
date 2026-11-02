@@ -1,4 +1,4 @@
-# CHW Time Tracker — product spec
+# Regen Time Tracking — product spec
 
 _Decided with Chris on October 30–31, 2026. Wireframes: https://claude.ai/artifact/92kpyaebTLS2Ht4Le6jDmP (private; share from its Share menu). Source form: `docs/source/CHW_Timesheet_and_Invoice_TISUPP.xlsx`, kept locally and not committed; this spec carries everything needed from it._
 
@@ -19,8 +19,8 @@ The app is a separate product from the grant compliance platform. It shares no c
 | Topic | Decision |
 |---|---|
 | Phones | iPhone and Android. One CHW per phone. |
-| Hosting | GitHub Pages at `https://regensonora.github.io/chw-timesheet/`. A custom subdomain comes later (not now). |
-| Repo | `RegenSonora/chw-timesheet`, public |
+| Hosting | GitHub Pages at `https://regensonora.github.io/regen-time-tracking/`. A custom subdomain comes later (not now). |
+| Repo | `RegenSonora/regen-time-tracking`, public |
 | License | Code: Apache 2.0. Docs, task lists and certification text: CC BY 4.0 |
 | Install | Home Screen web app. iPhone: setup is blocked until the app is opened from the Home Screen (Safari and the Home Screen app keep separate storage). Android: Chrome offers Install; setup is not blocked. |
 | Offline | Works with no signal after the first load |

@@ -35,7 +35,7 @@ export async function setUp(page: Page, options: { regen?: boolean } = {}): Prom
     await page.getByLabel('Hourly rate for REGEN-GO').fill('18.00');
   }
   await page.getByRole('button', { name: 'Save and start' }).click();
-  await expect(heading(page, 'CHW Time Tracker')).toBeVisible();
+  await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
 }
 
 /** Enter times → task and budget line → Save, from Home. */
@@ -64,7 +64,7 @@ export async function addEntry(
   await page.getByRole('button', { name: 'Next' }).click();
   await pickTaskAndLine(page, entry.task ?? 'Client check in', entry.line ?? 'CHW referrals');
   await page.getByRole('button', { name: 'Save entry' }).click();
-  await expect(heading(page, 'CHW Time Tracker')).toBeVisible();
+  await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
 }
 
 export async function pickTaskAndLine(page: Page, task: string, line: string): Promise<void> {

@@ -9,7 +9,7 @@ Mark each step ✅ or ❌. Any ❌ blocks the release until fixed or accepted by
 ## Before you start
 
 - [ ] CI is green on `main` and the Pages deploy finished.
-- [ ] https://regensonora.github.io/chw-timesheet/ opens and Settings shows the commit just deployed.
+- [ ] https://regensonora.github.io/regen-time-tracking/ opens and Settings shows the commit just deployed.
 - [ ] The phone has a mail app signed in, and (Android) Adobe Acrobat Reader installed.
 - [ ] Use a test name and initials (for example "Test CHW", `TT`). Delete the app from the phone afterwards.
 
@@ -18,7 +18,7 @@ Mark each step ✅ or ❌. Any ❌ blocks the release until fixed or accepted by
 | # | iPhone | Android |
 |---|---|---|
 | 1.1 | Open the address in **Safari**. The page says to add the app to the Home Screen; setup is **not** shown. | Open the address in **Chrome**. Setup is shown. |
-| 1.2 | Share › **Add to Home Screen**. The icon shows a green caduceus in a cream egg on green, and the name "CHW Time". | Menu › **Install app** (or **Add to Home screen**). Same icon; on the app drawer it is not cut off. |
+| 1.2 | Share › **Add to Home Screen**. The icon shows the desert night scene (moon over the mesa, sun behind the purple mountain), and the name "Regen Time". | Menu › **Install app** (or **Add to Home screen**). Same icon; on the app drawer it is not cut off. |
 | 1.3 | Open the app from the Home Screen icon. It opens full screen (no Safari bars) and shows setup. | Open from the icon. It opens full screen and shows setup. |
 | 1.4 | Setup warns that removing the app from the Home Screen (iPhone) or clearing the site's data (Android) erases entries not yet invoiced. | Same warning. |
 | 1.5 | Finish setup. Home shows "Not yet invoiced". | Same. |

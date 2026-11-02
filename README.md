@@ -1,9 +1,9 @@
-# CHW Time Tracker
+# Regen Time Tracking
 
 A lightweight, offline phone app for Community Health Workers at Regenerating Sonora, Inc. CHWs log time against a funding source, then create an invoice PDF, a picture of the invoice page and two CSV files to sign and email.
 
-- Live app: https://regensonora.github.io/chw-timesheet/
-- Status: **0.9.0, pilot release.** Logging time, invoices, sharing and offline use all work. One or two CHWs run it alongside the spreadsheet before everyone switches (build plan M6).
+- Live app: https://regensonora.github.io/regen-time-tracking/
+- Status: **0.10.0.** Split from CHW Time Tracker Historic (decision 0020); funding sources and features change from here. Logging time, invoices, sharing and offline use all work.
 - Product spec: [docs/SPEC.md](docs/SPEC.md). Build plan: [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md). Decisions: [docs/decisions/](docs/decisions/).
 
 ## For CHWs
@@ -12,15 +12,15 @@ A lightweight, offline phone app for Community Health Workers at Regenerating So
 
 **iPhone**
 
-1. Open https://regensonora.github.io/chw-timesheet/ in **Safari**.
+1. Open https://regensonora.github.io/regen-time-tracking/ in **Safari**.
 2. Tap the **Share** button, then **Add to Home Screen**, then **Add**.
-3. Open **CHW Time** from your Home Screen. Always open it from there: Safari and the Home Screen app keep separate data.
+3. Open **Regen Time** from your Home Screen. Always open it from there: Safari and the Home Screen app keep separate data.
 
 **Android**
 
-1. Open https://regensonora.github.io/chw-timesheet/ in **Chrome**.
+1. Open https://regensonora.github.io/regen-time-tracking/ in **Chrome**.
 2. Tap **Install** when Chrome offers it (or Menu › **Install app**).
-3. Open **CHW Time** from your Home Screen or app list.
+3. Open **Regen Time** from your Home Screen or app list.
 
 Then fill in setup: your name, initials, mailing address, and the hourly rate from your agreement. After the first time, the app works with **no signal**.
 
@@ -56,20 +56,20 @@ pnpm exec playwright install chromium webkit
 pnpm dev
 ```
 
-| Command                | What it does                                                            |
-| ---------------------- | ----------------------------------------------------------------------- |
-| `pnpm dev`             | Dev server with hot reload (no CSP)                                     |
-| `pnpm build`           | Builds `dist/`: `index.html`, `sw.js`, `manifest.webmanifest`, `icons/` |
-| `pnpm preview`         | Serves `dist/` at http://localhost:4173/chw-timesheet/, like Pages      |
-| `pnpm test`            | Unit tests (Vitest, `tests/`)                                           |
-| `pnpm test:e2e`        | Browser tests: WebKit and Chromium at 390×844, with axe WCAG 2.1 AA     |
-| `pnpm lint`            | ESLint                                                                  |
-| `pnpm format`          | Prettier (write); `pnpm format:check` to check only                     |
-| `pnpm typecheck`       | TypeScript, strict                                                      |
-| `pnpm check:dist`      | Fails unless `dist/` is one self-contained page plus the allowed files  |
-| `pnpm check:size`      | Fails over 150 KB gzip (index.html + sw.js + manifest)                  |
-| `pnpm licenses:update` | Regenerates `THIRD_PARTY_LICENSES.md`; `pnpm licenses:check` checks it  |
-| `pnpm check`           | Everything CI runs except e2e, in order                                 |
+| Command                | What it does                                                             |
+| ---------------------- | ------------------------------------------------------------------------ |
+| `pnpm dev`             | Dev server with hot reload (no CSP)                                      |
+| `pnpm build`           | Builds `dist/`: `index.html`, `sw.js`, `manifest.webmanifest`, `icons/`  |
+| `pnpm preview`         | Serves `dist/` at http://localhost:4173/regen-time-tracking/, like Pages |
+| `pnpm test`            | Unit tests (Vitest, `tests/`)                                            |
+| `pnpm test:e2e`        | Browser tests: WebKit and Chromium at 390×844, with axe WCAG 2.1 AA      |
+| `pnpm lint`            | ESLint                                                                   |
+| `pnpm format`          | Prettier (write); `pnpm format:check` to check only                      |
+| `pnpm typecheck`       | TypeScript, strict                                                       |
+| `pnpm check:dist`      | Fails unless `dist/` is one self-contained page plus the allowed files   |
+| `pnpm check:size`      | Fails over 150 KB gzip (index.html + sw.js + manifest)                   |
+| `pnpm licenses:update` | Regenerates `THIRD_PARTY_LICENSES.md`; `pnpm licenses:check` checks it   |
+| `pnpm check`           | Everything CI runs except e2e, in order                                  |
 
 ### How it is built
 
@@ -85,7 +85,7 @@ Pushes to `main` run CI and, when every check passes, deploy `dist/` to GitHub P
 
 1. Set `version` in `package.json` (Settings shows it as `0.9.0 (a1b2c3d)`, decision 0016) and merge to `main`. CI deploys to Pages.
 2. Run the [release checklist](docs/release-checklist.md) on one iPhone and one Android phone.
-3. Icons are generated: `node scripts/make-icons.mjs` rewrites `public/icons/` (decision 0017); commit the output.
+3. Icons are generated: `node scripts/make-icons.mjs` rewrites `public/icons/` (decision 0021); commit the output.
 
 ### Layout
 

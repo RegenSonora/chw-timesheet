@@ -79,7 +79,7 @@ test('create, share and re-share an invoice', async ({ page }) => {
 
   // Back on Home, the entries are locked away.
   await page.getByRole('button', { name: 'Done' }).click();
-  await expect(heading(page, 'CHW Time Tracker')).toBeVisible();
+  await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
   await expect(page.getByText('No TISUPP entries waiting.', { exact: false })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Generate TISUPP invoice' })).toHaveCount(0);
 
@@ -97,7 +97,7 @@ test('create, share and re-share an invoice', async ({ page }) => {
 
   // The next invoice takes the next number.
   await page.getByRole('button', { name: 'Back' }).click();
-  await expect(heading(page, 'CHW Time Tracker')).toBeVisible();
+  await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
   await addEntry(page, { date: '2026-10-31', start: '09:00', end: '10:00' });
   await page.getByRole('button', { name: 'Generate TISUPP invoice' }).click();
   await expect(page.getByText(/^CC-\d{4}-002$/)).toBeVisible();
@@ -135,7 +135,7 @@ test('without file sharing, the files download; leaving unshared asks first', as
   ]);
 
   await page.getByRole('button', { name: 'Done' }).click();
-  await expect(heading(page, 'CHW Time Tracker')).toBeVisible();
+  await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
 });
 
 test('Done anyway leaves an unshared invoice; it stays in Past invoices', async ({ page }) => {
@@ -146,7 +146,7 @@ test('Done anyway leaves an unshared invoice; it stays in Past invoices', async 
   await page.getByRole('button', { name: 'Create invoice files' }).click();
   await page.getByRole('button', { name: 'Done' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Done anyway' }).click();
-  await expect(heading(page, 'CHW Time Tracker')).toBeVisible();
+  await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
   await expect(page.getByRole('button', { name: /Past invoices 1 invoice/ })).toBeVisible();
   await page.getByRole('button', { name: 'Settings' }).click();
   await expect(page.getByRole('button', { name: /Past invoices/ })).toHaveCount(0);

@@ -18,7 +18,9 @@ test.use({
   // Playwright requires the destructuring pattern for fixture functions.
   // eslint-disable-next-line no-empty-pattern
   baseURL: async ({}, use, testInfo) => {
-    await use(`http://localhost:${String(BASE_PORT + testInfo.parallelIndex)}/chw-timesheet/`);
+    await use(
+      `http://localhost:${String(BASE_PORT + testInfo.parallelIndex)}/regen-time-tracking/`,
+    );
   },
 });
 
@@ -46,7 +48,7 @@ test.afterEach(() => {
 function publish(): void {
   const path = join(folder, 'sw.js');
   const sw = readFileSync(path, 'utf8');
-  const version = /^\/\/ CHW Time Tracker (\S+)/.exec(sw)?.[1] ?? '';
+  const version = /^\/\/ Regen Time Tracking (\S+)/.exec(sw)?.[1] ?? '';
   expect(version).not.toBe('');
   writeFileSync(path, sw.replaceAll(version, NEW_VERSION));
 }
@@ -81,14 +83,14 @@ test('a new release is offered between entries and loads on tap', async ({ page 
   await pickTaskAndLine(page, 'Client check in', 'CHW referrals');
   await expect(updateBar).toHaveCount(0);
   await page.getByRole('button', { name: 'Save entry' }).click();
-  await expect(heading(page, 'CHW Time Tracker')).toBeVisible();
+  await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
   await expect(updateBar).toBeVisible();
   await expectAccessible(page, 'Home with the update offer');
 
   // Tap: the new release takes over and the page reloads with the entry still there.
   await Promise.all([page.waitForEvent('load'), updateBar.click()]);
-  await expect(heading(page, 'CHW Time Tracker')).toBeVisible();
-  await expect.poll(() => cacheNames(page)).toEqual([`chw-${NEW_VERSION}`]);
+  await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
+  await expect.poll(() => cacheNames(page)).toEqual([`regen-${NEW_VERSION}`]);
   await expect(updateBar).toHaveCount(0);
   await expect(page.getByText('1 entry · 0.5 h · $10.00')).toBeVisible();
 });

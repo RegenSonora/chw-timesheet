@@ -1,6 +1,6 @@
 // What the service worker caches and serves (SPEC §2 "Offline"). Pure, so it is unit tested.
 
-const PREFIX = 'chw-';
+const PREFIX = 'regen-';
 
 /** One cache per release, so a waiting new version never mixes files with the running one. */
 export function cacheName(version: string): string {

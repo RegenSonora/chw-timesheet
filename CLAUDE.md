@@ -1,4 +1,4 @@
-# CLAUDE.md — CHW Time Tracker
+# CLAUDE.md — Regen Time Tracking
 
 Read this file at the start of every session. It holds the rules that do not change from task to task.
 
@@ -69,7 +69,7 @@ pnpm install                                  install from the lockfile
 pnpm exec playwright install chromium webkit  once, for e2e
 pnpm dev                                      dev server (no CSP)
 pnpm build                                    dist/: index.html, sw.js, manifest.webmanifest, icons/
-pnpm preview                                  serve dist/ at http://localhost:4173/chw-timesheet/
+pnpm preview                                  serve dist/ at http://localhost:4173/regen-time-tracking/
 pnpm test                                     Vitest unit tests (tests/)
 pnpm test:e2e                                 Playwright, WebKit + Chromium, 390×844, axe
 pnpm lint | format | format:check | typecheck

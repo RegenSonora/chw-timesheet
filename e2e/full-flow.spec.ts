@@ -88,7 +88,7 @@ test('setup → 9 dates of entries → invoice → files → re-share', async ({
   await page.getByLabel('Notes (optional)').fill('Met at the clinic, follow up next week');
   await expectAccessible(page, 'counts step');
   await page.getByRole('button', { name: 'Save entry' }).click();
-  await expect(heading(page, 'CHW Time Tracker')).toBeVisible();
+  await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
 
   for (const entry of TYPED) await addEntry(page, entry);
   await expect(page.getByText('9 entries · 12 h · $240.00')).toBeVisible();

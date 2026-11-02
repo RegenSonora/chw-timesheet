@@ -30,7 +30,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expectAccessible(page, 'enter times');
       await page.getByRole('button', { name: 'Next' }).click();
       await page.getByRole('button', { name: 'Next' }).click();
-      await expect(page.getByText('Pick what you did.')).toBeVisible();
+      await expect(page.getByText('Check what you did.')).toBeVisible();
       await expectAccessible(page, 'task step with errors');
       await pickTaskAndLine(page, 'Client check in', 'CHW referrals');
       await page.getByRole('button', { name: '+ Add another count' }).click();

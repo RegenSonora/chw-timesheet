@@ -67,14 +67,27 @@ export async function addEntry(
   await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
 }
 
-export async function pickTaskAndLine(page: Page, task: string, line: string): Promise<void> {
-  await expect(heading(page, 'What did you do?')).toBeVisible();
+export function taskBox(page: Page, task: string) {
+  return page.getByRole('checkbox', { name: new RegExp(`^${task}`) });
+}
+
+/** Open the budget line picker and pick a line. */
+export async function pickLine(page: Page, line: string): Promise<void> {
   await page
-    .getByRole('button', { name: /^(Not picked yet|.+) (Choose|Change)$/ })
-    .nth(1)
+    .locator('.field', { has: page.getByText('Budget line', { exact: true }) })
+    .getByRole('button')
     .click();
   await page.getByRole('dialog').getByRole('button', { name: line, exact: true }).click();
-  await page.getByRole('radio', { name: new RegExp(`^${task}`) }).check();
+}
+
+/**
+ * Pick a budget line, check one task and go on: the task gets all the hours, so there is no
+ * split step (decision 0024).
+ */
+export async function pickTaskAndLine(page: Page, task: string, line: string): Promise<void> {
+  await expect(heading(page, 'What did you do?')).toBeVisible();
+  await pickLine(page, line);
+  await taskBox(page, task).check();
   await page.getByRole('button', { name: 'Next' }).click();
   await expect(heading(page, 'Counts and notes')).toBeVisible();
   await expect(page.getByText('Step 2 of 2')).toBeVisible();

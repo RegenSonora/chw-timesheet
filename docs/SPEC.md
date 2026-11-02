@@ -97,10 +97,11 @@ Each funding source is a JSON file in the repo, validated against a JSON Schema 
 - **Too short:** an entry that rounds to 0 h (under 7.5 minutes) is blocked with a plain message; it is never saved.
 - **Overlaps:** blocked, compared on raw start and stop times.
 - **Entry date:** an entry belongs to its start date, including entries that cross midnight.
-- **Entry flow:** Stop (or enter times) → task and budget line (budget line defaults to the last one used; recent tasks first) → counts and notes → Save. A typical entry is 4 taps.
+- **Entry flow:** Stop (or enter times) → tasks and budget line (budget line defaults to the last one used, or is picked and hidden when the source has only one; recent tasks first) → split your time (only when two or more tasks are checked) → counts and notes → Save. A typical entry is 4 taps.
+- **Several tasks (decision 0024):** tasks are check boxes. With two or more checked, "Split your time" gives each a share in 0.25 h steps, starting with all hours on the first checked task, and shows what is left ("0.50 h left", "0.25 h too many", "All 1.50 h assigned"). Next is blocked until the shares add up to the entry's billed hours. A task left at 0 h is dropped. One checked task gets all the hours and skips the step.
 - **Counts (all optional, default 0):** Contacts, Referrals given, Referral follow-ups, Rides provided, Applications completed, plus "Add another count" (label + number).
 - **Notes:** optional, with the warning "Don't include client names. Notes appear on the timesheet."
-- **Editing:** entries can be edited or deleted until invoiced, then are locked. Save and delete show Undo.
+- **Editing:** entries can be edited or deleted until invoiced, then are locked. Save and delete show Undo. If the billed hours change, a one-task entry follows them; a split entry must be split again before saving.
 - **Home:** "Not yet invoiced" list for the selected funding source with entry count, hours and amount.
 
 ## 6. Invoices
@@ -132,7 +133,7 @@ Title and funding source name; invoice #, invoice date, service period; From (CH
 ### PDF timesheet pages
 
 - Each page holds the next **7 unique dates that have entries**. Dates with no entries get no column.
-- Rows are task + budget line pairs used on that page; columns: Task, Core competency, Budget line, one column per date, Total, Notes.
+- Rows are task + budget line pairs used on that page (a split entry adds each task share to its own row, and its notes to each of those rows); columns: Task, Core competency, Budget line, one column per date, Total, Notes.
 - Notes from the entries combined into a row are joined.
 - Under the grid: total hours per date, subtotal by budget line for the page, page total.
 - Footer: CHW initials line, fingerprint, invoice #, "Page X of N".
@@ -170,19 +171,20 @@ Total hours,,,1.50,1.50,
 - Page numbers, dates and rows match the PDF timesheet pages exactly; only dates worked get a column, at most 7 per page.
 - Notes from entries combined into one row are joined with "; ".
 
-### Entry log CSV layout (one header row, one row per entry)
+### Entry log CSV layout (one header row, one row per task share of each entry)
 
 | Column | Example | Notes |
 |---|---|---|
 | `invoice_number` | CC-2026-004 | |
 | `fingerprint` | 3f9a21c7… | Full 64-character value |
 | `funding_source` | TISUPP | |
-| `entry_id` | UUID | |
+| `entry_id` | UUID | Repeats on each part of a split entry |
+| `part` | 1 of 2 | Which task share of the entry this row is (decision 0024) |
 | `entry_date` | 2026-10-30 | Start date |
 | `start` | 2026-10-30T09:12:04-07:00 | ISO 8601 with offset |
 | `stop` | 2026-10-30T10:37:10-07:00 | |
-| `raw_duration` | 1:25:06 | h:mm:ss before rounding |
-| `billed_hours` | 1.50 | Rounded to 0.25 |
+| `raw_duration` | 1:25:06 | h:mm:ss before rounding, for the whole entry |
+| `billed_hours` | 1.00 | This row's task share, in 0.25 h; the column adds up to the invoice hours |
 | `task` | Client check in | |
 | `core_competency` | Interpersonal & Relationship-Building | Blank for Domestic support |
 | `budget_line` | CHW referrals | |
@@ -198,11 +200,12 @@ Total hours,,,1.50,1.50,
 | `updated_at` | ISO 8601 with offset | |
 
 - No per-entry dollar amount: amounts are rounded once per budget line on the invoice.
+- Start, stop and `raw_duration` repeat on every part of an entry. Counts, other counts and notes are on part 1 only, so the columns add up.
 - Columns are the same for every invoice, so files from different invoices can be combined.
 
 ### Fingerprint and QR code
 
-- **Fingerprint:** SHA-256 over a canonical JSON form of the invoice (header, entries, lines, totals, rate). Shown short on the PDF (`3F9A-21C7`), full in both CSVs and the QR code. The canonical form is versioned and must never change silently.
+- **Fingerprint:** SHA-256 over a canonical JSON form of the invoice (header, entries, lines, totals, rate). Shown short on the PDF (`3F9A-21C7`), full in both CSVs and the QR code. The canonical form is versioned and must never change silently. v1 has one task per entry; v2 (decision 0024) lists each entry's task shares. Invoices keep the version they were made with.
 - **QR code:** invoice #, period, hours and amount by budget line, fingerprint. Readable after printing or scanning so a later system can match paper to data.
 
 ## 8. Signatures (outside the app)
@@ -218,7 +221,7 @@ Guardrails, written in a one-page procedure (`docs/signing-procedure.md`, CC BY 
 
 ## 9. Screens
 
-Install gate (iPhone) · Setup · Home · Timer running · What did you do? (task and budget line) · Counts and notes · Enter times · Invoice preview · Invoice created (share) · Settings · Rate change check · plus edit entry and "show all entries" (not drawn). See the wireframes.
+Install gate (iPhone) · Setup · Home · Timer running · What did you do? (tasks and budget line) · Split your time · Counts and notes · Enter times · Invoice preview · Invoice created (share) · Settings · Rate change check · plus edit entry and "show all entries" (not drawn). See the wireframes.
 
 ## 10. Field usability and quality
 

@@ -80,7 +80,7 @@ test('create, share and re-share an invoice', async ({ page }) => {
   // Back on Home, the entries are locked away.
   await page.getByRole('button', { name: 'Done' }).click();
   await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
-  await expect(page.getByText('Start timer and start working or hand enter times.')).toBeVisible();
+  await expect(page.getByText('Start timer and start working or record time.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Generate Regen Invoice' })).toHaveCount(0);
 
   // Re-share from Past invoices on Home: the same bytes (SPEC §6, decision 0019).

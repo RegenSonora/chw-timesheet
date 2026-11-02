@@ -12,7 +12,7 @@ test.beforeEach(async ({ page }) => {
     end: '15:00',
     task: 'Client follow up',
   });
-  await page.getByRole('button', { name: 'Hand enter time' }).click();
+  await page.getByRole('button', { name: 'Record time' }).click();
   await expect(heading(page, 'Enter times')).toBeVisible();
   await page.getByLabel('Date').fill('2026-10-29');
 });

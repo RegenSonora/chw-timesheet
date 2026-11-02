@@ -92,7 +92,7 @@ Each funding source is a JSON file in the repo, validated against a JSON Schema 
 
 - **Funding source:** a chip in the header picks the source for new entries. The chip is locked while a timer runs. The task screen shows the source with **Change**.
 - **Timer:** Start → large running clock with the largest button, **Stop**. The timer survives closing the app (the start time is stored). **Discard timer** needs a confirmation or Undo.
-- **Hand enter time** (decision 0025): date, start, end. An end earlier than the start means the next day.
+- **Record time** (decision 0025): date, start, end. An end earlier than the start means the next day.
 - **Rounding:** each entry rounds to the nearest 0.25 h. Chris accepted that per-entry rounding can bill slightly more than raw time.
 - **Too short:** an entry that rounds to 0 h (under 7.5 minutes) is blocked with a plain message; it is never saved.
 - **Overlaps:** blocked, compared on raw start and stop times.
@@ -102,7 +102,7 @@ Each funding source is a JSON file in the repo, validated against a JSON Schema 
 - **Counts (all optional, default 0):** Contacts, Referrals given, Referral follow-ups, Rides provided, Applications completed, plus "Add another count" (label + number).
 - **Notes:** optional, with the warning "Don't include client names. Notes appear on the timesheet."
 - **Editing:** entries can be edited or deleted until invoiced, then are locked. Save and delete show Undo. If the billed hours change, a one-task entry follows them; a split entry must be split again before saving.
-- **Home:** "Not yet invoiced" list for the selected funding source with entry count, hours and amount. With nothing waiting it says "Start timer and start working or hand enter times."
+- **Home:** "Not yet invoiced" list for the selected funding source with entry count, hours and amount. With nothing waiting it says "Start timer and start working or record time."
 
 ## 6. Invoices
 
@@ -232,7 +232,7 @@ Install gate (iPhone) · Setup · Home · Timer running · What did you do? (tas
 - Clear confirmation after Save; errors in plain words next to the field; Undo after Save and Delete.
 - Follows the phone's light or dark setting.
 - WCAG 2.1 AA.
-- Neutral styling: gray tones with one accent color (blue `#1f5fc8`). On Home, Generate Regen Invoice and Hand enter time are as big as Start timer, green with dark brown text (decision 0025).
+- Neutral styling: gray tones with one accent color (blue `#1f5fc8`). On Home, Generate Regen Invoice and Record time are as big as Start timer, green with dark brown text (decision 0025).
 
 ## 11. Out of scope
 

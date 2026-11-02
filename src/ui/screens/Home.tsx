@@ -121,7 +121,7 @@ export function Home() {
             class="btn btn-start btn-green"
             onClick={() => void actions.startHandEntry()}
           >
-            Hand enter time
+            Record time
           </button>
         </>
       }
@@ -137,7 +137,7 @@ export function Home() {
         )}
       </div>
       {summary.count === 0 ? (
-        <p class="empty">Start timer and start working or hand enter times.</p>
+        <p class="empty">Start timer and start working or record time.</p>
       ) : (
         <ul class="entries">
           {open.slice(0, HOME_ENTRIES).map((e) => (

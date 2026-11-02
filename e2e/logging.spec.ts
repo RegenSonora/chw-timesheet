@@ -61,7 +61,7 @@ test('timer → task → counts → save, then undo', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Undo' }).click();
   await expect(page.getByRole('status')).toContainText('Entry removed');
-  await expect(page.getByText('Start timer and start working or hand enter times.')).toBeVisible();
+  await expect(page.getByText('Start timer and start working or record time.')).toBeVisible();
 });
 
 test('the next entry starts on the last budget line with recent tasks first', async ({ page }) => {
@@ -72,7 +72,7 @@ test('the next entry starts on the last budget line with recent tasks first', as
     end: '15:00',
     task: 'Client follow up',
   });
-  await page.getByRole('button', { name: 'Hand enter time' }).click();
+  await page.getByRole('button', { name: 'Record time' }).click();
   await page.getByLabel('Date').fill('2026-10-30');
   await page.getByLabel('Start').fill('09:00');
   await page.getByLabel('End').fill('10:00');
@@ -84,7 +84,7 @@ test('the next entry starts on the last budget line with recent tasks first', as
 
 test('split one entry between two tasks (decision 0024)', async ({ page }) => {
   await setUp(page);
-  await page.getByRole('button', { name: 'Hand enter time' }).click();
+  await page.getByRole('button', { name: 'Record time' }).click();
   await page.getByLabel('Date').fill('2026-10-30');
   await page.getByLabel('Start').fill('09:12');
   await page.getByLabel('End').fill('10:37');
@@ -176,7 +176,7 @@ test('edit an entry, move it to another source, delete and undo', async ({ page 
   await page.getByRole('button', { name: 'Delete entry' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Delete entry' }).click();
   await expect(page.getByRole('status')).toContainText('Deleted: 1.5 h, Client check in');
-  await expect(page.getByText('Start timer and start working or hand enter times.')).toBeVisible();
+  await expect(page.getByText('Start timer and start working or record time.')).toBeVisible();
   await page.getByRole('button', { name: 'Undo' }).click();
   await expect(page.getByText('1 entry · 1.5 h · $30.00')).toBeVisible();
 });

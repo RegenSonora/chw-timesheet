@@ -20,7 +20,7 @@ Preact screens. They only display and collect; rules live in `src/core`, data go
 | `components.tsx`             | Page, dialogs, list picker, chip, steppers, fields, toast, entry row          | §10                      |
 | `screens/InstallGate.tsx`    | iPhone: add to Home Screen first                                              | §2                       |
 | `screens/Setup.tsx`          | Details, next invoice #, sources and rates, storage status                    | §2, §4, decision 0005    |
-| `screens/Home.tsx`           | Source chip, not yet invoiced, Generate, Start, Hand enter time               | §5, §6                   |
+| `screens/Home.tsx`           | Source chip, not yet invoiced, Generate, Start, Record time                   | §5, §6                   |
 | `screens/TimerRunning.tsx`   | Clock, Stop, Discard, too short, overlap                                      | §5, decision 0009        |
 | `screens/EntrySteps.tsx`     | Enter times, task and budget line, counts and notes                           | §5                       |
 | `screens/EditEntry.tsx`      | Edit or delete an uninvoiced entry, change its source                         | §5, decision 0008        |

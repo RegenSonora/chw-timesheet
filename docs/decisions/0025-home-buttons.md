@@ -15,3 +15,7 @@ Colors: the green is the icon's field green `#5fa845`, with a `#4c8f37` border a
 ## Why
 
 The two actions besides the timer were asked to be as easy to see and tap as the timer, in the app's own colors, with plainer words.
+
+## Change, November 2, 2026
+
+"Hand enter time" is renamed **"Record time"**, and the Home text with nothing waiting now says "Start timer and start working or record time." Size and colors are unchanged.

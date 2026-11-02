@@ -196,7 +196,7 @@ test('setup → 9 dates of entries → invoice → files → re-share', async ({
 
   // Home: TISUPP is clear; REGEN-GO still waits.
   await page.getByRole('button', { name: 'Done' }).click();
-  await expect(page.getByText('Start timer and start working or hand enter times.')).toBeVisible();
+  await expect(page.getByText('Start timer and start working or record time.')).toBeVisible();
   await pickSource(page, 'REGEN-GO');
   await expect(page.getByText('1 entry · 1 h · $18.00')).toBeVisible();
 

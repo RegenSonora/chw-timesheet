@@ -7,7 +7,7 @@ export function InstallGate() {
         <div class="gate-mark" aria-hidden="true">
           CHW
         </div>
-        <h1>Add CHW Time Tracker to your Home Screen</h1>
+        <h1>Add Regen Time Tracking to your Home Screen</h1>
         <p class="lead">
           Your entries are saved inside the Home Screen app. Entries made here in Safari can't move
           into it later.
@@ -34,7 +34,7 @@ export function InstallGate() {
               3
             </span>
             <span>
-              Open <strong>CHW Time Tracker</strong> from your Home Screen
+              Open <strong>Regen Time Tracking</strong> from your Home Screen
             </span>
           </li>
         </ol>

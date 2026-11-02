@@ -1,20 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import { cacheName, isOldCache, route, shellRequests } from '../../src/sw-shell';
 
-const SCOPE = 'https://regensonora.github.io/chw-timesheet/';
+const SCOPE = 'https://regensonora.github.io/regen-time-tracking/';
 const SHELL = ['index.html', 'manifest.webmanifest', 'icons/icon-192.png'];
 
 const get = (url: string, mode = 'no-cors') => ({ method: 'GET', url, mode });
 
 describe('offline cache (SPEC §2)', () => {
   it('names one cache per version', () => {
-    expect(cacheName('0.9.0+a1b2c3d')).toBe('chw-0.9.0+a1b2c3d');
+    expect(cacheName('0.9.0+a1b2c3d')).toBe('regen-0.9.0+a1b2c3d');
   });
 
   it('removes only other versions of its own caches', () => {
-    expect(isOldCache('chw-0.8.0+0000000', '0.9.0+a1b2c3d')).toBe(true);
-    expect(isOldCache('chw-0.9.0+a1b2c3d', '0.9.0+a1b2c3d')).toBe(false);
+    expect(isOldCache('regen-0.8.0+0000000', '0.9.0+a1b2c3d')).toBe(true);
+    expect(isOldCache('regen-0.9.0+a1b2c3d', '0.9.0+a1b2c3d')).toBe(false);
     expect(isOldCache('someone-else', '0.9.0+a1b2c3d')).toBe(false);
+    // Other RegenSonora apps share this origin (decision 0020): never touch their caches.
+    expect(isOldCache('chw-historic-0.9.1+0000000', '0.9.0+a1b2c3d')).toBe(false);
+    expect(isOldCache('chw-0.9.0+0000000', '0.9.0+a1b2c3d')).toBe(false);
   });
 
   it('precaches every shell file by its full address', () => {
@@ -39,7 +42,9 @@ describe('offline cache (SPEC §2)', () => {
   it('leaves everything else to the network', () => {
     expect(route(get(`${SCOPE}sw.js`), SCOPE, SHELL)).toBeNull();
     expect(route(get(`${SCOPE}icons/other.png`), SCOPE, SHELL)).toBeNull();
-    expect(route(get('https://example.com/chw-timesheet/', 'navigate'), SCOPE, SHELL)).toBeNull();
+    expect(
+      route(get('https://example.com/regen-time-tracking/', 'navigate'), SCOPE, SHELL),
+    ).toBeNull();
     expect(route(get('https://regensonora.github.io/other/', 'navigate'), SCOPE, SHELL)).toBeNull();
     expect(
       route({ method: 'POST', url: `${SCOPE}index.html`, mode: 'navigate' }, SCOPE, SHELL),

@@ -63,7 +63,7 @@ export function Home() {
 
   return (
     <Page
-      title="CHW Time Tracker"
+      title="Regen Time Tracking"
       aside={
         <HomeHeaderAside
           onChip={() => {

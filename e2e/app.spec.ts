@@ -39,5 +39,5 @@ test('registers the service worker', async ({ page, browserName }) => {
     const registration = await navigator.serviceWorker.ready;
     return registration.scope;
   });
-  expect(scope, browserName).toMatch(/\/chw-timesheet\/$/);
+  expect(scope, browserName).toMatch(/\/regen-time-tracking\/$/);
 });

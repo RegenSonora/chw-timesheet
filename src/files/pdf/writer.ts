@@ -227,7 +227,7 @@ export class PdfDocument {
     const date = infoString(pdfDate(info.created));
     const infoId = add(
       `<< /Title ${infoString(info.title)} /Author ${infoString(info.author)} ` +
-        `/Producer ${infoString('CHW Time Tracker')} /CreationDate ${date} /ModDate ${date} >>`,
+        `/Producer ${infoString('Regen Time Tracking')} /CreationDate ${date} /ModDate ${date} >>`,
     );
     const pageIds = this.pages.map((page) => {
       const stream = page.ops.join('\n');

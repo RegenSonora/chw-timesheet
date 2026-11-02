@@ -1,11 +1,11 @@
-// Serves dist/ under /chw-timesheet/, the same path GitHub Pages uses. For preview and e2e only.
+// Serves dist/ under /regen-time-tracking/, the same path GitHub Pages uses. For preview and e2e only.
 // Usage: node scripts/serve-dist.mjs [port] [folder]; the folder (default dist/) lets the update
 // e2e serve a copy it changes.
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 
-const BASE = '/chw-timesheet/';
+const BASE = '/regen-time-tracking/';
 const port = Number(process.argv[2] ?? 4173);
 const dist = process.argv[3] ? resolve(process.argv[3]) : join(import.meta.dirname, '..', 'dist');
 
@@ -19,7 +19,7 @@ const TYPES = {
 
 createServer((req, res) => {
   const path = decodeURIComponent(new URL(req.url ?? '/', 'http://localhost').pathname);
-  if (path === '/chw-timesheet') {
+  if (path === '/regen-time-tracking') {
     res.writeHead(301, { location: BASE }).end();
     return;
   }

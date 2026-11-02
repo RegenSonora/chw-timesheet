@@ -12,7 +12,7 @@ test.describe('iPhone in Safari', () => {
 
   test('shows the install gate instead of setup', async ({ page }) => {
     await page.goto('./');
-    await expect(heading(page, 'Add CHW Time Tracker to your Home Screen')).toBeVisible();
+    await expect(heading(page, 'Add Regen Time Tracking to your Home Screen')).toBeVisible();
     await expect(page.getByText('Add to Home Screen', { exact: true })).toBeVisible();
     await expect(heading(page, 'Set up')).toHaveCount(0);
   });

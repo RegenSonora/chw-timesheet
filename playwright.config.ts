@@ -16,7 +16,7 @@ export default defineConfig({
   retries: process.env['CI'] ? 1 : 0,
   reporter: process.env['CI'] ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: {
-    baseURL: `http://localhost:${String(port)}/chw-timesheet/`,
+    baseURL: `http://localhost:${String(port)}/regen-time-tracking/`,
     trace: 'retain-on-failure',
   },
   projects: [
@@ -25,7 +25,7 @@ export default defineConfig({
   ],
   webServer: {
     command: `node scripts/serve-dist.mjs ${String(port)}`,
-    url: `http://localhost:${String(port)}/chw-timesheet/`,
+    url: `http://localhost:${String(port)}/regen-time-tracking/`,
     reuseExistingServer: !process.env['CI'],
   },
 });

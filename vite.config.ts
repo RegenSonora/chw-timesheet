@@ -6,7 +6,7 @@ import { viteSingleFile } from 'vite-plugin-singlefile';
 const appVersion = process.env['APP_VERSION'] ?? 'dev';
 
 export default defineConfig({
-  // Relative base: the same build works at /chw-timesheet/ on Pages and at a future subdomain root.
+  // Relative base: the same build works at /regen-time-tracking/ on Pages and at a future subdomain root.
   base: './',
   plugins: [preact(), viteSingleFile({ removeViteModuleLoader: true })],
   define: {

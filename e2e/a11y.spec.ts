@@ -103,7 +103,7 @@ test('install gate passes axe', async ({ browser, baseURL }) => {
   });
   const page = await context.newPage();
   await page.goto('./');
-  await expect(heading(page, 'Add CHW Time Tracker to your Home Screen')).toBeVisible();
+  await expect(heading(page, 'Add Regen Time Tracking to your Home Screen')).toBeVisible();
   await expectAccessible(page, 'install gate');
   await context.close();
 });

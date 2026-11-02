@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://regensonora.github.io/chw-timesheet/schemas/funding-source.schema.json",
+  "$id": "https://regensonora.github.io/regen-time-tracking/schemas/funding-source.schema.json",
   "title": "Funding source",
   "description": "One funding source: its tasks, budget lines, certification text and contract settings (SPEC §3). Format version 1.",
   "type": "object",

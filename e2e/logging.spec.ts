@@ -54,7 +54,7 @@ test('timer → task → counts → save, then undo', async ({ page }) => {
   await page.getByLabel('Notes (optional)').fill('Met at the library table');
   await page.getByRole('button', { name: 'Save entry' }).click();
 
-  await expect(heading(page, 'CHW Time Tracker')).toBeVisible();
+  await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
   await expect(page.getByText('1 entry · 1.5 h · $30.00')).toBeVisible();
   await expect(page.getByRole('status')).toContainText('Saved: 1.5 h, Client check in');
   await expect(page.getByRole('button', { name: /Client check in/ })).toBeVisible();
@@ -130,7 +130,7 @@ test('leaving an edit with changes asks first', async ({ page }) => {
   await expect(heading(page, 'Edit entry')).toBeVisible();
   await page.goBack();
   await page.getByRole('button', { name: 'Discard changes' }).click();
-  await expect(heading(page, 'CHW Time Tracker')).toBeVisible();
+  await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
 });
 
 test('All entries lists every uninvoiced entry for the chip source', async ({ page }) => {

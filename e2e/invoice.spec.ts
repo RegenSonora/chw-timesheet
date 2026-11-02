@@ -31,7 +31,7 @@ test('create, share and re-share an invoice', async ({ page }) => {
   await setUp(page);
   for (const date of DATES) await addEntry(page, { date, start: '09:00', end: '10:00' });
 
-  await page.getByRole('button', { name: 'Generate TISUPP invoice' }).click();
+  await page.getByRole('button', { name: 'Generate Regen Invoice' }).click();
   await expect(heading(page, 'New invoice')).toBeVisible();
   await expect(page.getByText(/^CC-\d{4}-001$/)).toBeVisible();
   await expect(page.getByText('8 on 8 dates (2 timesheet pages)')).toBeVisible();
@@ -80,8 +80,8 @@ test('create, share and re-share an invoice', async ({ page }) => {
   // Back on Home, the entries are locked away.
   await page.getByRole('button', { name: 'Done' }).click();
   await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
-  await expect(page.getByText('No TISUPP entries waiting.', { exact: false })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Generate TISUPP invoice' })).toHaveCount(0);
+  await expect(page.getByText('Start timer and start working or hand enter times.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Generate Regen Invoice' })).toHaveCount(0);
 
   // Re-share from Past invoices on Home: the same bytes (SPEC §6, decision 0019).
   await page.getByRole('button', { name: /Past invoices 1 invoice/ }).click();
@@ -99,7 +99,7 @@ test('create, share and re-share an invoice', async ({ page }) => {
   await page.getByRole('button', { name: 'Back' }).click();
   await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
   await addEntry(page, { date: '2026-10-31', start: '09:00', end: '10:00' });
-  await page.getByRole('button', { name: 'Generate TISUPP invoice' }).click();
+  await page.getByRole('button', { name: 'Generate Regen Invoice' }).click();
   await expect(page.getByText(/^CC-\d{4}-002$/)).toBeVisible();
 });
 
@@ -107,7 +107,7 @@ test('without file sharing, the files download; leaving unshared asks first', as
   await noShare(page);
   await setUp(page);
   await addEntry(page, { date: '2026-10-30', start: '09:12', end: '10:37' });
-  await page.getByRole('button', { name: 'Generate TISUPP invoice' }).click();
+  await page.getByRole('button', { name: 'Generate Regen Invoice' }).click();
   await page.getByRole('button', { name: 'Create invoice files' }).click();
   await expect(heading(page, 'Invoice created')).toBeVisible();
 
@@ -142,7 +142,7 @@ test('Done anyway leaves an unshared invoice; it stays in Past invoices', async 
   await stubShare(page);
   await setUp(page);
   await addEntry(page, { date: '2026-10-30', start: '09:12', end: '10:37' });
-  await page.getByRole('button', { name: 'Generate TISUPP invoice' }).click();
+  await page.getByRole('button', { name: 'Generate Regen Invoice' }).click();
   await page.getByRole('button', { name: 'Create invoice files' }).click();
   await page.getByRole('button', { name: 'Done' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Done anyway' }).click();

@@ -26,6 +26,10 @@
   --disabled-bg: #e1e4e8;
   --disabled-fg: #3d434b;
   --backdrop: rgb(26 28 31 / 60%);
+  /* Decision 0025: the icon's field green with dark brown text (5.6:1), same in light and dark. */
+  --green: #5fa845;
+  --green-border: #4c8f37;
+  --brown: #2e1a0b;
   --tap-min: 44px;
   --button-min: 56px;
   font-family:
@@ -244,6 +248,12 @@ p {
 .btn-start {
   min-height: 72px;
   font-size: 22px;
+}
+
+.btn-green {
+  background: var(--green);
+  border-color: var(--green-border);
+  color: var(--brown);
 }
 
 .btn-small {

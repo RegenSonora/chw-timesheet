@@ -23,7 +23,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expectAccessible(page, 'source picker');
       await page.getByRole('button', { name: 'Cancel' }).click();
 
-      await page.getByRole('button', { name: 'Enter times instead' }).click();
+      await page.getByRole('button', { name: 'Hand enter time' }).click();
       await page.getByLabel('Date').fill('2026-10-30');
       await page.getByLabel('Start').fill('09:12');
       await page.getByLabel('End').fill('10:37');
@@ -74,7 +74,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await page.getByRole('dialog').getByRole('button', { name: 'Discard timer' }).click();
 
       // Invoices (M4): preview, created, the unshared question, past invoices.
-      await page.getByRole('button', { name: 'Generate TISUPP invoice' }).click();
+      await page.getByRole('button', { name: 'Generate Regen Invoice' }).click();
       await expect(heading(page, 'New invoice')).toBeVisible();
       await expectAccessible(page, 'invoice preview');
       await page.getByRole('button', { name: 'Create invoice files' }).click();

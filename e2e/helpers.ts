@@ -49,7 +49,7 @@ export async function addEntry(
     line?: string;
   },
 ): Promise<void> {
-  await page.getByRole('button', { name: 'Enter times instead' }).click();
+  await page.getByRole('button', { name: 'Hand enter time' }).click();
   await expect(heading(page, 'Enter times')).toBeVisible();
   // In WebKit a fill right after the screen mounts sometimes fires no input event, and the
   // field shows today's date again. Fill until all three values stick.

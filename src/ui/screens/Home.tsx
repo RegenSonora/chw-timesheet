@@ -104,19 +104,24 @@ export function Home() {
             </button>
           )}
           {summary.count > 0 && (
+            // Decision 0025: billed to Regenerating Sonora, as big as Start timer, green.
             <button
               type="button"
-              class="btn2"
+              class="btn btn-start btn-green"
               onClick={() => void actions.openInvoicePreview(selectedSource.id)}
             >
-              Generate {selectedSource.code} invoice
+              Generate Regen Invoice
             </button>
           )}
           <button type="button" class="btn btn-start" onClick={() => void actions.startTimer()}>
             Start timer
           </button>
-          <button type="button" class="txt" onClick={() => void actions.startHandEntry()}>
-            Enter times instead
+          <button
+            type="button"
+            class="btn btn-start btn-green"
+            onClick={() => void actions.startHandEntry()}
+          >
+            Hand enter time
           </button>
         </>
       }
@@ -132,9 +137,7 @@ export function Home() {
         )}
       </div>
       {summary.count === 0 ? (
-        <p class="empty">
-          No {selectedSource.code} entries waiting. Tap Start timer when you begin work.
-        </p>
+        <p class="empty">Start timer and start working or hand enter times.</p>
       ) : (
         <ul class="entries">
           {open.slice(0, HOME_ENTRIES).map((e) => (

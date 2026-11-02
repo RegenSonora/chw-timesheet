@@ -28,13 +28,13 @@ Then fill in setup: your name, initials, mailing address, and the hourly rate fr
 
 - Pick the **funding source** at the top of Home.
 - Tap **Start timer** when you begin and **Stop** when you finish. The timer keeps running if you close the app.
-- Forgot the timer? Tap **Enter times instead** and type the date, start and end.
+- Forgot the timer? Tap **Hand enter time** and type the date, start and end.
 - Pick what you did and the budget line, add counts and notes if you like, then **Save**. Notes appear on the timesheet: **don't include client names.**
 - Tap an entry on Home to fix or delete it, until it is invoiced.
 
 ### Invoicing
 
-1. On Home, tap **Generate … invoice**. Check the preview, then tap **Create invoice files**.
+1. On Home, tap **Generate Regen Invoice**. Check the preview, then tap **Create invoice files**.
 2. Tap **Share files** and email the four files to yourself.
 3. Sign the PDF, or the picture (PNG) of the invoice page in your photo app. Sign one, not both. Email the signed file with both CSV files to your reviewer.
 

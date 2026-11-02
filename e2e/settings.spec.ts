@@ -27,7 +27,7 @@ test('changing the rate with entries waiting asks first', async ({ page }) => {
   await page.getByRole('button', { name: 'Back' }).click();
   await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
   await expect(page.getByText('1 entry · 1.5 h · $30.00')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Generate TISUPP invoice' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Generate Regen Invoice' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Settings' }).click();
   await page.getByLabel('Hourly rate for TISUPP').fill('22.00');

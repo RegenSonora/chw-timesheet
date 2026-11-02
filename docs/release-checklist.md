@@ -35,7 +35,7 @@ Mark each step ✅ or ❌. Any ❌ blocks the release until fixed or accepted by
 - [ ] Open the app from the icon. Home appears with your entries; no "no internet" page.
 - [ ] Start the timer, wait 8 minutes, Stop, check a task, Save. The entry shows on Home.
 - [ ] Add an entry of at least 30 minutes with **two tasks** checked. On **Split your time**, move 0.25 h with − and +: the bar says what is left, and Next only works once it says all hours are assigned.
-- [ ] Add an entry with **Enter times instead**. It saves.
+- [ ] Add an entry with **Hand enter time**. It saves.
 - [ ] Close the app, open it again, still offline. Both entries are there.
 - [ ] Turn airplane mode off.
 
@@ -47,7 +47,7 @@ Mark each step ✅ or ❌. Any ❌ blocks the release until fixed or accepted by
 ## 5. Invoice and share sheet
 
 - [ ] Have at least 8 entries on 8+ different dates (use Enter times with past dates).
-- [ ] Tap **Generate … invoice**. The preview shows the right hours, rate and total.
+- [ ] Tap **Generate Regen Invoice**. The preview shows the right hours, rate and total.
 - [ ] Tap **Create invoice files**. "Invoice created" shows the four file names.
 - [ ] Tap **Share files**. The phone's share sheet opens with **all four files**: the PDF, the picture (PNG) and both CSVs.
 - [ ] Share to Mail (iPhone) or Gmail (Android) and send to yourself. On iPhone Mail, choose **Actual Size** if asked. The email arrives with all four attachments, with the right names.

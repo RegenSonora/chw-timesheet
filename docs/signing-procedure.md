@@ -4,7 +4,7 @@ _For CHWs and reviewers at Regenerating Sonora, Inc. The app does not sign anyth
 
 ## Steps
 
-1. **Create the invoice in the app.** On Home, tap **Generate … invoice**, check the preview, then tap **Create invoice files**.
+1. **Create the invoice in the app.** On Home, tap **Generate Regen Invoice**, check the preview, then tap **Create invoice files**.
 2. **Share the files to yourself.** Tap **Share files** and email all four files to yourself: the invoice PDF, a picture (PNG) of the invoice page, the timesheet CSV and the entry log CSV. On iPhone Mail, choose **Actual Size** if it asks about image size.
 3. **Sign the PDF, or sign the picture.** Sign one of them, not both.
    - **PDF on iPhone:** open the PDF from your email, tap the **Markup** button (pen icon), add your signature in the CHW box, tap **Done**.

@@ -1,8 +1,22 @@
 // Home (SPEC §5, §6): source chip, "Not yet invoiced", Past invoices, Generate, Start, Enter
-// times.
+// times, and the 240-hour raise reminder (decision 0023).
 import { useState } from 'preact/hooks';
-import { formatDollars, uninvoicedEntries, uninvoicedSummary } from '../../core';
-import { EntryRow, Page, SettingsIcon, SourceChip, ToastBar, ListPicker } from '../components';
+import {
+  formatDollars,
+  rateStepReminder,
+  uninvoicedEntries,
+  uninvoicedSummary,
+  type RateStepReminder,
+} from '../../core';
+import {
+  EntryRow,
+  ListPicker,
+  Page,
+  SettingsIcon,
+  SourceChip,
+  ToastBar,
+  Warning,
+} from '../components';
 import { hoursLabel, plural } from '../format';
 import { sourceById, useApp } from '../store';
 import { isMidEntry, useUpdate } from '../update';
@@ -29,6 +43,15 @@ export function SourcePickerSheet({ onClose }: { onClose: () => void }) {
       note="New entries go to this funding source. Add another in Settings."
     />
   );
+}
+
+/** The raise reminder's words (decision 0023). */
+export function rateStepText(reminder: RateStepReminder, code: string): string {
+  const hours = `${String(reminder.after_quarters / 4)} hours`;
+  const rate = formatDollars(reminder.rate_cents);
+  return reminder.invoice_first
+    ? `You've reached ${hours}. Generate your ${code} invoice now, then change your rate to ${rate} in Settings.`
+    : `You've billed ${hours}. Your rate goes up to ${rate}. Change it in Settings before your next invoice.`;
 }
 
 export function HomeHeaderAside({ onChip }: { onChip: () => void }) {
@@ -60,6 +83,7 @@ export function Home() {
   const rate = data.settings.find((s) => s.source_id === selectedSource.id)?.rate_cents ?? null;
   const open = uninvoicedEntries(data.entries, selectedSource.id).reverse();
   const summary = uninvoicedSummary(data.entries, selectedSource.id, rate);
+  const reminder = rateStepReminder(selectedSource, rate, data.invoices, summary.quarters);
 
   return (
     <Page
@@ -97,6 +121,7 @@ export function Home() {
         </>
       }
     >
+      {reminder && <Warning>{rateStepText(reminder, selectedSource.code)}</Warning>}
       <div class="list-head">
         <h2>Not yet invoiced</h2>
         {summary.count > 0 && (

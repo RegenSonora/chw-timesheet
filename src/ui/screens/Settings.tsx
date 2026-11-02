@@ -1,4 +1,4 @@
-// Settings (SPEC §4, decisions 0005, 0010): details, next invoice #, rates and NTE, storage, version.
+// Settings (SPEC §4, decisions 0005, 0010, 0023): details, next invoice #, rates and NTE, storage, version.
 import { useLayoutEffect, useState } from 'preact/hooks';
 import {
   formatDollars,
@@ -13,7 +13,7 @@ import { FUNDING_SOURCES } from '../../funding-sources';
 import { Confirm, Field, Page } from '../components';
 import { plural, versionLabel } from '../format';
 import { sourceById, useApp } from '../store';
-import { validNextNumber } from './Setup';
+import { raiseHint, validNextNumber } from './Setup';
 import { StorageStatus } from './StorageStatus';
 
 const dollars = (cents: number | null) => (cents === null ? '' : (cents / 100).toFixed(2));
@@ -185,6 +185,8 @@ export function Settings() {
   const next = validNextNumber(form.next_number) ?? data.counter.next;
   const nextLabel = formatInvoiceNumber(initials, new Date().getFullYear(), next);
   const notAdded = FUNDING_SOURCES.filter((s) => !(s.id in form.sources));
+  // With one source, "all funding sources" says nothing (decision 0023).
+  const allSources = FUNDING_SOURCES.length > 1 ? ' (all funding sources)' : '';
   const ask = question?.asks[0];
 
   return (
@@ -244,12 +246,12 @@ export function Settings() {
       </Field>
       {data.counter.locked ? (
         <p class="info-row">
-          <span class="hint">Next invoice # (all funding sources)</span>
+          <span class="hint">Next invoice #{allSources}</span>
           <strong>{nextLabel}</strong>
         </p>
       ) : (
         <Field
-          label="Next invoice number (all funding sources)"
+          label={`Next invoice number${allSources}`}
           hint={`Your next invoice will be ${nextLabel}. This can't change after your first invoice.`}
           error={errors['next']}
         >
@@ -277,11 +279,14 @@ export function Settings() {
             </h2>
             <Field
               label={`Hourly rate for ${source.code}`}
-              hint={
+              hint={[
                 s.adding
                   ? 'From your agreement.'
-                  : "Used for your next invoice. Past invoices don't change."
-              }
+                  : "Used for your next invoice. Past invoices don't change.",
+                raiseHint(source),
+              ]
+                .filter(Boolean)
+                .join(' ')}
               error={errors[`rate-${id}`]}
             >
               {(p) => (

@@ -228,7 +228,8 @@ export function ListPicker<T extends { id: string }>({
 
 export function SourceChip({ onOpen }: { onOpen: () => void }) {
   const { selectedSource, data } = useApp();
-  if (!selectedSource) return null;
+  // Nothing to switch to with one source (decision 0023).
+  if (!selectedSource || data.settings.length < 2) return null;
   if (data.app.running_timer) {
     return (
       <button

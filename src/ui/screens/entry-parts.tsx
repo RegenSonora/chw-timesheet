@@ -70,7 +70,10 @@ export function ChangeRow({
   );
 }
 
-/** Funding source and budget line rows with their pickers. */
+/**
+ * Funding source and budget line rows with their pickers. A row with only one choice, already
+ * picked, is hidden (decision 0023); it shows again if the draft holds something else.
+ */
 export function SourceAndLine({
   draft,
   lineError,
@@ -83,23 +86,29 @@ export function SourceAndLine({
   const source = sourceById(draft.source_id);
   const sources = data.settings.map((s) => sourceById(s.source_id));
   const line = source.budget_lines.find((l) => l.id === draft.budget_line_id);
+  const onlySource = sources.length === 1 && sources[0]?.id === source.id;
+  const onlyLine = source.budget_lines.length === 1 && line !== undefined;
   return (
     <>
-      <ChangeRow
-        label="Funding source"
-        value={source.code}
-        onChange={() => {
-          setPicking('source');
-        }}
-      />
-      <ChangeRow
-        label="Budget line"
-        value={line?.name ?? null}
-        error={lineError ?? null}
-        onChange={() => {
-          setPicking('line');
-        }}
-      />
+      {!onlySource && (
+        <ChangeRow
+          label="Funding source"
+          value={source.code}
+          onChange={() => {
+            setPicking('source');
+          }}
+        />
+      )}
+      {!onlyLine && (
+        <ChangeRow
+          label="Budget line"
+          value={line?.name ?? null}
+          error={lineError ?? null}
+          onChange={() => {
+            setPicking('line');
+          }}
+        />
+      )}
       {picking === 'source' && (
         <ListPicker
           title="Funding source"

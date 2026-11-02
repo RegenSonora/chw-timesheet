@@ -1,9 +1,11 @@
-// Setup (SPEC §4, decision 0005): details, funding sources with rates, storage status.
+// Setup (SPEC §4, decisions 0005, 0023): details, funding sources with rates, storage status.
 import { useEffect, useState } from 'preact/hooks';
 import {
+  formatDollars,
   formatInvoiceNumber,
   normalizeInitials,
   parseDollars,
+  type FundingSourceConfig,
   type SourceSettings,
 } from '../../core';
 import { FUNDING_SOURCES } from '../../funding-sources';
@@ -17,6 +19,29 @@ type Errors = Partial<Record<string, string>>;
 export function validNextNumber(text: string): number | null {
   const n = Number(text.trim());
   return /^\d+$/.test(text.trim()) && Number.isSafeInteger(n) && n >= 1 ? n : null;
+}
+
+/** The raise the agreement names, or null (decision 0023). */
+export function raiseHint(source: FundingSourceConfig): string | null {
+  const step = source.rate_step;
+  return step
+    ? `It goes up to ${formatDollars(step.rate_cents)} after ${String(step.after_quarters / 4)} hours.`
+    : null;
+}
+
+/** What the rate field says about the agreement (SPEC §4, decision 0023). */
+export function rateHint(source: FundingSourceConfig): string {
+  const parts = ['From your agreement.'];
+  const raise = raiseHint(source);
+  if (raise) parts.push(raise);
+  if (source.has_nte) {
+    parts.push(
+      source.default_nte_cents === undefined
+        ? 'Add the not-to-exceed amount later in Settings.'
+        : `Your not-to-exceed amount is set to ${formatDollars(source.default_nte_cents)}. Change it in Settings if yours is different.`,
+    );
+  }
+  return parts.join(' ');
 }
 
 export function Setup() {
@@ -38,6 +63,10 @@ export function Setup() {
     update({ ...form, sources: { ...form.sources, [id]: { ...current, ...patch } } });
   };
 
+  // One source is always picked; there is nothing to choose (decision 0023).
+  const single = FUNDING_SOURCES.length === 1;
+  const isPicked = (id: string) => single || (form.sources[id]?.picked ?? false);
+
   const save = async () => {
     const found: Errors = {};
     if (!form.name.trim()) found['name'] = 'Enter your name.';
@@ -47,14 +76,18 @@ export function Setup() {
     if (next === null) found['next'] = 'Enter a whole number, like 1.';
     const settings: SourceSettings[] = [];
     for (const source of FUNDING_SOURCES) {
-      const s = form.sources[source.id];
-      if (!s?.picked) continue;
-      const rate = parseDollars(s.rate);
+      if (!isPicked(source.id)) continue;
+      const rate = parseDollars(form.sources[source.id]?.rate ?? '');
       if (rate === null || rate < 1)
         found[`rate-${source.id}`] = 'Enter your hourly rate, like 20.00.';
-      else settings.push({ source_id: source.id, rate_cents: rate, nte_cents: null });
+      else
+        settings.push({
+          source_id: source.id,
+          rate_cents: rate,
+          nte_cents: source.has_nte ? (source.default_nte_cents ?? null) : null,
+        });
     }
-    if (!FUNDING_SOURCES.some((s) => form.sources[s.id]?.picked)) {
+    if (!FUNDING_SOURCES.some((s) => isPicked(s.id))) {
       found['sources'] = 'Pick at least one funding source.';
     }
     setErrors(found);
@@ -150,35 +183,39 @@ export function Setup() {
       </Field>
 
       <h2 class="sec" id="sources-heading">
-        Funding sources you work under
+        {single ? 'Funding source' : 'Funding sources you work under'}
       </h2>
       {errors['sources'] && <p class="error-plain">{errors['sources']}</p>}
       {FUNDING_SOURCES.map((source) => {
         const s = form.sources[source.id] ?? { picked: false, rate: '' };
+        const picked = isPicked(source.id);
         return (
-          <div key={source.id} class={s.picked ? 'card card-on' : 'card'}>
-            <label class="check">
-              <input
-                type="checkbox"
-                checked={s.picked}
-                onChange={(e) => {
-                  setSource(source.id, { picked: e.currentTarget.checked });
-                }}
-              />
-              <span class="check-text">
+          <div key={source.id} class={picked ? 'card card-on' : 'card'}>
+            {single ? (
+              <p class="check-text">
                 <span class="check-name">{source.code}</span>
                 <span class="check-detail">{source.name}</span>
-              </span>
-            </label>
-            {s.picked && (
+              </p>
+            ) : (
+              <label class="check">
+                <input
+                  type="checkbox"
+                  checked={s.picked}
+                  onChange={(e) => {
+                    setSource(source.id, { picked: e.currentTarget.checked });
+                  }}
+                />
+                <span class="check-text">
+                  <span class="check-name">{source.code}</span>
+                  <span class="check-detail">{source.name}</span>
+                </span>
+              </label>
+            )}
+            {picked && (
               <div class="card-body">
                 <Field
                   label={`Hourly rate for ${source.code}`}
-                  hint={
-                    source.has_nte
-                      ? 'From your agreement. Add the not-to-exceed amount later in Settings.'
-                      : 'From your agreement.'
-                  }
+                  hint={rateHint(source)}
                   error={errors[`rate-${source.id}`]}
                 >
                   {(p) => (

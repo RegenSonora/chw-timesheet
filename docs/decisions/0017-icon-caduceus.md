@@ -1,6 +1,6 @@
 # 0017 — Home Screen icon: caduceus in an egg
 
-- **Status:** Accepted by Chris, November 1, 2026. Replaces decision 0015.
+- **Status:** Accepted by Chris, November 1, 2026. Replaces decision 0015. Since the split (decision 0020) it applies to CHW Time Tracker Historic only; Regen Time Tracking uses decision 0021.
 - **Spec:** SPEC §2 ("Logo"), §10 ("Neutral styling")
 
 ## Decision

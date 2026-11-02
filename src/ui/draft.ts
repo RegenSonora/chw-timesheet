@@ -3,8 +3,10 @@ import {
   checkEntryTimes,
   emptyCounts,
   entryDateOf,
+  finalShares,
   findOverlaps,
   resolveHandTimes,
+  sharesMatch,
   type Counts,
   type Entry,
   type FundingSourceConfig,
@@ -29,7 +31,7 @@ export function newTimerDraft(
     start,
     stop,
     source_id: sourceId,
-    task_id: null,
+    tasks: [],
     budget_line_id: budgetLineId,
     counts: emptyCounts(),
     notes: '',
@@ -56,7 +58,7 @@ export function editDraft(entry: Entry): EntryDraft {
     start: entry.start,
     stop: entry.stop,
     source_id: entry.source_id,
-    task_id: entry.task_id,
+    tasks: entry.tasks.map((s) => ({ ...s })),
     budget_line_id: entry.budget_line_id,
     counts: structuredClone(entry.counts),
     notes: entry.notes,
@@ -100,6 +102,8 @@ export function checkDraftTimes(draft: EntryDraft, entries: readonly Entry[]): T
 export type DraftProblem =
   | 'times'
   | 'task'
+  /** Two or more tasks whose hours don't add up to the entry's (decision 0024). */
+  | 'split'
   | 'budget_line'
   /** A custom count has a number but no name. */
   | 'count_label';
@@ -126,9 +130,13 @@ export function buildEntry(
 ): { ok: true; entry: Entry } | { ok: false; problem: DraftProblem } {
   const times = checkDraftTimes(draft, entries);
   if (times.state !== 'ok' || !draft.start || !draft.stop) return { ok: false, problem: 'times' };
-  if (!draft.task_id || !source.tasks.some((t) => t.id === draft.task_id)) {
-    return { ok: false, problem: 'task' };
-  }
+  const known = new Set(source.tasks.map((t) => t.id));
+  const tasks = finalShares(
+    draft.tasks.filter((s) => known.has(s.task_id)),
+    times.quarters,
+  );
+  if (tasks.length === 0) return { ok: false, problem: 'task' };
+  if (!sharesMatch(tasks, times.quarters, known)) return { ok: false, problem: 'split' };
   if (!draft.budget_line_id || !source.budget_lines.some((l) => l.id === draft.budget_line_id)) {
     return { ok: false, problem: 'budget_line' };
   }
@@ -142,7 +150,7 @@ export function buildEntry(
       start: draft.start,
       stop: draft.stop,
       entry_date: entryDateOf(draft.start),
-      task_id: draft.task_id,
+      tasks,
       budget_line_id: draft.budget_line_id,
       counts,
       notes: draft.notes.trim(),

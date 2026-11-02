@@ -11,7 +11,9 @@ import {
   regen,
   sampleEntries,
   sampleInput,
+  splitSampleInput,
   tisupp,
+  uuid,
 } from './fixtures/wireframe-sample';
 
 function draft(input: InvoiceInput) {
@@ -113,8 +115,14 @@ describe('wireframe sample invoice (SPEC §6)', () => {
       start: '2026-10-30T09:12:04-07:00',
       stop: '2026-10-30T10:37:10-07:00',
       quarters: 6,
-      task_name: 'Client check in',
-      core_competency: 'Interpersonal & Relationship-Building',
+      tasks: [
+        {
+          task_id: 'client-check-in',
+          task_name: 'Client check in',
+          core_competency: 'Interpersonal & Relationship-Building',
+          quarters: 6,
+        },
+      ],
       budget_line_name: 'CHW referrals',
     });
   });
@@ -128,6 +136,58 @@ describe('wireframe sample invoice (SPEC §6)', () => {
       certification_text: tisupp.certification_text,
     });
     expect(invoice.chw).toEqual({ name: 'Carmen Cruz', initials: 'CC', mailing_address: '' });
+  });
+});
+
+describe('several tasks per entry (decision 0024)', () => {
+  const { invoice } = draft(splitSampleInput());
+
+  it('freezes each task share with its names, in the order checked', () => {
+    expect(must(invoice.entries[7]).tasks).toEqual([
+      {
+        task_id: 'client-check-in',
+        task_name: 'Client check in',
+        core_competency: 'Interpersonal & Relationship-Building',
+        quarters: 4,
+      },
+      { task_id: 'outreach', task_name: 'Outreach', core_competency: 'Outreach', quarters: 2 },
+    ]);
+  });
+
+  it('leaves hours, lines and the total as they were', () => {
+    const plain = draft(sampleInput()).invoice;
+    expect(invoice.total_quarters).toBe(plain.total_quarters);
+    expect(invoice.total_cents).toBe(plain.total_cents);
+    expect(invoice.lines).toEqual(plain.lines);
+  });
+
+  it('refuses an entry whose shares do not add up to its billed hours', () => {
+    for (const tasks of [
+      [
+        { task_id: 'client-check-in', quarters: 4 },
+        { task_id: 'outreach', quarters: 1 },
+      ],
+      [
+        { task_id: 'client-check-in', quarters: 6 },
+        { task_id: 'outreach', quarters: 0 },
+      ],
+      [{ task_id: 'no-such-task', quarters: 6 }],
+      [],
+    ]) {
+      const entries = sampleEntries.map((e) => (e.id === uuid(8) ? { ...e, tasks } : e));
+      expect(buildInvoiceDraft(sampleInput({ entries })), JSON.stringify(tasks)).toEqual({
+        ok: false,
+        reason: 'bad_entry',
+        entry_id: uuid(8),
+      });
+    }
+  });
+
+  it('new invoices use canonical form v2 and verify', async () => {
+    const result = await createInvoice(splitSampleInput());
+    if (!result.ok) throw new Error(result.reason);
+    expect(result.invoice.canonical_version).toBe(2);
+    expect(await verifyFingerprint(result.invoice)).toBe(true);
   });
 });
 

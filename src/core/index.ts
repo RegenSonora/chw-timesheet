@@ -9,6 +9,7 @@ export * from './overlap';
 export * from './picks';
 export * from './rate-change';
 export * from './summary';
+export * from './task-split';
 export * from './time';
 export * from './timesheet';
 export type * from './types';

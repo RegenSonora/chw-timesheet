@@ -231,7 +231,9 @@ describe('long invoices still fit', () => {
       const start = new Date(Date.UTC(2026, 9, 1, 13 + Math.floor((i * 10) / 60), (i * 10) % 60));
       const stop = new Date(start.getTime() + 9 * 60_000);
       const iso = (d: Date) => `${d.toISOString().slice(0, 19)}-07:00`;
-      return { ...e, start: iso(start), stop: iso(stop), notes: '' };
+      // 9 minutes bill 0.25 h, so each one-task share is 1 quarter.
+      const tasks = e.tasks.map((t) => ({ ...t, quarters: 1 }));
+      return { ...e, start: iso(start), stop: iso(stop), tasks, notes: '' };
     });
     const invoice = await invoiceFrom({ entries: spaced });
     const [timesheet] = paginateTimesheet(invoice, tisupp);

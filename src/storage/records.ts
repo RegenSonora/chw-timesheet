@@ -3,10 +3,13 @@
 import type { SourceSettings } from '../core/types';
 import type { StoreName, StoredRecord, Tx } from './types';
 
-/** v1: first release. v2: app state gains `draft` (the half-entered record, SPEC §10). */
-export const DATA_VERSION = 2;
+/**
+ * v1: first release. v2: app state gains `draft` (the half-entered record, SPEC §10).
+ * v3: an entry's `task_id` becomes `tasks`, a list of task shares (decision 0024).
+ */
+export const DATA_VERSION = 3;
 
-/** The stores of v1. v2 keeps the same stores. */
+/** The stores of v1. v2 and v3 keep the same stores. */
 export const STORES_V1: readonly StoreName[] = [
   'meta',
   'profile',

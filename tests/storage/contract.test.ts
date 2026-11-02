@@ -118,7 +118,7 @@ describe.each(adapters)('$name adapter', (adapter) => {
       const state = rememberPicks(
         { ...emptyAppState(), running_timer: { start: NOW, source_id: 'tisupp' } },
         'tisupp',
-        'outreach',
+        ['outreach'],
         'outreach-and-marketing',
       );
       await storage.saveAppState(state);
@@ -138,7 +138,10 @@ describe.each(adapters)('$name adapter', (adapter) => {
           start: '2026-10-30T09:12:04-07:00',
           stop: '2026-10-30T10:37:10-07:00',
           source_id: 'tisupp',
-          task_id: 'client-check-in',
+          tasks: [
+            { task_id: 'client-check-in', quarters: 4 },
+            { task_id: 'outreach', quarters: 2 },
+          ],
           budget_line_id: 'chw-referrals',
           counts: { ...emptyCounts(), contacts: 1, other: [{ label: 'Food boxes', value: 2 }] },
           notes: 'Library',
@@ -336,11 +339,21 @@ describe.each(adapters)('$name adapter', (adapter) => {
 });
 
 describe('rememberPicks (SPEC §5)', () => {
+  it('puts every task of a split entry at the front, in the order checked (decision 0024)', () => {
+    const state = rememberPicks(
+      rememberPicks(emptyAppState(), 's', ['t1', 't2'], 'b1'),
+      's',
+      ['t3', 't1'],
+      'b1',
+    );
+    expect(state.per_source['s']?.recent_task_ids).toEqual(['t3', 't1', 't2']);
+  });
+
   it('moves the task to the front, keeps the budget line and caps the list', () => {
     let state = emptyAppState();
     for (let i = 0; i < RECENT_TASKS_MAX + 3; i++)
-      state = rememberPicks(state, 's', `t${String(i)}`, 'b1');
-    state = rememberPicks(state, 's', 't5', 'b2');
+      state = rememberPicks(state, 's', [`t${String(i)}`], 'b1');
+    state = rememberPicks(state, 's', ['t5'], 'b2');
     const picks = must(state.per_source['s']);
     expect(picks.last_budget_line_id).toBe('b2');
     expect(picks.recent_task_ids[0]).toBe('t5');
@@ -349,7 +362,12 @@ describe('rememberPicks (SPEC §5)', () => {
   });
 
   it('keeps sources apart', () => {
-    const state = rememberPicks(rememberPicks(emptyAppState(), 'a', 't1', 'b1'), 'b', 't2', 'b2');
+    const state = rememberPicks(
+      rememberPicks(emptyAppState(), 'a', ['t1'], 'b1'),
+      'b',
+      ['t2'],
+      'b2',
+    );
     expect(state.per_source['a']?.recent_task_ids).toEqual(['t1']);
     expect(state.per_source['b']?.last_budget_line_id).toBe('b2');
   });

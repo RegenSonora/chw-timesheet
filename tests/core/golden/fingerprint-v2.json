@@ -1,0 +1,313 @@
+[
+  {
+    "name": "wireframe sample, Oct 30 split between two tasks",
+    "invoice": {
+      "id": "00000000-0000-4000-8000-000000000500",
+      "number": "CC-2026-004",
+      "sequence": 4,
+      "source": {
+        "id": "tisupp",
+        "code": "TISUPP",
+        "name": "Trauma-Informed Substance Use Prevention Program",
+        "version": 2,
+        "certification_text": "I certify that the services listed were performed on the dates shown on the attached timesheet pages for the TISUPP grant, the hours are accurate, no participant names are included, and these hours have not been billed to Regenerating Sonora under any other funding source or to any other funder."
+      },
+      "chw": {
+        "name": "Carmen Cruz",
+        "initials": "CC",
+        "mailing_address": ""
+      },
+      "invoice_date": "2026-10-31",
+      "period_start": "2026-10-20",
+      "period_end": "2026-10-30",
+      "rate_cents": 2000,
+      "entries": [
+        {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "start": "2026-10-20T10:00:00-07:00",
+          "stop": "2026-10-20T10:31:12-07:00",
+          "entry_date": "2026-10-20",
+          "quarters": 2,
+          "tasks": [
+            {
+              "task_id": "outreach",
+              "task_name": "Outreach",
+              "core_competency": "Outreach",
+              "quarters": 2
+            }
+          ],
+          "budget_line_id": "outreach-and-marketing",
+          "budget_line_name": "Outreach and marketing",
+          "counts": {
+            "contacts": 1,
+            "referrals_given": 0,
+            "referral_followups": 0,
+            "rides_provided": 0,
+            "applications_completed": 0,
+            "other": []
+          },
+          "notes": "Library table",
+          "created_at": "2026-10-20T10:00:00-07:00",
+          "updated_at": "2026-10-20T10:00:00-07:00"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "start": "2026-10-22T13:00:00-07:00",
+          "stop": "2026-10-22T13:29:40-07:00",
+          "entry_date": "2026-10-22",
+          "quarters": 2,
+          "tasks": [
+            {
+              "task_id": "training-continuing-education",
+              "task_name": "Training / continuing education",
+              "core_competency": "Professional Skills & Conduct",
+              "quarters": 2
+            }
+          ],
+          "budget_line_id": "new-chws",
+          "budget_line_name": "New CHWs: training, stipends, field hours",
+          "counts": {
+            "contacts": 0,
+            "referrals_given": 0,
+            "referral_followups": 0,
+            "rides_provided": 0,
+            "applications_completed": 0,
+            "other": []
+          },
+          "notes": "CHW module 3",
+          "created_at": "2026-10-22T13:00:00-07:00",
+          "updated_at": "2026-10-22T13:00:00-07:00"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000003",
+          "start": "2026-10-23T13:00:00-07:00",
+          "stop": "2026-10-23T13:30:00-07:00",
+          "entry_date": "2026-10-23",
+          "quarters": 2,
+          "tasks": [
+            {
+              "task_id": "training-continuing-education",
+              "task_name": "Training / continuing education",
+              "core_competency": "Professional Skills & Conduct",
+              "quarters": 2
+            }
+          ],
+          "budget_line_id": "new-chws",
+          "budget_line_name": "New CHWs: training, stipends, field hours",
+          "counts": {
+            "contacts": 0,
+            "referrals_given": 0,
+            "referral_followups": 0,
+            "rides_provided": 0,
+            "applications_completed": 0,
+            "other": []
+          },
+          "notes": "CHW module 3",
+          "created_at": "2026-10-23T13:00:00-07:00",
+          "updated_at": "2026-10-23T13:00:00-07:00"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000004",
+          "start": "2026-10-26T09:00:00-07:00",
+          "stop": "2026-10-26T10:02:30-07:00",
+          "entry_date": "2026-10-26",
+          "quarters": 4,
+          "tasks": [
+            {
+              "task_id": "outreach",
+              "task_name": "Outreach",
+              "core_competency": "Outreach",
+              "quarters": 4
+            }
+          ],
+          "budget_line_id": "outreach-and-marketing",
+          "budget_line_name": "Outreach and marketing",
+          "counts": {
+            "contacts": 2,
+            "referrals_given": 0,
+            "referral_followups": 0,
+            "rides_provided": 0,
+            "applications_completed": 0,
+            "other": []
+          },
+          "notes": "Library table",
+          "created_at": "2026-10-26T09:00:00-07:00",
+          "updated_at": "2026-10-26T09:00:00-07:00"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000005",
+          "start": "2026-10-27T09:00:00-07:00",
+          "stop": "2026-10-27T11:04:10-07:00",
+          "entry_date": "2026-10-27",
+          "quarters": 8,
+          "tasks": [
+            {
+              "task_id": "training-continuing-education",
+              "task_name": "Training / continuing education",
+              "core_competency": "Professional Skills & Conduct",
+              "quarters": 8
+            }
+          ],
+          "budget_line_id": "new-chws",
+          "budget_line_name": "New CHWs: training, stipends, field hours",
+          "counts": {
+            "contacts": 0,
+            "referrals_given": 0,
+            "referral_followups": 0,
+            "rides_provided": 0,
+            "applications_completed": 0,
+            "other": []
+          },
+          "notes": "",
+          "created_at": "2026-10-27T09:00:00-07:00",
+          "updated_at": "2026-10-27T09:00:00-07:00"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000006",
+          "start": "2026-10-28T10:00:00-07:00",
+          "stop": "2026-10-28T11:30:00-07:00",
+          "entry_date": "2026-10-28",
+          "quarters": 6,
+          "tasks": [
+            {
+              "task_id": "outreach",
+              "task_name": "Outreach",
+              "core_competency": "Outreach",
+              "quarters": 6
+            }
+          ],
+          "budget_line_id": "outreach-and-marketing",
+          "budget_line_name": "Outreach and marketing",
+          "counts": {
+            "contacts": 2,
+            "referrals_given": 1,
+            "referral_followups": 0,
+            "rides_provided": 1,
+            "applications_completed": 1,
+            "other": []
+          },
+          "notes": "",
+          "created_at": "2026-10-28T10:00:00-07:00",
+          "updated_at": "2026-10-28T10:00:00-07:00"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000007",
+          "start": "2026-10-29T13:15:00-07:00",
+          "stop": "2026-10-29T15:00:00-07:00",
+          "entry_date": "2026-10-29",
+          "quarters": 7,
+          "tasks": [
+            {
+              "task_id": "client-follow-up",
+              "task_name": "Client follow up",
+              "core_competency": "Service Coordination & Navigation",
+              "quarters": 7
+            }
+          ],
+          "budget_line_id": "chw-referrals",
+          "budget_line_name": "CHW referrals",
+          "counts": {
+            "contacts": 0,
+            "referrals_given": 1,
+            "referral_followups": 2,
+            "rides_provided": 0,
+            "applications_completed": 1,
+            "other": []
+          },
+          "notes": "By phone",
+          "created_at": "2026-10-29T13:15:00-07:00",
+          "updated_at": "2026-10-29T13:15:00-07:00"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000008",
+          "start": "2026-10-30T09:12:04-07:00",
+          "stop": "2026-10-30T10:37:10-07:00",
+          "entry_date": "2026-10-30",
+          "quarters": 6,
+          "tasks": [
+            {
+              "task_id": "client-check-in",
+              "task_name": "Client check in",
+              "core_competency": "Interpersonal & Relationship-Building",
+              "quarters": 4
+            },
+            {
+              "task_id": "outreach",
+              "task_name": "Outreach",
+              "core_competency": "Outreach",
+              "quarters": 2
+            }
+          ],
+          "budget_line_id": "chw-referrals",
+          "budget_line_name": "CHW referrals",
+          "counts": {
+            "contacts": 1,
+            "referrals_given": 1,
+            "referral_followups": 0,
+            "rides_provided": 0,
+            "applications_completed": 0,
+            "other": []
+          },
+          "notes": "Library table",
+          "created_at": "2026-10-30T09:12:04-07:00",
+          "updated_at": "2026-10-30T09:12:04-07:00"
+        }
+      ],
+      "lines": [
+        {
+          "budget_line_id": "new-chws",
+          "budget_line_name": "New CHWs: training, stipends, field hours",
+          "quarters": 12,
+          "rate_cents": 2000,
+          "amount_cents": 6000
+        },
+        {
+          "budget_line_id": "chw-referrals",
+          "budget_line_name": "CHW referrals",
+          "quarters": 13,
+          "rate_cents": 2000,
+          "amount_cents": 6500
+        },
+        {
+          "budget_line_id": "outreach-and-marketing",
+          "budget_line_name": "Outreach and marketing",
+          "quarters": 12,
+          "rate_cents": 2000,
+          "amount_cents": 6000
+        }
+      ],
+      "total_quarters": 37,
+      "total_cents": 18500,
+      "counts_period": {
+        "contacts": 6,
+        "referrals_given": 3,
+        "referral_followups": 2,
+        "rides_provided": 1,
+        "applications_completed": 2,
+        "other": []
+      },
+      "counts_all_time": {
+        "contacts": 48,
+        "referrals_given": 22,
+        "referral_followups": 15,
+        "rides_provided": 9,
+        "applications_completed": 14,
+        "other": []
+      },
+      "nte": {
+        "state": "tracked",
+        "nte_cents": 500000,
+        "billed_before_cents": 488000,
+        "this_invoice_cents": 18500,
+        "remaining_cents": -6500,
+        "over": true
+      },
+      "canonical_version": 2,
+      "created_at": "2026-10-31T16:00:00-07:00",
+      "updated_at": "2026-10-31T16:00:00-07:00",
+      "fingerprint": "b27cf746a0c9ce8df8a67078d733c9a7e843fb0eb26614bea940e4a39793814a"
+    },
+    "canonical": "{\"chw\":{\"initials\":\"CC\",\"mailing_address\":\"\",\"name\":\"Carmen Cruz\"},\"entries\":[{\"budget_line_id\":\"outreach-and-marketing\",\"budget_line_name\":\"Outreach and marketing\",\"counts\":{\"applications_completed\":0,\"contacts\":1,\"other\":[],\"referral_followups\":0,\"referrals_given\":0,\"rides_provided\":0},\"entry_date\":\"2026-10-20\",\"id\":\"00000000-0000-4000-8000-000000000001\",\"notes\":\"Library table\",\"quarters\":2,\"start\":\"2026-10-20T10:00:00-07:00\",\"stop\":\"2026-10-20T10:31:12-07:00\",\"tasks\":[{\"core_competency\":\"Outreach\",\"quarters\":2,\"task_id\":\"outreach\",\"task_name\":\"Outreach\"}]},{\"budget_line_id\":\"new-chws\",\"budget_line_name\":\"New CHWs: training, stipends, field hours\",\"counts\":{\"applications_completed\":0,\"contacts\":0,\"other\":[],\"referral_followups\":0,\"referrals_given\":0,\"rides_provided\":0},\"entry_date\":\"2026-10-22\",\"id\":\"00000000-0000-4000-8000-000000000002\",\"notes\":\"CHW module 3\",\"quarters\":2,\"start\":\"2026-10-22T13:00:00-07:00\",\"stop\":\"2026-10-22T13:29:40-07:00\",\"tasks\":[{\"core_competency\":\"Professional Skills & Conduct\",\"quarters\":2,\"task_id\":\"training-continuing-education\",\"task_name\":\"Training / continuing education\"}]},{\"budget_line_id\":\"new-chws\",\"budget_line_name\":\"New CHWs: training, stipends, field hours\",\"counts\":{\"applications_completed\":0,\"contacts\":0,\"other\":[],\"referral_followups\":0,\"referrals_given\":0,\"rides_provided\":0},\"entry_date\":\"2026-10-23\",\"id\":\"00000000-0000-4000-8000-000000000003\",\"notes\":\"CHW module 3\",\"quarters\":2,\"start\":\"2026-10-23T13:00:00-07:00\",\"stop\":\"2026-10-23T13:30:00-07:00\",\"tasks\":[{\"core_competency\":\"Professional Skills & Conduct\",\"quarters\":2,\"task_id\":\"training-continuing-education\",\"task_name\":\"Training / continuing education\"}]},{\"budget_line_id\":\"outreach-and-marketing\",\"budget_line_name\":\"Outreach and marketing\",\"counts\":{\"applications_completed\":0,\"contacts\":2,\"other\":[],\"referral_followups\":0,\"referrals_given\":0,\"rides_provided\":0},\"entry_date\":\"2026-10-26\",\"id\":\"00000000-0000-4000-8000-000000000004\",\"notes\":\"Library table\",\"quarters\":4,\"start\":\"2026-10-26T09:00:00-07:00\",\"stop\":\"2026-10-26T10:02:30-07:00\",\"tasks\":[{\"core_competency\":\"Outreach\",\"quarters\":4,\"task_id\":\"outreach\",\"task_name\":\"Outreach\"}]},{\"budget_line_id\":\"new-chws\",\"budget_line_name\":\"New CHWs: training, stipends, field hours\",\"counts\":{\"applications_completed\":0,\"contacts\":0,\"other\":[],\"referral_followups\":0,\"referrals_given\":0,\"rides_provided\":0},\"entry_date\":\"2026-10-27\",\"id\":\"00000000-0000-4000-8000-000000000005\",\"notes\":\"\",\"quarters\":8,\"start\":\"2026-10-27T09:00:00-07:00\",\"stop\":\"2026-10-27T11:04:10-07:00\",\"tasks\":[{\"core_competency\":\"Professional Skills & Conduct\",\"quarters\":8,\"task_id\":\"training-continuing-education\",\"task_name\":\"Training / continuing education\"}]},{\"budget_line_id\":\"outreach-and-marketing\",\"budget_line_name\":\"Outreach and marketing\",\"counts\":{\"applications_completed\":1,\"contacts\":2,\"other\":[],\"referral_followups\":0,\"referrals_given\":1,\"rides_provided\":1},\"entry_date\":\"2026-10-28\",\"id\":\"00000000-0000-4000-8000-000000000006\",\"notes\":\"\",\"quarters\":6,\"start\":\"2026-10-28T10:00:00-07:00\",\"stop\":\"2026-10-28T11:30:00-07:00\",\"tasks\":[{\"core_competency\":\"Outreach\",\"quarters\":6,\"task_id\":\"outreach\",\"task_name\":\"Outreach\"}]},{\"budget_line_id\":\"chw-referrals\",\"budget_line_name\":\"CHW referrals\",\"counts\":{\"applications_completed\":1,\"contacts\":0,\"other\":[],\"referral_followups\":2,\"referrals_given\":1,\"rides_provided\":0},\"entry_date\":\"2026-10-29\",\"id\":\"00000000-0000-4000-8000-000000000007\",\"notes\":\"By phone\",\"quarters\":7,\"start\":\"2026-10-29T13:15:00-07:00\",\"stop\":\"2026-10-29T15:00:00-07:00\",\"tasks\":[{\"core_competency\":\"Service Coordination & Navigation\",\"quarters\":7,\"task_id\":\"client-follow-up\",\"task_name\":\"Client follow up\"}]},{\"budget_line_id\":\"chw-referrals\",\"budget_line_name\":\"CHW referrals\",\"counts\":{\"applications_completed\":0,\"contacts\":1,\"other\":[],\"referral_followups\":0,\"referrals_given\":1,\"rides_provided\":0},\"entry_date\":\"2026-10-30\",\"id\":\"00000000-0000-4000-8000-000000000008\",\"notes\":\"Library table\",\"quarters\":6,\"start\":\"2026-10-30T09:12:04-07:00\",\"stop\":\"2026-10-30T10:37:10-07:00\",\"tasks\":[{\"core_competency\":\"Interpersonal & Relationship-Building\",\"quarters\":4,\"task_id\":\"client-check-in\",\"task_name\":\"Client check in\"},{\"core_competency\":\"Outreach\",\"quarters\":2,\"task_id\":\"outreach\",\"task_name\":\"Outreach\"}]}],\"id\":\"00000000-0000-4000-8000-000000000500\",\"invoice_date\":\"2026-10-31\",\"lines\":[{\"amount_cents\":6000,\"budget_line_id\":\"new-chws\",\"budget_line_name\":\"New CHWs: training, stipends, field hours\",\"quarters\":12,\"rate_cents\":2000},{\"amount_cents\":6500,\"budget_line_id\":\"chw-referrals\",\"budget_line_name\":\"CHW referrals\",\"quarters\":13,\"rate_cents\":2000},{\"amount_cents\":6000,\"budget_line_id\":\"outreach-and-marketing\",\"budget_line_name\":\"Outreach and marketing\",\"quarters\":12,\"rate_cents\":2000}],\"number\":\"CC-2026-004\",\"period_end\":\"2026-10-30\",\"period_start\":\"2026-10-20\",\"rate_cents\":2000,\"sequence\":4,\"source\":{\"code\":\"TISUPP\",\"id\":\"tisupp\",\"name\":\"Trauma-Informed Substance Use Prevention Program\",\"version\":2},\"total_cents\":18500,\"total_quarters\":37,\"v\":2}",
+    "fingerprint": "b27cf746a0c9ce8df8a67078d733c9a7e843fb0eb26614bea940e4a39793814a"
+  }
+]

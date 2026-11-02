@@ -1,5 +1,7 @@
-// New entry: Enter times → task and budget line → counts and notes → Save (SPEC §5).
+// New entry: Enter times → tasks and budget line → split your time (two or more tasks) → counts
+// and notes → Save (SPEC §5, decision 0024).
 import { useState } from 'preact/hooks';
+import { splitStatus } from '../../core';
 import type { EntryDraft } from '../../storage';
 import { Page } from '../components';
 import { checkDraftTimes } from '../draft';
@@ -8,15 +10,24 @@ import {
   CountsAndNotes,
   PROBLEM_TEXT,
   SourceAndLine,
+  SplitEditor,
   TaskList,
   TimeCard,
   TimesFields,
+  useDraftQuarters,
 } from './entry-parts';
 
 function useEntryDraft(): EntryDraft | null {
   const { data } = useApp();
   const draft = data.app.draft;
   return draft?.kind === 'entry' ? draft : null;
+}
+
+/** "Step 1 of 2", or of 3 when the hours are split between tasks. */
+function stepCount(draft: EntryDraft, step: 'task' | 'split' | 'counts') {
+  const steps = draft.tasks.length > 1 ? ['task', 'split', 'counts'] : ['task', 'counts'];
+  const at = Math.max(0, steps.indexOf(step)) + 1;
+  return <span class="step-count">{`Step ${String(at)} of ${String(steps.length)}`}</span>;
 }
 
 export function EnterTimes() {
@@ -53,20 +64,21 @@ export function TaskStep() {
   const [tried, setTried] = useState(false);
   if (!draft) return null;
   const check = checkDraftTimes(draft, data.entries);
-  const missingTask = !draft.task_id;
+  const missingTask = draft.tasks.length === 0;
   const missingLine = !draft.budget_line_id;
   return (
     <Page
       title="What did you do?"
       back
-      aside={<span class="step-count">Step 1 of 2</span>}
+      aside={stepCount(draft, 'task')}
       footer={
         <button
           type="button"
           class="btn"
           onClick={() => {
             setTried(true);
-            if (!missingTask && !missingLine) actions.push('counts');
+            if (missingTask || missingLine) return;
+            actions.push(draft.tasks.length > 1 ? 'split' : 'counts');
           }}
         >
           Next
@@ -83,6 +95,36 @@ export function TaskStep() {
   );
 }
 
+export function SplitStep() {
+  const { actions } = useApp();
+  const draft = useEntryDraft();
+  const [tried, setTried] = useState(false);
+  const total = useDraftQuarters(draft);
+  if (!draft) return null;
+  const ok = splitStatus(total, draft.tasks).state === 'ok';
+  return (
+    <Page
+      title="Split your time"
+      back
+      aside={stepCount(draft, 'split')}
+      footer={
+        <button
+          type="button"
+          class="btn"
+          onClick={() => {
+            setTried(true);
+            if (ok) actions.push('counts');
+          }}
+        >
+          Next
+        </button>
+      }
+    >
+      <SplitEditor draft={draft} error={tried && !ok ? PROBLEM_TEXT.split : null} />
+    </Page>
+  );
+}
+
 export function CountsStep() {
   const { actions } = useApp();
   const draft = useEntryDraft();
@@ -91,14 +133,14 @@ export function CountsStep() {
   const save = async () => {
     const result = await actions.saveDraft();
     if (result === 'count_label') setProblem(PROBLEM_TEXT.count_label);
-    else if (result === 'task' || result === 'budget_line') actions.back();
+    else if (result === 'task' || result === 'split' || result === 'budget_line') actions.back();
     else if (result === 'times') setProblem(PROBLEM_TEXT.times);
   };
   return (
     <Page
       title="Counts and notes"
       back
-      aside={<span class="step-count">Step 2 of 2</span>}
+      aside={stepCount(draft, 'counts')}
       footer={
         <button type="button" class="btn" onClick={() => void save()}>
           Save entry

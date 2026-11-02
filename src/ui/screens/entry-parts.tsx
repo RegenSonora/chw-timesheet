@@ -2,7 +2,10 @@
 import { useState } from 'preact/hooks';
 import {
   carryPicks,
+  checkTask,
+  splitStatus,
   taskChoices,
+  uncheckTask,
   type Counts,
   type Entry,
   type FundingSourceConfig,
@@ -120,7 +123,7 @@ export function SourceAndLine({
             setPicking(null);
             if (s.id === source.id) return;
             const lastLine = data.app.per_source[s.id]?.last_budget_line_id ?? null;
-            const picks = carryPicks(s, draft.task_id, draft.budget_line_id ?? lastLine);
+            const picks = carryPicks(s, draft.tasks, draft.budget_line_id ?? lastLine);
             void actions.updateDraft({ source_id: s.id, ...picks });
           }}
           onClose={() => {
@@ -147,17 +150,18 @@ export function SourceAndLine({
   );
 }
 
-/** The task list ("Task"): recent tasks first, then the rest, as one radio group. */
-export function TaskList({
-  draft,
-  error,
-  onPicked,
-}: {
-  draft: EntryDraft;
-  error?: string | null;
-  onPicked?: () => void;
-}) {
+/** The entry's billed quarter-hours, or 0 while its times aren't valid yet. */
+export function useDraftQuarters(draft: EntryDraft | null): number {
+  const { data } = useApp();
+  if (!draft) return 0;
+  const check = checkDraftTimes(draft, data.entries);
+  return check.state === 'ok' ? check.quarters : 0;
+}
+
+/** The task list ("Tasks"): recent tasks first, then the rest, as check boxes (decision 0024). */
+export function TaskList({ draft, error }: { draft: EntryDraft; error?: string | null }) {
   const { data, actions } = useApp();
+  const total = useDraftQuarters(draft);
   const source = sourceById(draft.source_id);
   const { recent, all } = taskChoices(
     source,
@@ -165,16 +169,19 @@ export function TaskList({
   );
   const recentIds = new Set(recent.map((t) => t.id));
   const rest = all.filter((t) => !recentIds.has(t.id));
+  const checked = new Set(draft.tasks.map((s) => s.task_id));
   const option = (t: (typeof all)[number]) => (
-    <label key={t.id} class={draft.task_id === t.id ? 'row row-on' : 'row'}>
+    <label key={t.id} class={checked.has(t.id) ? 'row row-on' : 'row'}>
       <input
-        type="radio"
+        type="checkbox"
         name="task"
         value={t.id}
-        checked={draft.task_id === t.id}
+        checked={checked.has(t.id)}
         onChange={() => {
-          void actions.updateDraft({ task_id: t.id });
-          onPicked?.();
+          const tasks = checked.has(t.id)
+            ? uncheckTask(draft.tasks, t.id)
+            : [...checkTask(draft.tasks, t.id, total)];
+          void actions.updateDraft({ tasks });
         }}
       />
       <span>
@@ -185,7 +192,8 @@ export function TaskList({
   );
   return (
     <fieldset class="tasks" aria-invalid={error ? 'true' : undefined}>
-      <legend class="lab">Task</legend>
+      <legend class="lab">Tasks</legend>
+      <p class="hint">Check every task you did.</p>
       {error && <ErrorText>{error}</ErrorText>}
       <div class="task-box">
         {recent.length > 0 && <p class="grp">Recent</p>}
@@ -194,6 +202,54 @@ export function TaskList({
         {rest.map(option)}
       </div>
     </fieldset>
+  );
+}
+
+/** "1.5 h logged · 0.5 h left", "0.25 h too many" or "All 1.5 h assigned". */
+export function splitText(total: number, assigned: number): string {
+  const status = splitStatus(total, [{ task_id: '', quarters: assigned }]);
+  if (status.state === 'ok') return `All ${hoursLabel(total)} assigned`;
+  if (status.state === 'over') return `${hoursLabel(status.quarters)} too many`;
+  return `${hoursLabel(total)} logged · ${hoursLabel(status.quarters)} left`;
+}
+
+/** Each checked task with − and + in 0.25 h steps, under a bar showing what is left (decision 0024). */
+export function SplitEditor({ draft, error }: { draft: EntryDraft; error?: string | null }) {
+  const { actions } = useApp();
+  const source = sourceById(draft.source_id);
+  const total = useDraftQuarters(draft);
+  const status = splitStatus(total, draft.tasks);
+  return (
+    <div class="split">
+      <p class={`split-bar split-${status.state}`} role="status">
+        {splitText(total, status.assigned)}
+      </p>
+      {error && <ErrorText>{error}</ErrorText>}
+      <div class="card counts">
+        {draft.tasks.map((share) => {
+          const name = source.tasks.find((t) => t.id === share.task_id)?.name ?? 'Task';
+          return (
+            <Stepper
+              key={share.task_id}
+              label={name}
+              noun={`time on ${name}`}
+              less="Less"
+              more="More"
+              show={hoursLabel}
+              value={share.quarters}
+              onChange={(quarters) => {
+                void actions.updateDraft({
+                  tasks: draft.tasks.map((s) =>
+                    s.task_id === share.task_id ? { ...s, quarters } : s,
+                  ),
+                });
+              }}
+            />
+          );
+        })}
+      </div>
+      <p class="hint">Each tap is 0.25 h. A task left at 0 h is dropped.</p>
+    </div>
   );
 }
 
@@ -371,7 +427,8 @@ export function TimesFields({ draft }: { draft: EntryDraft }) {
 }
 
 export const PROBLEM_TEXT = {
-  task: 'Pick what you did.',
+  task: 'Check what you did.',
+  split: 'Split all the hours between your tasks.',
   budget_line: 'Pick a budget line.',
   count_label: 'Give each extra count a name, or remove it.',
   times: 'Check the times.',

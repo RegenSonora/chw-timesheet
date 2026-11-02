@@ -4,8 +4,16 @@ import type { EntryDraft } from '../../storage';
 import { ChangeRow } from './entry-parts';
 import { Confirm, Page, entryNames } from '../components';
 import { editDraft } from '../draft';
+import { tasksLabel } from '../format';
 import { sourceById, useApp } from '../store';
-import { CountsAndNotes, PROBLEM_TEXT, SourceAndLine, TaskList, TimesFields } from './entry-parts';
+import {
+  CountsAndNotes,
+  PROBLEM_TEXT,
+  SourceAndLine,
+  SplitEditor,
+  TaskList,
+  TimesFields,
+} from './entry-parts';
 import type { DraftProblem } from '../draft';
 
 /** Did the CHW change anything since opening the entry? */
@@ -41,7 +49,7 @@ export function EditEntry() {
 
   if (!draft || !entry) return null;
   const source = sourceById(draft.source_id);
-  const task = source.tasks.find((t) => t.id === draft.task_id);
+  const known = draft.tasks.filter((s) => source.tasks.some((t) => t.id === s.task_id));
 
   const save = async () => {
     setProblem(await actions.saveDraft());
@@ -74,21 +82,30 @@ export function EditEntry() {
         lineError={problem === 'budget_line' ? PROBLEM_TEXT.budget_line : null}
       />
       {pickingTask ? (
-        <TaskList
-          draft={draft}
-          onPicked={() => {
-            setPickingTask(false);
-          }}
-        />
+        <>
+          <TaskList draft={draft} error={problem === 'task' ? PROBLEM_TEXT.task : null} />
+          <button
+            type="button"
+            class="btn btn2"
+            onClick={() => {
+              setPickingTask(false);
+            }}
+          >
+            Done with tasks
+          </button>
+        </>
       ) : (
         <ChangeRow
           label="What did you do?"
-          value={task?.name ?? null}
-          error={problem === 'task' || !task ? PROBLEM_TEXT.task : null}
+          value={known.length ? tasksLabel(source, known) : null}
+          error={problem === 'task' || !known.length ? PROBLEM_TEXT.task : null}
           onChange={() => {
             setPickingTask(true);
           }}
         />
+      )}
+      {draft.tasks.length > 1 && (
+        <SplitEditor draft={draft} error={problem === 'split' ? PROBLEM_TEXT.split : null} />
       )}
       <CountsAndNotes
         draft={draft}

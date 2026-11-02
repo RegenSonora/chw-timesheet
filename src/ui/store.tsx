@@ -33,12 +33,13 @@ import {
   withHand,
   type DraftProblem,
 } from './draft';
-import { hoursLabel, localDateTime } from './format';
+import { hoursLabel, localDateTime, tasksLabel } from './format';
 
 export type Screen =
   | 'home'
   | 'times'
   | 'task'
+  | 'split'
   | 'counts'
   | 'edit'
   | 'all'
@@ -47,7 +48,7 @@ export type Screen =
   | 'invoice-ready'
   | 'invoices';
 
-const ENTRY_SCREENS: readonly Screen[] = ['times', 'task', 'counts', 'edit'];
+const ENTRY_SCREENS: readonly Screen[] = ['times', 'task', 'split', 'counts', 'edit'];
 
 export interface Data {
   profile: Profile | null;
@@ -122,7 +123,12 @@ function stackFor(app: AppState): Screen[] {
   const d = app.draft;
   if (d?.kind !== 'entry') return ['home'];
   if (d.step === 'edit') return ['home', 'edit'];
-  const steps: Screen[] = d.hand ? ['times', 'task', 'counts'] : ['task', 'counts'];
+  const steps: Screen[] = [
+    ...(d.hand ? (['times'] as const) : []),
+    'task',
+    ...(d.tasks.length > 1 ? (['split'] as const) : []),
+    'counts',
+  ];
   const at = steps.indexOf(d.step);
   return ['home', ...steps.slice(0, at < 0 ? 1 : at + 1)];
 }
@@ -325,8 +331,7 @@ function useStore(storage: Storage, initial: Data) {
 
     const entryWords = (e: Entry) => {
       const times = checkEntryTimes(e.start, e.stop);
-      const task = sourceOf(e.source_id).tasks.find((t) => t.id === e.task_id);
-      return `${times.ok ? hoursLabel(times.quarters) : ''}, ${task?.name ?? ''}`;
+      return `${times.ok ? hoursLabel(times.quarters) : ''}, ${tasksLabel(sourceOf(e.source_id), e.tasks)}`;
     };
 
     return {
@@ -436,7 +441,12 @@ function useStore(storage: Storage, initial: Data) {
         const saved = await serial(() => storage.saveEntry(entry));
         if (!saved.ok) return 'times';
         await saveApp({
-          ...rememberPicks(d().app, entry.source_id, entry.task_id, entry.budget_line_id),
+          ...rememberPicks(
+            d().app,
+            entry.source_id,
+            entry.tasks.map((s) => s.task_id),
+            entry.budget_line_id,
+          ),
           draft: null,
           selected_source_id: entry.source_id,
         });

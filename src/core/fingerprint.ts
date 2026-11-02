@@ -1,12 +1,31 @@
 // Invoice fingerprint (SPEC §7, CLAUDE.md rule 8): SHA-256 over a versioned canonical form.
-// Never change canonicalFormV1. A new form gets a new version and v1 invoices keep verifying.
+// Never change a canonical form. A new form gets a new version and older invoices keep verifying.
 import { canonicalJson } from './canonical';
-import type { Invoice } from './types';
+import type { Counts, Invoice, InvoiceEntry, InvoiceTaskShare } from './types';
 
-export const CANONICAL_VERSION = 1;
+/** The version new invoices get. v2: several tasks per entry (decision 0024). */
+export const CANONICAL_VERSION = 2;
 
 /** The fields an invoice is fingerprinted over: header, entries, lines, totals and rate. */
 export type FingerprintedInvoice = Omit<Invoice, 'fingerprint'>;
+
+function countsForm(counts: Counts) {
+  return {
+    contacts: counts.contacts,
+    referrals_given: counts.referrals_given,
+    referral_followups: counts.referral_followups,
+    rides_provided: counts.rides_provided,
+    applications_completed: counts.applications_completed,
+    other: counts.other.map((o) => ({ label: o.label, value: o.value })),
+  };
+}
+
+/** A v1 invoice entry had exactly one task; data v3 stores it as a single share. */
+function onlyTask(e: InvoiceEntry): InvoiceTaskShare {
+  const [only, ...more] = e.tasks;
+  if (!only || more.length > 0) throw new RangeError('A v1 invoice entry has exactly one task');
+  return only;
+}
 
 /**
  * Canonical form v1. Leaves out what depends on other invoices (NTE tracker, all-time
@@ -33,25 +52,72 @@ export function canonicalFormV1(invoice: FingerprintedInvoice): string {
       mailing_address: invoice.chw.mailing_address,
     },
     rate_cents: invoice.rate_cents,
+    entries: invoice.entries.map((e) => {
+      const task = onlyTask(e);
+      return {
+        id: e.id,
+        start: e.start,
+        stop: e.stop,
+        entry_date: e.entry_date,
+        quarters: e.quarters,
+        task_id: task.task_id,
+        task_name: task.task_name,
+        core_competency: task.core_competency,
+        budget_line_id: e.budget_line_id,
+        budget_line_name: e.budget_line_name,
+        counts: countsForm(e.counts),
+        notes: e.notes,
+      };
+    }),
+    lines: invoice.lines.map((l) => ({
+      budget_line_id: l.budget_line_id,
+      budget_line_name: l.budget_line_name,
+      quarters: l.quarters,
+      rate_cents: l.rate_cents,
+      amount_cents: l.amount_cents,
+    })),
+    total_quarters: invoice.total_quarters,
+    total_cents: invoice.total_cents,
+  });
+}
+
+/** Canonical form v2: as v1, but each entry lists its task shares (decision 0024). */
+export function canonicalFormV2(invoice: FingerprintedInvoice): string {
+  return canonicalJson({
+    v: 2,
+    id: invoice.id,
+    number: invoice.number,
+    sequence: invoice.sequence,
+    invoice_date: invoice.invoice_date,
+    period_start: invoice.period_start,
+    period_end: invoice.period_end,
+    source: {
+      id: invoice.source.id,
+      code: invoice.source.code,
+      name: invoice.source.name,
+      version: invoice.source.version,
+    },
+    chw: {
+      name: invoice.chw.name,
+      initials: invoice.chw.initials,
+      mailing_address: invoice.chw.mailing_address,
+    },
+    rate_cents: invoice.rate_cents,
     entries: invoice.entries.map((e) => ({
       id: e.id,
       start: e.start,
       stop: e.stop,
       entry_date: e.entry_date,
       quarters: e.quarters,
-      task_id: e.task_id,
-      task_name: e.task_name,
-      core_competency: e.core_competency,
+      tasks: e.tasks.map((t) => ({
+        task_id: t.task_id,
+        task_name: t.task_name,
+        core_competency: t.core_competency,
+        quarters: t.quarters,
+      })),
       budget_line_id: e.budget_line_id,
       budget_line_name: e.budget_line_name,
-      counts: {
-        contacts: e.counts.contacts,
-        referrals_given: e.counts.referrals_given,
-        referral_followups: e.counts.referral_followups,
-        rides_provided: e.counts.rides_provided,
-        applications_completed: e.counts.applications_completed,
-        other: e.counts.other.map((o) => ({ label: o.label, value: o.value })),
-      },
+      counts: countsForm(e.counts),
       notes: e.notes,
     })),
     lines: invoice.lines.map((l) => ({
@@ -66,7 +132,10 @@ export function canonicalFormV1(invoice: FingerprintedInvoice): string {
   });
 }
 
-const FORMS: Record<number, (invoice: FingerprintedInvoice) => string> = { 1: canonicalFormV1 };
+const FORMS: Record<number, (invoice: FingerprintedInvoice) => string> = {
+  1: canonicalFormV1,
+  2: canonicalFormV2,
+};
 
 /** The canonical string for the invoice's own canonical version. */
 export function canonicalForm(invoice: FingerprintedInvoice): string {

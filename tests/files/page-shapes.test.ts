@@ -59,12 +59,13 @@ describe('page 1 as shapes, for the picture (decision 0018)', () => {
 
   it('leaves the PDF and CSV bytes as they were', async () => {
     // Pinned at TISUPP version 1, so a later edit to the source file doesn't move the hashes.
+    // Re-pinned for decision 0024: the fingerprint (canonical v2) and the entry log's part column.
     const invoice = await invoiceFrom({ source: { ...tisupp, version: 1 } });
     const files = buildInvoiceFiles(invoice, tisupp);
     expect(await Promise.all(files.map((f) => sha256(f.bytes)))).toEqual([
-      '24c1b85d1145e391ef0c3358355f52a32a77972e5193a53dfc306fcdcebb5dce',
-      '6efa866b91e9dac673a6b7bd66a471fe4707dd382ac95e50807737418a710ad4',
-      'c3e167e974ba2b63a43e67217e13efef14847e1b54fe18cfca2f12b8dd2575ab',
+      'bebf672b438d9702f31c4962d9524ffb1bee016c1f4719335d5eff300aba539a',
+      'cfbd31327e42b3015ac01726defcdc57c7122f1ac945fd88fad84741da7ad6fe',
+      '6ef3b112d3f2df47fe9371ae2ba10f172cd4a8afdc1f60dd51059f97da545289',
     ]);
   });
 });

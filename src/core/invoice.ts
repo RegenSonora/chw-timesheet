@@ -3,6 +3,7 @@ import { sumCounts } from './counts';
 import { CANONICAL_VERSION, fingerprintOf, type FingerprintedInvoice } from './fingerprint';
 import { formatInvoiceNumber, normalizeInitials, takeNumber } from './invoice-number';
 import { lineAmountCents, sumCents } from './money';
+import { sharesMatch } from './task-split';
 import { checkEntryTimes, entryDateOf, parseIso } from './time';
 import type {
   Entry,
@@ -72,16 +73,21 @@ export function buildInvoiceDraft(input: InvoiceInput): InvoiceDraftResult {
   if (!isDate(input.invoice_date)) return { ok: false, reason: 'bad_date' };
 
   const tasks = new Map(source.tasks.map((t) => [t.id, t]));
+  const taskIds = new Set(tasks.keys());
   const lines = new Map(source.budget_lines.map((l) => [l.id, l]));
   const billed = uninvoicedEntries(input.entries, source.id);
   if (billed.length === 0) return { ok: false, reason: 'no_entries' };
 
   const frozen: InvoiceEntry[] = [];
   for (const e of billed) {
-    const task = tasks.get(e.task_id);
     const line = lines.get(e.budget_line_id);
     const times = checkEntryTimes(e.start, e.stop);
-    if (!task || !line || !times.ok || entryDateOf(e.start) !== e.entry_date) {
+    if (
+      !line ||
+      !times.ok ||
+      entryDateOf(e.start) !== e.entry_date ||
+      !sharesMatch(e.tasks, times.quarters, taskIds)
+    ) {
       return { ok: false, reason: 'bad_entry', entry_id: e.id };
     }
     frozen.push({
@@ -90,9 +96,15 @@ export function buildInvoiceDraft(input: InvoiceInput): InvoiceDraftResult {
       stop: e.stop,
       entry_date: e.entry_date,
       quarters: times.quarters,
-      task_id: task.id,
-      task_name: task.name,
-      core_competency: task.core_competency,
+      tasks: e.tasks.map((s) => {
+        const task = tasks.get(s.task_id) ?? { id: s.task_id, name: '', core_competency: null };
+        return {
+          task_id: task.id,
+          task_name: task.name,
+          core_competency: task.core_competency,
+          quarters: s.quarters,
+        };
+      }),
       budget_line_id: line.id,
       budget_line_name: line.name,
       counts: structuredClone(e.counts),

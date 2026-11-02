@@ -1,5 +1,5 @@
 // Task and budget line choices on the new-entry screen (SPEC §5, decision 0008).
-import type { FundingSourceConfig, Task } from './types';
+import type { FundingSourceConfig, Task, TaskShare } from './types';
 
 /** How many recent tasks the "Recent" group shows. */
 export const RECENT_TASKS_SHOWN = 3;
@@ -35,11 +35,11 @@ export function defaultBudgetLine(
 /** Moving an entry to another source keeps the picks that source also has (decision 0008). */
 export function carryPicks(
   source: FundingSourceConfig,
-  taskId: string | null,
+  tasks: readonly TaskShare[],
   budgetLineId: string | null,
-): { task_id: string | null; budget_line_id: string | null } {
+): { tasks: TaskShare[]; budget_line_id: string | null } {
   return {
-    task_id: taskId !== null && source.tasks.some((t) => t.id === taskId) ? taskId : null,
+    tasks: tasks.filter((s) => source.tasks.some((t) => t.id === s.task_id)),
     budget_line_id: defaultBudgetLine(source, budgetLineId),
   };
 }

@@ -2,6 +2,7 @@
 // Raw times come from the wireframes where they are shown; the rest are filled in to round to
 // the hours on the timesheet page. Earlier invoices CC-2026-001 to 003 total $4,880.00.
 import { emptyCounts } from '../../../src/core/counts';
+import { checkEntryTimes } from '../../../src/core/time';
 import type { InvoiceInput } from '../../../src/core/invoice';
 import type { Counts, Entry, Invoice } from '../../../src/core/types';
 import { findFundingSource } from '../../../src/funding-sources';
@@ -50,13 +51,16 @@ export function makeEntry(
     stop < start
       ? new Date(Date.parse(`${date}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10)
       : date;
+  const stopIso = at(stopDate, stop);
+  const times = checkEntryTimes(startIso, stopIso);
   return {
     id: uuid(nextId++),
     source_id: 'tisupp',
     start: startIso,
-    stop: at(stopDate, stop),
+    stop: stopIso,
     entry_date: date,
-    task_id,
+    // One task holding all the billed hours; split entries pass `tasks` in `extra`.
+    tasks: [{ task_id, quarters: times.ok ? times.quarters : 0 }],
     budget_line_id,
     counts: counts(),
     notes: '',
@@ -232,4 +236,25 @@ export function sampleInput(overrides: Partial<InvoiceInput> = {}): InvoiceInput
     prior_invoices: samplePriorInvoices,
     ...overrides,
   };
+}
+
+/**
+ * The sample with its Oct 30 entry (1:25:06 → 1.50 h) split: Client check in 1.00 h, then
+ * Outreach 0.50 h (decision 0024). Totals stay 9.25 h and $185.00.
+ */
+export const splitSampleEntries: Entry[] = sampleEntries.map((e) =>
+  e.id === uuid(8)
+    ? {
+        ...e,
+        notes: 'Library table',
+        tasks: [
+          { task_id: 'client-check-in', quarters: 4 },
+          { task_id: 'outreach', quarters: 2 },
+        ],
+      }
+    : e,
+);
+
+export function splitSampleInput(overrides: Partial<InvoiceInput> = {}): InvoiceInput {
+  return sampleInput({ entries: splitSampleEntries, ...overrides });
 }

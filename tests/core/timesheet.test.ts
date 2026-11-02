@@ -3,7 +3,13 @@ import { buildInvoiceDraft } from '../../src/core/invoice';
 import { formatQuarters } from '../../src/core/money';
 import { paginateTimesheet } from '../../src/core/timesheet';
 import type { Entry } from '../../src/core/types';
-import { makeEntry, must, sampleInput, tisupp } from './fixtures/wireframe-sample';
+import {
+  makeEntry,
+  must,
+  sampleInput,
+  splitSampleEntries,
+  tisupp,
+} from './fixtures/wireframe-sample';
 
 function pages(entries: Entry[]) {
   const result = buildInvoiceDraft(sampleInput({ entries }));
@@ -208,13 +214,32 @@ describe('page splitting', () => {
         {
           ...must(invoice.entries[0]),
           id: 'x',
-          task_id: 'retired-task',
-          task_name: 'Retired task',
+          tasks: [
+            {
+              task_id: 'retired-task',
+              task_name: 'Retired task',
+              core_competency: null,
+              quarters: 4,
+            },
+          ],
         },
       ],
     };
     const [p] = paginateTimesheet(renamed, tisupp);
     expect(p?.rows.map((r) => r.task_name)).toEqual(['Outreach', 'Retired task']);
+  });
+
+  it('adds each share of a split entry to its task row, with the notes on each (decision 0024)', () => {
+    const [, last] = pages(splitSampleEntries).pages;
+    const p = must(last);
+    expect(p.dates).toEqual(['2026-10-30']);
+    expect(p.rows.map((r) => [r.task_name, hours(r.cells), r.notes])).toEqual([
+      ['Outreach', ['0.50'], 'Library table'],
+      ['Client check in', ['1.00'], 'Library table'],
+    ]);
+    expect(p.date_totals).toEqual([6]);
+    expect(p.page_total).toBe(6);
+    expect(p.subtotals.map((s) => s.quarters)).toEqual([6]);
   });
 
   it('returns no pages for no entries', () => {

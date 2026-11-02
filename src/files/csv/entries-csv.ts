@@ -1,5 +1,5 @@
-// Entry log CSV (SPEC §7, decision 0001): one header row and one row per entry, the same
-// columns for every invoice so files combine. No per-entry dollar amount.
+// Entry log CSV (SPEC §7, decisions 0001 and 0024): one header row and one row per task share of
+// each entry, the same columns for every invoice so files combine. No per-entry dollar amount.
 import { formatCentsPlain, formatQuarters } from '../../core/money';
 import { rawSeconds } from '../../core/time';
 import type { Invoice } from '../../core/types';
@@ -10,6 +10,7 @@ export const ENTRY_LOG_COLUMNS = [
   'fingerprint',
   'funding_source',
   'entry_id',
+  'part',
   'entry_date',
   'start',
   'stop',
@@ -38,31 +39,42 @@ export function durationText(seconds: number): string {
   return `${String(Math.floor(s / 3600))}:${mm}:${ss}`;
 }
 
+/**
+ * `billed_hours` is the row's task share, so the column adds up to the invoice hours. Times
+ * repeat on every part; counts and notes are on part 1 only, so they add up too.
+ */
 export function entriesCsv(invoice: Invoice): Uint8Array<ArrayBuffer> {
   const rate = formatCentsPlain(invoice.rate_cents);
-  const rows = invoice.entries.map((e) => [
-    invoice.number,
-    invoice.fingerprint,
-    invoice.source.code,
-    e.id,
-    e.entry_date,
-    e.start,
-    e.stop,
-    durationText(rawSeconds(e.start, e.stop)),
-    formatQuarters(e.quarters),
-    e.task_name,
-    e.core_competency ?? '',
-    e.budget_line_name,
-    rate,
-    String(e.counts.contacts),
-    String(e.counts.referrals_given),
-    String(e.counts.referral_followups),
-    String(e.counts.rides_provided),
-    String(e.counts.applications_completed),
-    e.counts.other.map((o) => `${o.label}=${String(o.value)}`).join('; '),
-    e.notes,
-    e.created_at,
-    e.updated_at,
-  ]);
+  const rows = invoice.entries.flatMap((e) =>
+    e.tasks.map((t, i) => {
+      const first = i === 0;
+      const count = (n: number) => (first ? String(n) : '');
+      return [
+        invoice.number,
+        invoice.fingerprint,
+        invoice.source.code,
+        e.id,
+        `${String(i + 1)} of ${String(e.tasks.length)}`,
+        e.entry_date,
+        e.start,
+        e.stop,
+        durationText(rawSeconds(e.start, e.stop)),
+        formatQuarters(t.quarters),
+        t.task_name,
+        t.core_competency ?? '',
+        e.budget_line_name,
+        rate,
+        count(e.counts.contacts),
+        count(e.counts.referrals_given),
+        count(e.counts.referral_followups),
+        count(e.counts.rides_provided),
+        count(e.counts.applications_completed),
+        first ? e.counts.other.map((o) => `${o.label}=${String(o.value)}`).join('; ') : '',
+        first ? e.notes : '',
+        e.created_at,
+        e.updated_at,
+      ];
+    }),
+  );
   return csvFile([[...ENTRY_LOG_COLUMNS], ...rows]);
 }

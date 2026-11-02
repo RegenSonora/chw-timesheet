@@ -3,7 +3,7 @@ import type { ComponentChildren, JSX } from 'preact';
 import { useEffect, useId, useRef } from 'preact/hooks';
 import type { Entry, FundingSourceConfig } from '../core';
 import { checkEntryTimes } from '../core';
-import { dateLabel, hoursLabel, timeRangeLabel } from './format';
+import { dateLabel, hoursLabel, tasksLabel, timeRangeLabel } from './format';
 import { sourceById, useApp } from './store';
 
 // --- Icons (stroke SVG, hidden from screen readers) -----------------------------------------
@@ -347,12 +347,19 @@ export function Stepper({
   value,
   onChange,
   noun,
+  less = 'Fewer',
+  more = 'More',
+  show = String,
 }: {
   label: string;
   value: number;
   onChange: (value: number) => void;
   /** For the button names: "Fewer contacts", "More contacts". */
   noun: string;
+  less?: string;
+  more?: string;
+  /** How the value reads, e.g. "1.5 h". */
+  show?: (value: number) => string;
 }) {
   const id = useId();
   return (
@@ -362,7 +369,7 @@ export function Stepper({
         <button
           type="button"
           class="stp"
-          aria-label={`Fewer ${noun}`}
+          aria-label={`${less} ${noun}`}
           disabled={value === 0}
           onClick={() => {
             onChange(Math.max(0, value - 1));
@@ -371,12 +378,12 @@ export function Stepper({
           −
         </button>
         <span class="val" aria-live="polite">
-          {value}
+          {show(value)}
         </span>
         <button
           type="button"
           class="stp"
-          aria-label={`More ${noun}`}
+          aria-label={`${more} ${noun}`}
           onClick={() => {
             onChange(value + 1);
           }}
@@ -398,7 +405,7 @@ export function entryNames(
   source: FundingSourceConfig = sourceById(entry.source_id),
 ) {
   return {
-    task: source.tasks.find((t) => t.id === entry.task_id)?.name ?? 'Task',
+    task: tasksLabel(source, entry.tasks),
     line: source.budget_lines.find((l) => l.id === entry.budget_line_id)?.name ?? 'Budget line',
   };
 }

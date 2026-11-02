@@ -13,8 +13,8 @@ Everything the app keeps on the phone, in IndexedDB (CLAUDE.md rules 3, 5, 7). S
 | `types.ts`          | `Storage`, `AppState`, results, `Tx` and `Backend`                          | §4–§6                 |
 | `storage.ts`        | The rules both adapters share: locked entries, counter, singletons, picks   | §4, §5, decision 0005 |
 | `generate.ts`       | `generateInvoice` in one transaction                                        | §6, rule 5            |
-| `records.ts`        | Data format v1: store names, meta record, wrapping singletons               | rule 7                |
-| `upgrades.ts`       | Upgrade steps and runner (none yet: v1 is the first)                        | rule 7                |
+| `records.ts`        | Data format v3: store names, meta record, wrapping singletons               | rule 7                |
+| `upgrades.ts`       | Upgrade steps and runner: v1→v2 draft, v2→v3 task shares (decision 0024)    | rule 7                |
 | `idb.ts`            | IndexedDB open with upgrades, all-or-nothing transactions                   | rules 3, 5, 7         |
 | `idb-storage.ts`    | `openIdbStorage()`: `upgrade_failed`, `newer_data` or `unavailable` on fail | §2                    |
 | `memory-storage.ts` | In-memory adapter for tests: copy-on-write, one writer at a time            |                       |

@@ -8,6 +8,7 @@ import type {
   InvoiceCounter,
   Profile,
   SourceSettings,
+  TaskShare,
 } from '../core/types';
 
 /** What the app remembers between screens (SPEC §5). */
@@ -30,14 +31,15 @@ export interface EntryDraft {
   /** Null for a new entry; the entry's id when editing. */
   entry_id: string | null;
   /** The screen to return to after an interruption. */
-  step: 'times' | 'task' | 'counts' | 'edit';
+  step: 'times' | 'task' | 'split' | 'counts' | 'edit';
   /** "Enter times" fields as typed: YYYY-MM-DD, HH:MM, HH:MM. Null for a timer entry. */
   hand: { date: string; start: string; end: string } | null;
   /** Raw times, ISO 8601 with offset. Null until valid times are known. */
   start: string | null;
   stop: string | null;
   source_id: string;
-  task_id: string | null;
+  /** Checked tasks in the order checked, with their shares so far (decision 0024). */
+  tasks: TaskShare[];
   budget_line_id: string | null;
   counts: Counts;
   notes: string;

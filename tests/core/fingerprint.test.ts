@@ -4,23 +4,37 @@ import {
   CANONICAL_VERSION,
   canonicalForm,
   canonicalFormV1,
+  canonicalFormV2,
   fingerprintOf,
   sha256Hex,
   shortFingerprint,
   verifyFingerprint,
 } from '../../src/core/fingerprint';
 import type { Invoice } from '../../src/core/types';
+import type { StoredRecord } from '../../src/storage/types';
+import { v2ToV3 } from '../../src/storage/upgrades';
 import { must } from './fixtures/wireframe-sample';
-import golden from './golden/fingerprint-v1.json';
+import goldenV1 from './golden/fingerprint-v1.json';
+import goldenV2 from './golden/fingerprint-v2.json';
 
 // Pinned forever (CLAUDE.md rule 8). If a test here fails, the canonical form changed:
 // add a new canonical version instead of editing this file.
-const cases = golden as {
+interface Golden {
   name: string;
   invoice: Invoice;
   canonical: string;
   fingerprint: string;
-}[];
+}
+
+/** v1 golden invoices were stored with one task per entry; data v3 stores a single share. */
+const storedV1 = goldenV1 as unknown as (Omit<Golden, 'invoice'> & { invoice: StoredRecord })[];
+
+const cases: Golden[] = storedV1.map((c) => ({
+  ...c,
+  invoice: must(v2ToV3({ invoices: [c.invoice] })['invoices']?.[0]) as unknown as Invoice,
+}));
+
+const casesV2 = goldenV2 as unknown as Golden[];
 
 describe('canonicalJson', () => {
   it('sorts keys at every level and drops whitespace', () => {
@@ -63,9 +77,28 @@ describe('canonicalJson', () => {
   });
 });
 
-describe('fingerprint v1 golden files', () => {
-  it('pins the canonical version', () => {
-    expect(CANONICAL_VERSION).toBe(1);
+describe('fingerprint v1 golden files, after the data v3 upgrade', () => {
+  it('new invoices use canonical version 2 (decision 0024)', () => {
+    expect(CANONICAL_VERSION).toBe(2);
+  });
+
+  it('the upgrade turns each entry into a single task share', () => {
+    const entry = must(must(cases[0]).invoice.entries[0]);
+    expect(entry).not.toHaveProperty('task_id');
+    expect(entry.tasks).toEqual([
+      { task_id: 'outreach', task_name: 'Outreach', core_competency: 'Outreach', quarters: 2 },
+    ]);
+  });
+
+  it('v1 refuses an entry with more than one task', () => {
+    const copy = structuredClone(must(cases[0]).invoice);
+    must(copy.entries[0]).tasks.push({
+      task_id: 'advocacy',
+      task_name: 'Advocacy',
+      core_competency: 'Advocacy',
+      quarters: 0,
+    });
+    expect(() => canonicalFormV1(copy)).toThrow(RangeError);
   });
 
   it.each(cases.map((c) => [c.name, c] as const))('%s: canonical form is unchanged', (_, c) => {
@@ -84,6 +117,31 @@ describe('fingerprint v1 golden files', () => {
     expect(await sha256Hex('abc')).toBe(
       'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
     );
+  });
+});
+
+describe('fingerprint v2 golden files (decision 0024)', () => {
+  it.each(casesV2.map((c) => [c.name, c] as const))('%s: canonical form is unchanged', (_, c) => {
+    expect(c.invoice.canonical_version).toBe(2);
+    expect(canonicalFormV2(c.invoice)).toBe(c.canonical);
+    expect(canonicalForm(c.invoice)).toBe(c.canonical);
+  });
+
+  it.each(casesV2.map((c) => [c.name, c] as const))(
+    '%s: fingerprint is unchanged',
+    async (_, c) => {
+      expect(await sha256Hex(c.canonical)).toBe(c.fingerprint);
+      expect(await verifyFingerprint(c.invoice)).toBe(true);
+    },
+  );
+
+  it('changes when a task share moves between tasks', async () => {
+    const base = must(casesV2[0]).invoice;
+    const copy = structuredClone(base);
+    const [a, b] = must(copy.entries[7]).tasks;
+    must(a).quarters -= 1;
+    must(b).quarters += 1;
+    expect(await fingerprintOf(copy)).not.toBe(base.fingerprint);
   });
 });
 
@@ -125,7 +183,7 @@ describe('what the fingerprint covers', () => {
   });
 
   it('refuses an unknown canonical version', () => {
-    expect(() => canonicalForm({ ...base, canonical_version: 2 })).toThrow();
+    expect(() => canonicalForm({ ...base, canonical_version: 3 })).toThrow();
   });
 });
 

@@ -5,7 +5,7 @@ import { needsInstallGate } from './platform';
 import { loadData, StoreProvider, useApp, type Data } from './store';
 import { AllEntries } from './screens/AllEntries';
 import { EditEntry } from './screens/EditEntry';
-import { CountsStep, EnterTimes, TaskStep } from './screens/EntrySteps';
+import { CountsStep, EnterTimes, SplitStep, TaskStep } from './screens/EntrySteps';
 import { Home } from './screens/Home';
 import { InstallGate } from './screens/InstallGate';
 import { InvoicePreview } from './screens/InvoicePreview';
@@ -32,6 +32,9 @@ function Screens() {
       break;
     case 'task':
       view = <TaskStep />;
+      break;
+    case 'split':
+      view = <SplitStep />;
       break;
     case 'counts':
       view = <CountsStep />;

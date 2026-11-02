@@ -11,7 +11,7 @@ The invoice files (SPEC §7), hand-written. Pure like `src/core`: an invoice in,
 | `text.ts`               | Printed dates without `Intl`, so output never depends on the phone                                    | §7                       |
 | `csv/csv.ts`            | BOM, RFC 4180 quoting, CRLF, formula-injection guard                                                  | §7                       |
 | `csv/timesheet-csv.ts`  | Timesheet CSV: header block, one block per PDF timesheet page                                         | §7, decision 0001        |
-| `csv/entries-csv.ts`    | Entry log CSV: 22 fixed columns, one row per entry                                                    | §7, decision 0001        |
+| `csv/entries-csv.ts`    | Entry log CSV: 23 fixed columns, one row per task share of each entry                                 | §7, decisions 0001, 0024 |
 | `qr/payload.ts`         | QR payload v1, versioned and pinned by a golden test                                                  | §7, decision 0011        |
 | `qr/matrix.ts`          | QR modules via `qrcode-generator` (MIT), error correction M                                           | §7                       |
 | `pdf/writer.ts`         | Minimal PDF 1.4 writer: Helvetica in WinAnsi, lines, rectangles, squares; also records them as shapes | §7, decision 0018        |

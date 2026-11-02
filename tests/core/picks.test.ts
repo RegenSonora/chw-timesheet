@@ -51,29 +51,30 @@ describe('defaultBudgetLine (SPEC §5 "defaults to the last one used")', () => {
     };
     expect(defaultBudgetLine(oneLine, null)).toBe('chw-experience-hours');
     expect(defaultBudgetLine(oneLine, 'chw-referrals')).toBe('chw-experience-hours');
-    expect(carryPicks(oneLine, 'outreach', 'domestic-support').budget_line_id).toBe(
-      'chw-experience-hours',
-    );
+    expect(carryPicks(oneLine, [], 'domestic-support').budget_line_id).toBe('chw-experience-hours');
   });
 });
 
-describe('carryPicks (decision 0008)', () => {
-  it('keeps task and budget line the new source has', () => {
-    expect(carryPicks(regen, 'outreach', 'chw-referrals')).toEqual({
-      task_id: 'outreach',
+describe('carryPicks (decisions 0008, 0024)', () => {
+  const outreach = { task_id: 'outreach', quarters: 4 };
+  const domestic = { task_id: 'domestic-support', quarters: 2 };
+
+  it('keeps tasks, with their shares, and the budget line the new source has', () => {
+    expect(carryPicks(regen, [outreach], 'chw-referrals')).toEqual({
+      tasks: [outreach],
       budget_line_id: 'chw-referrals',
     });
   });
 
   it('clears picks the new source lacks', () => {
-    expect(carryPicks(tisupp, 'domestic-support', 'domestic-support')).toEqual({
-      task_id: null,
+    expect(carryPicks(tisupp, [domestic], 'domestic-support')).toEqual({
+      tasks: [],
       budget_line_id: null,
     });
-    expect(carryPicks(tisupp, 'outreach', 'domestic-support')).toEqual({
-      task_id: 'outreach',
+    expect(carryPicks(tisupp, [outreach, domestic], 'domestic-support')).toEqual({
+      tasks: [outreach],
       budget_line_id: null,
     });
-    expect(carryPicks(tisupp, null, null)).toEqual({ task_id: null, budget_line_id: null });
+    expect(carryPicks(tisupp, [], null)).toEqual({ tasks: [], budget_line_id: null });
   });
 });

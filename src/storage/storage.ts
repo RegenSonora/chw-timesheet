@@ -30,11 +30,11 @@ export function emptyAppState(): AppState {
   return { running_timer: null, selected_source_id: null, per_source: {}, draft: null };
 }
 
-/** After an entry is saved: its budget line becomes the default, its task moves to the front (SPEC §5). */
+/** After an entry is saved: its budget line becomes the default, its tasks move to the front (SPEC §5). */
 export function rememberPicks(
   state: AppState,
   sourceId: string,
-  taskId: string,
+  taskIds: readonly string[],
   budgetLineId: string,
 ): AppState {
   const recent = state.per_source[sourceId]?.recent_task_ids ?? [];
@@ -44,7 +44,7 @@ export function rememberPicks(
       ...state.per_source,
       [sourceId]: {
         last_budget_line_id: budgetLineId,
-        recent_task_ids: [taskId, ...recent.filter((id) => id !== taskId)].slice(
+        recent_task_ids: [...taskIds, ...recent.filter((id) => !taskIds.includes(id))].slice(
           0,
           RECENT_TASKS_MAX,
         ),

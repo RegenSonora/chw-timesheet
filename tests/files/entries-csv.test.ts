@@ -1,10 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { durationText, ENTRY_LOG_COLUMNS, entriesCsv } from '../../src/files/csv/entries-csv';
-import { counts, makeEntry, regen } from '../core/fixtures/wireframe-sample';
+import {
+  counts,
+  makeEntry,
+  regen,
+  splitSampleEntries,
+  uuid,
+} from '../core/fixtures/wireframe-sample';
 import golden from './golden/wireframe-entries.csv?raw';
 import { csvText, invoiceFrom, sampleInvoice } from './helpers';
 
-describe('entry log CSV (SPEC §7, decision 0001)', () => {
+describe('entry log CSV (SPEC §7, decisions 0001 and 0024)', () => {
   it('matches the golden file for the wireframe sample', async () => {
     const invoice = await sampleInvoice();
     expect(csvText(entriesCsv(invoice)).replaceAll('\r\n', '\n')).toBe(
@@ -12,8 +18,8 @@ describe('entry log CSV (SPEC §7, decision 0001)', () => {
     );
   });
 
-  it('has the 22 columns from the spec, in order, for every invoice', async () => {
-    expect(ENTRY_LOG_COLUMNS).toHaveLength(22);
+  it('has the 23 columns from the spec, in order, for every invoice', async () => {
+    expect(ENTRY_LOG_COLUMNS).toHaveLength(23);
     const one = await invoiceFrom({
       entries: [
         makeEntry('2026-10-01', '09:00:00', '09:10:00', 'outreach', 'outreach-and-marketing'),
@@ -22,6 +28,60 @@ describe('entry log CSV (SPEC §7, decision 0001)', () => {
     for (const inv of [await sampleInvoice(), one]) {
       expect(csvText(entriesCsv(inv)).split('\r\n')[0]).toBe(ENTRY_LOG_COLUMNS.join(','));
     }
+  });
+
+  it('writes one row per task share; billed hours add up, counts and notes are on part 1', async () => {
+    const invoice = await invoiceFrom({ entries: splitSampleEntries });
+    const rows = csvText(entriesCsv(invoice))
+      .split('\r\n')
+      .slice(1, -1)
+      // RFC 4180 cells: quoted (may hold commas) or bare.
+      .map((line) => [...line.matchAll(/(?:^|,)("(?:[^"]|"")*"|[^,]*)/g)].map((m) => m[1] ?? ''));
+    const col = (name: (typeof ENTRY_LOG_COLUMNS)[number]) => ENTRY_LOG_COLUMNS.indexOf(name);
+    const split = rows.filter((r) => r[col('entry_id')] === uuid(8));
+    expect(
+      split.map((r) =>
+        [
+          'part',
+          'start',
+          'stop',
+          'raw_duration',
+          'billed_hours',
+          'task',
+          'contacts',
+          'referrals_given',
+          'notes',
+        ].map((c) => r[col(c as (typeof ENTRY_LOG_COLUMNS)[number])]),
+      ),
+    ).toEqual([
+      [
+        '1 of 2',
+        '2026-10-30T09:12:04-07:00',
+        '2026-10-30T10:37:10-07:00',
+        '1:25:06',
+        '1.00',
+        'Client check in',
+        '1',
+        '1',
+        'Library table',
+      ],
+      [
+        '2 of 2',
+        '2026-10-30T09:12:04-07:00',
+        '2026-10-30T10:37:10-07:00',
+        '1:25:06',
+        '0.50',
+        'Outreach',
+        '',
+        '',
+        '',
+      ],
+    ]);
+    expect(rows).toHaveLength(9);
+    const sum = (c: (typeof ENTRY_LOG_COLUMNS)[number]) =>
+      rows.reduce((total, r) => total + Number(r[col(c)] || 0), 0);
+    expect(sum('billed_hours')).toBe(9.25);
+    expect(sum('contacts')).toBe(invoice.counts_period.contacts);
   });
 
   it('writes raw duration as h:mm:ss', () => {

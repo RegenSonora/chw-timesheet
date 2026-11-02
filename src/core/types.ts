@@ -81,7 +81,8 @@ export interface Entry {
   stop: string;
   /** YYYY-MM-DD: the start's local date. */
   entry_date: string;
-  task_id: string;
+  /** The tasks done, with the billed hours split between them (decision 0024). */
+  tasks: TaskShare[];
   budget_line_id: string;
   counts: Counts;
   notes: string;
@@ -91,6 +92,20 @@ export interface Entry {
   updated_at: string;
 }
 
+/** One task's part of an entry. The shares add up to the entry's billed quarter-hours. */
+export interface TaskShare {
+  task_id: string;
+  quarters: number;
+}
+
+/** A task share as frozen into an invoice, with the names it was billed under. */
+export interface InvoiceTaskShare {
+  task_id: string;
+  task_name: string;
+  core_competency: string | null;
+  quarters: number;
+}
+
 /** An entry as frozen into an invoice, with the names it was billed under. */
 export interface InvoiceEntry {
   id: string;
@@ -98,9 +113,8 @@ export interface InvoiceEntry {
   stop: string;
   entry_date: string;
   quarters: number;
-  task_id: string;
-  task_name: string;
-  core_competency: string | null;
+  /** In the order the CHW checked them; quarters add up to `quarters`. */
+  tasks: InvoiceTaskShare[];
   budget_line_id: string;
   budget_line_name: string;
   counts: Counts;

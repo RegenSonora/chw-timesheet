@@ -1,5 +1,5 @@
 // What screens show, in the phone's time zone (CLAUDE.md data conventions). Rules stay in src/core.
-import { formatQuarters, parseIso } from '../core';
+import { formatQuarters, parseIso, type FundingSourceConfig, type TaskShare } from '../core';
 
 /** Tests pass a zone; the app leaves it out to use the phone's. */
 type Zone = string | undefined;
@@ -9,6 +9,16 @@ const zoned = (zone: Zone): { timeZone?: string } => (zone === undefined ? {} : 
 /** 6 → "1.5 h", 7 → "1.75 h", 8 → "2 h" (wireframes). */
 export function hoursLabel(quarters: number): string {
   return `${formatQuarters(quarters).replace(/\.?0+$/, '')} h`;
+}
+
+/** "Outreach", or "Outreach + 2 more" for a split entry (decision 0024). */
+export function tasksLabel(
+  source: Pick<FundingSourceConfig, 'tasks'>,
+  shares: readonly TaskShare[],
+): string {
+  const [first, ...rest] = shares;
+  const name = source.tasks.find((t) => t.id === first?.task_id)?.name ?? 'Task';
+  return rest.length ? `${name} + ${String(rest.length)} more` : name;
 }
 
 /** "2026-10-30" → "Fri, Oct 30". */

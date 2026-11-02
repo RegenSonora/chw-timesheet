@@ -17,6 +17,7 @@ describe('offline cache (SPEC §2)', () => {
     expect(isOldCache('someone-else', '0.9.0+a1b2c3d')).toBe(false);
     // Other RegenSonora apps share this origin (decision 0020): never touch their caches.
     expect(isOldCache('chw-historic-0.9.1+0000000', '0.9.0+a1b2c3d')).toBe(false);
+    expect(isOldCache('gila-0.10.0+0000000', '0.9.0+a1b2c3d')).toBe(false);
     expect(isOldCache('chw-0.9.0+0000000', '0.9.0+a1b2c3d')).toBe(false);
   });
 

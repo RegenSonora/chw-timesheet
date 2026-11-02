@@ -20,6 +20,10 @@ The app becomes two apps. No CHWs used it yet, so no phone data is affected.
 
 Both apps live on the same web origin, `regensonora.github.io`, where phone storage and offline caches are shared by every RegenSonora site. Separate database names and cache prefixes keep the two apps from reading each other's entries or deleting each other's offline files. A repo publishes one Pages site, so each app has its own repo. Renaming the original repo keeps its pull requests, issues and settings with the app that is still being built; the frozen snapshot only needs its commits.
 
+## A third app
+
+**CHW Gila River Contractors** was copied from the same split point afterwards, at https://regensonora.github.io/chw-gila-river-contractors/ (repo `RegenSonora/chw-gila-river-contractors`, database `chw-gila-river-contractors`, cache prefix `gila-`, river valley icon). Its decision 0022 lives in that repo.
+
 ## Fixes later
 
 A fix that applies to both is ported with `git cherry-pick -x` from the other repo added as a second remote. Historic must be unarchived first, and archived again after.

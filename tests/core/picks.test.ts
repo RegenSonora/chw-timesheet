@@ -43,6 +43,18 @@ describe('defaultBudgetLine (SPEC §5 "defaults to the last one used")', () => {
     expect(defaultBudgetLine(tisupp, 'domestic-support')).toBeNull();
     expect(defaultBudgetLine(regen, 'domestic-support')).toBe('domestic-support');
   });
+
+  it('is the only line when the source has one, so nothing is asked (decision 0023)', () => {
+    const oneLine = {
+      ...tisupp,
+      budget_lines: [{ id: 'chw-experience-hours', name: 'CHW experience hours' }],
+    };
+    expect(defaultBudgetLine(oneLine, null)).toBe('chw-experience-hours');
+    expect(defaultBudgetLine(oneLine, 'chw-referrals')).toBe('chw-experience-hours');
+    expect(carryPicks(oneLine, 'outreach', 'domestic-support').budget_line_id).toBe(
+      'chw-experience-hours',
+    );
+  });
 });
 
 describe('carryPicks (decision 0008)', () => {

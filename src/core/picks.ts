@@ -19,11 +19,16 @@ export function taskChoices(
   return { recent, all: source.tasks };
 }
 
-/** The budget line a new entry starts with: the last one used, if this source has it. */
+/**
+ * The budget line a new entry starts with: the source's only line (decision 0023), else the last
+ * one used, if this source has it.
+ */
 export function defaultBudgetLine(
   source: FundingSourceConfig,
   lastId: string | null,
 ): string | null {
+  const [only, ...more] = source.budget_lines;
+  if (only && more.length === 0) return only.id;
   return lastId !== null && source.budget_lines.some((l) => l.id === lastId) ? lastId : null;
 }
 

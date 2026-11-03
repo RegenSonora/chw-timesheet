@@ -16,6 +16,10 @@ import {
 
 test.use({ timezoneId: ZONE });
 
+/** A My stats row by its label. */
+const stat = (page: Page, label: string | RegExp) =>
+  page.locator('.stat').filter({ has: page.locator('dt', { hasText: label }) });
+
 /** Record time from Home and land on "What did you do?". */
 async function recordTime(page: Page, date: string, start: string, end: string) {
   await page.getByRole('button', { name: 'Record time' }).click();
@@ -133,6 +137,24 @@ test("a Team Lead entry: the role's lines, tasks and counts with units", async (
   await page.getByRole('button', { name: 'Save entry' }).click();
   await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
   await expect(page.getByRole('button', { name: /Water harvesting/ })).toBeVisible();
+
+  // My stats for a role with no raise and no certification (decision 0032).
+  await expect(stat(page, 'Hours invoiced')).toContainText('+ 1 hr not yet invoiced');
+  await expect(stat(page, /pay increase/)).toHaveCount(0);
+  await expect(stat(page, /CHW Cert/)).toHaveCount(0);
+  await expect(page.getByText('No counts yet.')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Generate Regen Invoice' }).click();
+  await page.getByRole('button', { name: 'Create invoice files' }).click();
+  await expect(heading(page, 'Invoice created')).toBeVisible();
+  await page.getByRole('button', { name: 'Done' }).click();
+  await page.getByRole('button', { name: 'Done anyway' }).click();
+  await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
+  await expect(stat(page, 'Hours invoiced')).toContainText('1 hr');
+  await expect(stat(page, 'Water capacity added')).toContainText('1 gal');
+  await expect(page.getByText('No counts yet.')).toHaveCount(0);
+  await expect(page.getByText('Counts invoices and timesheets made on this phone.')).toBeVisible();
+  await expectAccessible(page, 'team lead my stats');
 });
 
 test('a CHW Trainee entry is billed to the one line, with its tasks counts', async ({ page }) => {
@@ -218,6 +240,11 @@ test('an employee submits a timesheet: summary page, no amounts, supervisor line
   await page.getByRole('button', { name: 'More contacts' }).click();
   await page.getByRole('button', { name: 'Save entry' }).click();
 
+  // My stats for an employee CHW Trainee (decision 0032).
+  await expect(stat(page, 'Hours submitted')).toContainText('+ 1.5 hrs not yet submitted');
+  await expect(stat(page, 'Hrs needed for pay increase')).toContainText('240 hrs');
+  await expect(stat(page, 'Hrs needed for CHW Cert eligibility')).toContainText('480 hrs');
+
   await page.getByRole('button', { name: 'Submit timesheet' }).click();
   await expect(heading(page, 'New timesheet')).toBeVisible();
   await expect(page.getByText('Pay rate')).toBeVisible();
@@ -272,6 +299,9 @@ test('an employee submits a timesheet: summary page, no amounts, supervisor line
   expect(log[1]?.[header.indexOf('trees_planted')]).toBe('');
 
   await page.getByRole('button', { name: 'Done' }).click();
+  await expect(stat(page, 'Hours submitted')).toContainText('1.5 hrs');
+  await expect(stat(page, 'Hrs needed for pay increase')).toContainText('238.5 hrs');
+  await expect(stat(page, 'Contacts')).toContainText('1');
   await page.getByRole('button', { name: /Past timesheets 1 timesheet/ }).click();
   await expect(page.getByRole('button', { name: /CC-2026-001/ })).toContainText('1.5 hrs');
 });

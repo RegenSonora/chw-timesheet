@@ -1,4 +1,5 @@
-// The invoice PDF (SPEC §7): page 1 invoice, pages 2+ timesheet. The only file that is signed.
+// The invoice PDF (SPEC §7): page 1 invoice (or an employee's timesheet summary, decision 0031),
+// pages 2+ timesheet. The only file that is signed.
 import { paginateTimesheet } from '../../core/timesheet';
 import type { FundingSourceConfig, Invoice } from '../../core/types';
 import { drawInvoicePage } from './invoice-page';
@@ -16,7 +17,7 @@ export function invoicePdf(
     drawTimesheetPage(doc.addPage(LETTER_LANDSCAPE), invoice, page, pages[i + 1]);
   });
   return doc.bytes({
-    title: `Invoice ${invoice.number}`,
+    title: `${invoice.kind === 'timesheet' ? 'Timesheet' : 'Invoice'} ${invoice.number}`,
     author: invoice.chw.name,
     created: invoice.created_at,
   });

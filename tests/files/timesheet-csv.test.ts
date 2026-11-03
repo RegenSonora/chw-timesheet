@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { paginateTimesheet } from '../../src/core/timesheet';
 import { timesheetCsv } from '../../src/files/csv/timesheet-csv';
-import { makeEntry, tisupp } from '../core/fixtures/wireframe-sample';
+import { findTestRole, makeEntry, regen, tisupp } from '../core/fixtures/wireframe-sample';
 import goldenTimesheet from './golden/wireframe-timesheet.csv?raw';
 import { csvText, invoiceFrom, sampleInvoice } from './helpers';
 
@@ -41,5 +41,37 @@ describe('timesheet CSV (SPEC §7, decision 0001)', () => {
     });
     const text = csvText(timesheetCsv(invoice, tisupp));
     expect(text).toContain(`,1.00,1.00,"'=1+1, ""quoted"""\r\n`);
+  });
+});
+
+describe('timesheet CSV by role (decisions 0031, 0032, 0034)', () => {
+  it('says Timesheet #, Employee and Pay rate for an employee', async () => {
+    const invoice = await invoiceFrom({ role: findTestRole('chw-te01') });
+    const text = csvText(timesheetCsv(invoice, tisupp));
+    expect(text).toContain(`Timesheet #,${invoice.number}\r\n`);
+    expect(text).toContain('Employee,Carmen Cruz\r\n');
+    expect(text).toContain('Pay rate,20.00\r\n');
+    expect(text).toContain('Task,Core competency,Budget line,');
+    expect(text).not.toContain('Invoice #');
+  });
+
+  it('leaves out the core competency column for a non-CHW role', async () => {
+    const invoice = await invoiceFrom({
+      source: regen,
+      role: findTestRole('r-tl01'),
+      settings: { source_id: regen.id, rate_cents: 2200, nte_cents: null },
+      entries: [
+        makeEntry('2026-10-01', '09:00:00', '10:00:00', 'dump-runs', 'fire-risk-reduction-work', {
+          source_id: regen.id,
+        }),
+      ],
+      prior_invoices: [],
+    });
+    const text = csvText(timesheetCsv(invoice, regen));
+    expect(text).toContain('Contractor,Carmen Cruz\r\n');
+    expect(text).toContain('Task,Budget line,2026-10-01,Total hours,Notes\r\n');
+    expect(text).toContain('Dump runs,Fire risk reduction work,1.00,1.00,\r\n');
+    expect(text).toContain('Total hours,,1.00,1.00,\r\n');
+    expect(text).not.toContain('Core competency');
   });
 });

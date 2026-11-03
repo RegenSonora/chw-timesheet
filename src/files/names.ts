@@ -3,6 +3,7 @@ import type { Invoice } from '../core/types';
 
 type Named = Pick<Invoice, 'number' | 'period_start' | 'period_end'> & {
   source: Pick<Invoice['source'], 'code'>;
+  kind?: Invoice['kind'];
 };
 
 const base = (invoice: Named) => `${invoice.source.code}_${invoice.number}`;
@@ -11,5 +12,6 @@ export const pdfName = (invoice: Named) =>
   `${base(invoice)}_${invoice.period_start}_to_${invoice.period_end}.pdf`;
 export const timesheetCsvName = (invoice: Named) => `${base(invoice)}_timesheet.csv`;
 export const entriesCsvName = (invoice: Named) => `${base(invoice)}_entries.csv`;
-/** The picture of page 1 for signing in a photo app (decision 0018). */
-export const pngName = (invoice: Named) => `${base(invoice)}_invoice.png`;
+/** The picture of page 1 for signing in a photo app (decisions 0018, 0031). */
+export const pngName = (invoice: Named) =>
+  `${base(invoice)}_${invoice.kind === 'timesheet' ? 'timesheet' : 'invoice'}.png`;

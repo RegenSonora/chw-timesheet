@@ -3,7 +3,7 @@ import { buildInvoiceFiles, invoicePageShapes } from '../../src/files';
 import { textWidth } from '../../src/files/pdf/fonts';
 import { qrMatrix } from '../../src/files/qr/matrix';
 import { qrPayloadV1 } from '../../src/files/qr/payload';
-import { tisupp } from '../core/fixtures/wireframe-sample';
+import { countDefs, findTestRole, tisupp } from '../core/fixtures/wireframe-sample';
 import { invoiceFrom, sampleInvoice } from './helpers';
 
 async function sha256(bytes: Uint8Array<ArrayBuffer>): Promise<string> {
@@ -25,7 +25,7 @@ describe('page 1 as shapes, for the picture (decision 0018)', () => {
     for (const expected of [
       'INVOICE',
       'Carmen Cruz',
-      'CONTRACTOR (CHW)',
+      'CONTRACTOR',
       'SERVICES RECEIVED (REVIEWER)',
       'CC-2026-004 · Page 1 of 3',
     ]) {
@@ -60,12 +60,40 @@ describe('page 1 as shapes, for the picture (decision 0018)', () => {
   it('leaves the PDF and CSV bytes as they were', async () => {
     // Pinned at TISUPP version 1, so a later edit to the source file doesn't move the hashes.
     // Re-pinned for decision 0024: the fingerprint (canonical v2) and the entry log's part column.
+    // Re-pinned for roles plan R5: canonical v3, counts by id, "Contractor".
     const invoice = await invoiceFrom({ source: { ...tisupp, version: 1 } });
-    const files = buildInvoiceFiles(invoice, tisupp);
+    const files = buildInvoiceFiles(invoice, tisupp, countDefs);
     expect(await Promise.all(files.map((f) => sha256(f.bytes)))).toEqual([
-      'bebf672b438d9702f31c4962d9524ffb1bee016c1f4719335d5eff300aba539a',
-      'cfbd31327e42b3015ac01726defcdc57c7122f1ac945fd88fad84741da7ad6fe',
-      '6ef3b112d3f2df47fe9371ae2ba10f172cd4a8afdc1f60dd51059f97da545289',
+      '8af15813b953a98a4bf66627af80a128afcb3fd633dd6f31d83d47b315b135ff',
+      'ccb797314ac06b0ed91c3c1f0717fe9e580ecf003805726564075ca9b06327b7',
+      '7df37ec5cfd89437e1aadf99c71a7f81a622b57b7bc3903353281aad887b1282',
     ]);
+  });
+});
+
+describe('the timesheet summary page, for an employee (decision 0031)', () => {
+  it('shows hours, the pay rate and both signatures, and no amounts', async () => {
+    const invoice = await invoiceFrom({ role: findTestRole('chw-te01') });
+    const { shapes } = invoicePageShapes(invoice, tisupp);
+    const strings = shapes.flatMap((s) => (s.kind === 'text' ? [s.text] : []));
+    for (const expected of [
+      'TIMESHEET',
+      'Timesheet #',
+      'Pay rate',
+      '$20.00/hr',
+      'FROM (EMPLOYEE)',
+      'EMPLOYER',
+      'Total hours',
+      'EMPLOYEE',
+      'SUPERVISOR SIGNATURE',
+      'Supervisor name',
+    ]) {
+      expect(strings).toContain(expected);
+    }
+    expect(strings.filter((t) => t === 'Sign here')).toHaveLength(2);
+    expect(strings.filter((t) => t.includes('$'))).toEqual(['$20.00/hr']);
+    for (const gone of ['INVOICE', 'Amount due', 'CONTRACT TRACKING', 'Payment date']) {
+      expect(strings).not.toContain(gone);
+    }
   });
 });

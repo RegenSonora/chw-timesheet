@@ -1,12 +1,13 @@
-// Entry log CSV (SPEC §7, decisions 0001 and 0024): one header row and one row per task share of
-// each entry, the same columns for every invoice so files combine. No per-entry dollar amount.
-import { countValue } from '../../core/counts';
+// Entry log CSV (SPEC §7, decisions 0001, 0024 and 0029): one header row and one row per task share
+// of each entry, the same columns for every invoice and timesheet so files combine. One column per
+// count in the roles file, in list order. No per-entry dollar amount.
 import { formatCentsPlain, formatQuarters } from '../../core/money';
 import { rawSeconds } from '../../core/time';
-import type { Invoice } from '../../core/types';
+import type { CountDef, Invoice } from '../../core/types';
 import { csvFile } from './csv';
 
-export const ENTRY_LOG_COLUMNS = [
+/** The columns before the counts. */
+const LEADING_COLUMNS = [
   'invoice_number',
   'fingerprint',
   'funding_source',
@@ -21,16 +22,18 @@ export const ENTRY_LOG_COLUMNS = [
   'core_competency',
   'budget_line',
   'rate',
-  'contacts',
-  'referrals_given',
-  'referral_followups',
-  'rides_provided',
-  'applications_completed',
-  'other_counts',
-  'notes',
-  'created_at',
-  'updated_at',
 ] as const;
+
+/** The columns after the counts. */
+const TRAILING_COLUMNS = ['other_counts', 'notes', 'created_at', 'updated_at'] as const;
+
+/**
+ * The header: fixed columns, then every count id in the roles file's order, retired ones
+ * included, so new counts only ever add columns at the end of the count block (decision 0029).
+ */
+export function entryLogColumns(countDefs: readonly CountDef[]): string[] {
+  return [...LEADING_COLUMNS, ...countDefs.map((c) => c.id), ...TRAILING_COLUMNS];
+}
 
 /** 5106 → "1:25:06": h:mm:ss before rounding. */
 export function durationText(seconds: number): string {
@@ -42,14 +45,21 @@ export function durationText(seconds: number): string {
 
 /**
  * `billed_hours` is the row's task share, so the column adds up to the invoice hours. Times
- * repeat on every part; counts and notes are on part 1 only, so they add up too.
+ * repeat on every part; counts and notes are on part 1 only, so they add up too. A count cell
+ * is blank unless the entry has a value above 0.
  */
-export function entriesCsv(invoice: Invoice): Uint8Array<ArrayBuffer> {
+export function entriesCsv(
+  invoice: Invoice,
+  countDefs: readonly CountDef[],
+): Uint8Array<ArrayBuffer> {
   const rate = formatCentsPlain(invoice.rate_cents);
   const rows = invoice.entries.flatMap((e) =>
     e.tasks.map((t, i) => {
       const first = i === 0;
-      const count = (n: number) => (first ? String(n) : '');
+      const count = (id: string) => {
+        const n = e.counts.values[id] ?? 0;
+        return first && n > 0 ? String(n) : '';
+      };
       return [
         invoice.number,
         invoice.fingerprint,
@@ -65,11 +75,7 @@ export function entriesCsv(invoice: Invoice): Uint8Array<ArrayBuffer> {
         t.core_competency ?? '',
         e.budget_line_name,
         rate,
-        count(countValue(e.counts, 'contacts')),
-        count(countValue(e.counts, 'referrals_given')),
-        count(countValue(e.counts, 'referral_followups')),
-        count(countValue(e.counts, 'rides_provided')),
-        count(countValue(e.counts, 'applications_completed')),
+        ...countDefs.map((c) => count(c.id)),
         first ? e.counts.other.map((o) => `${o.label}=${String(o.value)}`).join('; ') : '',
         first ? e.notes : '',
         e.created_at,
@@ -77,5 +83,5 @@ export function entriesCsv(invoice: Invoice): Uint8Array<ArrayBuffer> {
       ];
     }),
   );
-  return csvFile([[...ENTRY_LOG_COLUMNS], ...rows]);
+  return csvFile([entryLogColumns(countDefs), ...rows]);
 }

@@ -7,12 +7,19 @@ import { timesheetCsv } from '../../src/files/csv/timesheet-csv';
 import { drawInvoicePage } from '../../src/files/pdf/invoice-page';
 import { drawTimesheetPage } from '../../src/files/pdf/timesheet-page';
 import { LETTER, LETTER_LANDSCAPE, PdfPage } from '../../src/files/pdf/writer';
-import { counts, makeEntry, regen, tisupp } from '../core/fixtures/wireframe-sample';
+import {
+  countDefs,
+  counts,
+  findTestRole,
+  makeEntry,
+  regen,
+  tisupp,
+} from '../core/fixtures/wireframe-sample';
 import { csvText, invoiceFrom, sampleInvoice } from './helpers';
 import { readPdf } from './pdf-reader';
 
 const pdfOf = async (invoice: Awaited<ReturnType<typeof sampleInvoice>>, source = tisupp) => {
-  const [pdf] = buildInvoiceFiles(invoice, source);
+  const [pdf] = buildInvoiceFiles(invoice, source, countDefs);
   if (!pdf) throw new Error('no PDF');
   return readPdf(pdf.bytes);
 };
@@ -51,7 +58,7 @@ describe('invoice PDF for the wireframe sample (SPEC §7)', () => {
       'Remaining -$65.00',
       'OVER CONTRACT LIMIT: do not pay without an amendment',
       `Certification: ${tisupp.certification_text}`,
-      'CONTRACTOR (CHW)',
+      'CONTRACTOR',
       'SERVICES RECEIVED (REVIEWER)',
       'Printed name',
       'Reviewed by',
@@ -77,7 +84,7 @@ describe('invoice PDF for the wireframe sample (SPEC §7)', () => {
       'Total hours 0.50 0.50 0.50 1.00 2.00 1.50 1.75 7.75',
       'Page total 7.75 h',
       'Continued on page 3: Fri 10/30.',
-      'CHW initials',
+      'Contractor initials',
       `Fingerprint ${shortFingerprint(invoice.fingerprint)}`,
       'CC-2026-004 · Page 2 of 3',
     ]) {
@@ -90,11 +97,13 @@ describe('invoice PDF for the wireframe sample (SPEC §7)', () => {
 
   it('gives the same bytes every time, so a re-shared file matches', async () => {
     const invoice = await sampleInvoice();
-    expect(buildInvoiceFiles(invoice, tisupp)).toEqual(buildInvoiceFiles(invoice, tisupp));
+    expect(buildInvoiceFiles(invoice, tisupp, countDefs)).toEqual(
+      buildInvoiceFiles(invoice, tisupp, countDefs),
+    );
   });
 
   it('names and types the three files', async () => {
-    const files = buildInvoiceFiles(await sampleInvoice(), tisupp);
+    const files = buildInvoiceFiles(await sampleInvoice(), tisupp, countDefs);
     expect(files.map((f) => [f.name, f.type])).toEqual([
       ['TISUPP_CC-2026-004_2026-10-20_to_2026-10-30.pdf', 'application/pdf'],
       ['TISUPP_CC-2026-004_timesheet.csv', 'text/csv'],
@@ -178,7 +187,7 @@ describe('long invoices still fit', () => {
     expect(result.spare).toBeGreaterThanOrEqual(0);
     const text = (await pdfOf(invoice, regen))[0]?.text ?? '';
     for (const line of regen.budget_lines) expect(text).toContain(line.name);
-    expect(text).toContain('12 more in the entry log CSV');
+    expect(text).toContain('9 more in the entry log CSV');
   });
 
   it('keeps 7 dates on one sheet and cuts long notes, while the CSV keeps them (decision 0013)', async () => {
@@ -248,5 +257,70 @@ describe('long invoices still fit', () => {
     );
     expect(result.size).toBeLessThan(7);
     expect(result.spare).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe('employee timesheet PDF (decision 0031)', () => {
+  it('puts the timesheet summary on page 1, with hours, pay rate and the supervisor line', async () => {
+    const invoice = await invoiceFrom({ role: findTestRole('chw-te01') });
+    const pages = await pdfOf(invoice);
+    expect(pages.map((p) => [p.width, p.height])).toEqual([
+      [612, 792],
+      [792, 612],
+      [792, 612],
+    ]);
+    const page1 = pages[0]?.text ?? '';
+    for (const expected of [
+      'TIMESHEET',
+      'Timesheet # CC-2026-004',
+      'Pay rate $20.00/hr',
+      'FROM (EMPLOYEE)',
+      'EMPLOYER',
+      'CHW referrals 3.25',
+      'Total hours 9.25',
+      `Certification: ${tisupp.employee_certification_text ?? ''}`,
+      'EMPLOYEE',
+      'SUPERVISOR SIGNATURE',
+      'Supervisor name',
+      'Reviewed by',
+      'Approved by',
+      'QR: timesheet #',
+    ]) {
+      expect(page1).toContain(expected);
+    }
+    for (const gone of ['INVOICE', 'Amount due', '$185.00', 'CONTRACT TRACKING', 'Payment date']) {
+      expect(page1).not.toContain(gone);
+    }
+    const page2 = pages[1]?.text ?? '';
+    expect(page2).toContain('Timesheet CC-2026-004 · Pay rate $20.00/h');
+    expect(page2).toContain('Employee initials');
+    expect(page2).toContain('CORE COMPETENCY');
+  });
+
+  it('leaves the core competency column off for a non-CHW role (decision 0032)', async () => {
+    const invoice = await invoiceFrom({
+      source: regen,
+      role: findTestRole('r-tl01'),
+      settings: { source_id: regen.id, rate_cents: 2200, nte_cents: null },
+      entries: [
+        makeEntry(
+          '2026-10-01',
+          '09:00:00',
+          '10:00:00',
+          'water-harvesting',
+          'resilient-home-services-contracting',
+          {
+            source_id: regen.id,
+            counts: { values: { water_capacity_added: 250 }, other: [] },
+          },
+        ),
+      ],
+      prior_invoices: [],
+    });
+    const [page1, page2] = await pdfOf(invoice, regen);
+    expect(page1?.text).toContain('Water capacity added 250 gal 250 gal');
+    expect(page1?.text).not.toContain('Contacts');
+    expect(page2?.text).not.toContain('CORE COMPETENCY');
+    expect(page2?.text).toContain('Water harvesting Resilient Home Services contracting 1.00 1.00');
   });
 });

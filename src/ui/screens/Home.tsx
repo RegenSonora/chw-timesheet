@@ -5,15 +5,20 @@ import { useState } from 'preact/hooks';
 import {
   formatDollars,
   fundingChoices,
+  myStats,
   raiseStatus,
   sourceMyStats,
   rateStepReminder,
   uninvoicedEntries,
   uninvoicedSummary,
+  type CertificationStat,
   type FundingSourceConfig,
+  type PayStat,
   type RateStepReminder,
+  type Role,
 } from '../../core';
 import { FUNDING_SOURCES } from '../../funding-sources';
+import { COUNT_DEFS } from '../../roles';
 import { phoneNow } from '../../storage';
 import {
   EntryRow,
@@ -52,6 +57,98 @@ export function SourcePickerSheet({ onClose }: { onClose: () => void }) {
   );
 }
 
+/** The hours row: invoiced or submitted, with the hours still waiting under it (decision 0032). */
+function HoursRow({
+  invoiced,
+  waiting,
+  employee,
+}: {
+  invoiced: number;
+  waiting: number;
+  employee: boolean;
+}) {
+  const done = employee ? 'submitted' : 'invoiced';
+  return (
+    <div class="stat">
+      <dt>
+        Hours {done}
+        {waiting > 0 && (
+          <span class="stat-detail">
+            + {hoursLabel(waiting)} not yet {done}
+          </span>
+        )}
+      </dt>
+      <dd>{hoursLabel(invoiced)}</dd>
+    </div>
+  );
+}
+
+/** The pay increase and certification rows (decisions 0026, 0030, 0032). */
+function GoalRows({
+  pay,
+  certification,
+}: {
+  pay: PayStat | null;
+  certification: CertificationStat | null;
+}) {
+  const { actions } = useApp();
+  return (
+    <>
+      {pay?.state === 'counting' && (
+        <div class="stat">
+          <dt>
+            Hrs needed for pay increase
+            <span class="stat-detail">
+              to {formatDollars(pay.rate_cents)}/hr at {hoursLabel(pay.after_quarters)}
+            </span>
+          </dt>
+          <dd>{hoursLabel(pay.left_quarters)}</dd>
+        </div>
+      )}
+      {pay?.state === 'reached' && (
+        <div class="stat">
+          <dt>
+            Pay increase
+            <span class="stat-detail">
+              Reached. Change your rate to {formatDollars(pay.rate_cents)} in Settings.
+            </span>
+          </dt>
+          <dd class="stat-done">Reached</dd>
+        </div>
+      )}
+      {certification?.state === 'counting' && (
+        <div class="stat">
+          <dt>
+            Hrs needed for {certification.name} eligibility
+            <span class="stat-detail">at {hoursLabel(certification.after_quarters)}</span>
+          </dt>
+          <dd>{hoursLabel(certification.left_quarters)}</dd>
+        </div>
+      )}
+      {certification?.state === 'eligible' && (
+        <div class="stat">
+          <dt>
+            {certification.name} eligibility
+            <span class="stat-detail">Press "Eligible" to generate your Work Hours Report</span>
+          </dt>
+          <dd>
+            <button
+              type="button"
+              class="btn btn-small"
+              onClick={() => {
+                actions.dismissToast();
+                actions.push('report');
+              }}
+            >
+              Eligible
+            </button>
+          </dd>
+        </div>
+      )}
+    </>
+  );
+}
+
 /** My stats (decision 0026): invoiced hours, and the hours still needed for the raise and for certification. */
 export function MyStats({
   source,
@@ -62,79 +159,59 @@ export function MyStats({
   rateCents: number | null;
   waitingQuarters: number;
 }) {
-  const { data, actions } = useApp();
+  const { data } = useApp();
   const stats = sourceMyStats(source, rateCents, data.invoices, waitingQuarters);
-  const { pay, certification } = stats;
   return (
     <section class="stats-sec" aria-labelledby="stats-head">
       <h2 class="stats-head" id="stats-head">
         My stats
       </h2>
       <dl class="card stats">
-        <div class="stat">
-          <dt>
-            Hours invoiced
-            {stats.waiting_quarters > 0 && (
-              <span class="stat-detail">
-                + {hoursLabel(stats.waiting_quarters)} not yet invoiced
-              </span>
-            )}
-          </dt>
-          <dd>{hoursLabel(stats.invoiced_quarters)}</dd>
-        </div>
-        {pay?.state === 'counting' && (
-          <div class="stat">
-            <dt>
-              Hrs needed for pay increase
-              <span class="stat-detail">
-                to {formatDollars(pay.rate_cents)}/hr at {hoursLabel(pay.after_quarters)}
-              </span>
-            </dt>
-            <dd>{hoursLabel(pay.left_quarters)}</dd>
-          </div>
-        )}
-        {pay?.state === 'reached' && (
-          <div class="stat">
-            <dt>
-              Pay increase
-              <span class="stat-detail">
-                Reached. Change your rate to {formatDollars(pay.rate_cents)} in Settings.
-              </span>
-            </dt>
-            <dd class="stat-done">Reached</dd>
-          </div>
-        )}
-        {certification?.state === 'counting' && (
-          <div class="stat">
-            <dt>
-              Hrs needed for {certification.name} eligibility
-              <span class="stat-detail">at {hoursLabel(certification.after_quarters)}</span>
-            </dt>
-            <dd>{hoursLabel(certification.left_quarters)}</dd>
-          </div>
-        )}
-        {certification?.state === 'eligible' && (
-          <div class="stat">
-            <dt>
-              {certification.name} eligibility
-              <span class="stat-detail">Press "Eligible" to generate your Work Hours Report</span>
-            </dt>
-            <dd>
-              <button
-                type="button"
-                class="btn btn-small"
-                onClick={() => {
-                  actions.dismissToast();
-                  actions.push('report');
-                }}
-              >
-                Eligible
-              </button>
-            </dd>
-          </div>
-        )}
+        <HoursRow
+          invoiced={stats.invoiced_quarters}
+          waiting={stats.waiting_quarters}
+          employee={false}
+        />
+        <GoalRows pay={stats.pay} certification={stats.certification} />
       </dl>
       <p class="hint">Counts invoices made on this phone.</p>
+    </section>
+  );
+}
+
+/**
+ * My stats with a role (decision 0032): hours across all the person's sources, the role's goals,
+ * and all-time totals of the role's counts above 0.
+ */
+export function RoleMyStats({ role }: { role: Role }) {
+  const { data } = useApp();
+  const rates = Object.fromEntries(data.settings.map((s) => [s.source_id, s.rate_cents]));
+  const waiting = data.settings.reduce(
+    (sum, s) => sum + uninvoicedSummary(data.entries, s.source_id, s.rate_cents).quarters,
+    0,
+  );
+  const stats = myStats(COUNT_DEFS, role, rates, data.invoices, waiting);
+  return (
+    <section class="stats-sec" aria-labelledby="stats-head">
+      <h2 class="stats-head" id="stats-head">
+        My stats
+      </h2>
+      <dl class="card stats">
+        <HoursRow
+          invoiced={stats.invoiced_quarters}
+          waiting={stats.waiting_quarters}
+          employee={role.employment === 'employee'}
+        />
+        <GoalRows pay={stats.pay} certification={stats.certification} />
+        {stats.counts.map((c) => (
+          <div key={c.id} class="stat">
+            <dt>{c.label}</dt>
+            <dd>{c.unit ? `${String(c.total)} ${c.unit}` : String(c.total)}</dd>
+          </div>
+        ))}
+      </dl>
+      {stats.counts.length === 0 && <p class="hint">No counts yet.</p>}
+      <p class="hint">Counts invoices and timesheets made on this phone.</p>
     </section>
   );
 }
@@ -272,7 +349,11 @@ export function Home() {
           Show all {plural(open.length, 'entry', 'entries')}
         </button>
       )}
-      <MyStats source={selectedSource} rateCents={rate} waitingQuarters={summary.quarters} />
+      {role ? (
+        <RoleMyStats role={role} />
+      ) : (
+        <MyStats source={selectedSource} rateCents={rate} waitingQuarters={summary.quarters} />
+      )}
       {/* Decision 0019: Past invoices lives on Home, under the list. */}
       <button
         type="button"

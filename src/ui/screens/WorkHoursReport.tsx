@@ -1,7 +1,8 @@
 // Work Hours Report (decision 0026): invoiced hours per core competency with the dates worked,
-// for the ADHS CHW hours attestation form. Shares a PDF, its picture and a CSV.
+// for the ADHS CHW hours attestation form. Shares a PDF, its picture and a CSV. With a role it
+// combines every source the role bills (decision 0032); with none, the selected source.
 import { useMemo, useState } from 'preact/hooks';
-import { workHoursReport, type ReportForm } from '../../core';
+import { workHoursReport, type FundingSourceConfig, type ReportForm } from '../../core';
 import {
   buildWorkHoursFiles,
   datesText,
@@ -13,6 +14,7 @@ import {
 } from '../../files';
 import adhs from '../../reports/adhs-chw-attestation.json';
 import { phoneNow } from '../../storage';
+import { sourceById } from '../store';
 import { Page } from '../components';
 import { hoursLabel, localDateTime, plural } from '../format';
 import { pagePng } from '../page-image';
@@ -28,18 +30,33 @@ const STATUS: Record<ShareOutcome, string> = {
 };
 
 export function WorkHoursReport() {
-  const { data, selectedSource } = useApp();
+  const { data, selectedSource, role } = useApp();
   const [outcome, setOutcome] = useState<ShareOutcome | null>(null);
 
   // Built when the screen opens, so a tap on Share keeps its gesture for the share sheet.
   const built = useMemo(() => {
     if (!selectedSource || !data.profile) return null;
     const now = phoneNow();
-    const report = workHoursReport(FORM, data.invoices, selectedSource.id, localDateTime(now).date);
+    const ids = role
+      ? [
+          ...new Set([
+            ...role.funding.map((f) => f.source_id),
+            ...data.invoices.map((i) => i.source.id),
+          ]),
+        ]
+      : [selectedSource.id];
+    const report = workHoursReport(FORM, data.invoices, ids, localDateTime(now).date);
+    // The sources with hours in the report name it; with none, the first one asked for.
+    const withHours = ids.filter((id) =>
+      data.invoices.some((i) => i.source.id === id && report.invoice_numbers.includes(i.number)),
+    );
+    const named: FundingSourceConfig[] = (withHours.length ? withHours : ids.slice(0, 1)).map(
+      sourceById,
+    );
     const details: ReportDetails = {
       chw_name: data.profile.name,
-      source_code: selectedSource.code,
-      funding_line: selectedSource.report_funding_line ?? selectedSource.name,
+      source_code: named.map((s) => s.code).join('+'),
+      funding_line: named.map((s) => s.report_funding_line ?? s.name).join('; '),
       made_at: now,
     };
     const [pdf, csv] = buildWorkHoursFiles(FORM, report, details);
@@ -58,7 +75,7 @@ export function WorkHoursReport() {
       ...(csv ? [csv] : []),
     ];
     return { report, files };
-  }, [data.invoices, data.profile, selectedSource]);
+  }, [data.invoices, data.profile, selectedSource, role]);
 
   if (!built) return null;
   const { report, files } = built;
@@ -81,9 +98,14 @@ export function WorkHoursReport() {
       <div class="card report-head">
         <p class="report-total">{hoursLabel(report.total_quarters)} worked</p>
         <p class="hint">
-          Invoiced {selectedSource?.code} hours, {usDate(report.window_start)} –{' '}
-          {usDate(report.made_on)} (past 3 years),{' '}
-          {plural(report.invoice_numbers.length, 'invoice', 'invoices')}.
+          {role
+            ? 'Invoiced or submitted hours, all your funding sources,'
+            : `Invoiced ${selectedSource?.code ?? ''} hours,`}{' '}
+          {usDate(report.window_start)} – {usDate(report.made_on)} (past 3 years),{' '}
+          {role?.employment === 'employee'
+            ? plural(report.invoice_numbers.length, 'timesheet', 'timesheets')
+            : plural(report.invoice_numbers.length, 'invoice', 'invoices')}
+          .
         </p>
       </div>
       <p class="hint">

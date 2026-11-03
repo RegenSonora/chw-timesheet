@@ -1,12 +1,12 @@
 # Regen Time Tracking
 
-A lightweight, offline phone app for Community Health Workers at Regenerating Sonora, Inc. CHWs log time against a funding source, then create an invoice PDF, a picture of the invoice page and two CSV files to sign and email.
+A lightweight, offline phone app for people who work for Regenerating Sonora, Inc.: Community Health Workers and other roles, as contractors or employees. You log time against your role's funding sources, then create an invoice (contractors) or a timesheet (employees) as a PDF, a picture of its first page and two CSV files, to sign and email.
 
 - Live app: https://regensonora.github.io/regen-time-tracking/
-- Status: **0.10.0.** Split from CHW Time Tracker Historic (decision 0020); funding sources and features change from here. Logging time, invoices, sharing and offline use all work.
-- Product spec: [docs/SPEC.md](docs/SPEC.md). Build plan: [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md). Decisions: [docs/decisions/](docs/decisions/).
+- Status: **0.11.0.** Roles, counts per task, employee timesheets and grant periods (decisions 0027–0034, [roles plan](docs/roles-plan.md)). Split from CHW Time Tracker Historic (decision 0020).
+- Product spec: [docs/SPEC.md](docs/SPEC.md). Build plans: [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md), [docs/roles-plan.md](docs/roles-plan.md). Decisions: [docs/decisions/](docs/decisions/).
 
-## For CHWs
+## Using the app
 
 ### Install (once)
 
@@ -22,29 +22,77 @@ A lightweight, offline phone app for Community Health Workers at Regenerating So
 2. Tap **Install** when Chrome offers it (or Menu › **Install app**).
 3. Open **Regen Time** from your Home Screen or app list.
 
-Then fill in setup: your name, initials, mailing address, and the hourly rate from your agreement. After the first time, the app works with **no signal**.
+### Set up (once)
+
+1. Type your name, initials and mailing address, then tap **Next**.
+2. **Pick your role**, the one on your agreement (for example CHW-TC01 · CHW Trainee (Contractor)). Ask the office if you're not sure.
+3. Check what your role bills: its funding sources, budget lines and tasks, with your hourly rate filled in from your agreement. Tap **This is my role**, or **Pick a different role**.
+
+Your role can't be changed later on the phone. If you picked the wrong one, invoice or submit any hours you've logged, then remove the app and set it up again, or ask the office. After the first time, the app works with **no signal**.
 
 ### Every day
 
-- Pick the **funding source** at the top of Home.
 - Tap **Start timer** when you begin and **Stop** when you finish. The timer keeps running if you close the app.
-- Forgot the timer? Tap **Enter times instead** and type the date, start and end.
-- Pick what you did and the budget line, add counts and notes if you like, then **Save**. Notes appear on the timesheet: **don't include client names.**
-- Tap an entry on Home to fix or delete it, until it is invoiced.
+- Forgot the timer? Tap **Record time** and type the date, start and end.
+- Pick the budget line (when your role has more than one) and check every task you did. With two or more tasks, split your time between them.
+- Add counts if you like: the app shows the counts for the tasks you checked. Add notes if you like; notes appear on the timesheet: **don't include client names.** Then **Save**.
+- Tap an entry on Home to fix or delete it, until it is invoiced or submitted.
+- **My stats** on Home shows the hours you've invoiced (or submitted), with hours still waiting, and your all-time counts. CHW Trainees also see the hrs needed for the pay increase (240) and for CHW Cert eligibility (480). It counts invoices and timesheets made on this phone.
+- At 240 hours, CHW Trainees are reminded to invoice or submit, then change their rate to $23.00 in **Settings**.
 
-### Invoicing
+### Invoices (contractors)
 
-1. On Home, tap **Generate … invoice**. Check the preview, then tap **Create invoice files**.
+1. On Home, tap **Generate Regen Invoice** (under Past invoices). Check the preview, then tap **Create invoice files**.
 2. Tap **Share files** and email the four files to yourself.
 3. Sign the PDF, or the picture (PNG) of the invoice page in your photo app. Sign one, not both. Email the signed file with both CSV files to your reviewer.
 
-The full steps, with how to sign on iPhone and Android: [docs/signing-procedure.md](docs/signing-procedure.md). Need the files again? **Past invoices** on Home.
+### Timesheets (employees)
+
+1. On Home, tap **Submit timesheet**. Check the preview, then tap **Create timesheet files**.
+2. Tap **Share files** and email the four files to yourself.
+3. Sign the PDF, or the picture (PNG) of the timesheet page. Email the signed file with both CSV files to your supervisor, who signs the same page under your signature and sends it to the office.
+
+The full steps, with how to sign on iPhone and Android: [docs/signing-procedure.md](docs/signing-procedure.md). Need the files again? **Past invoices** (or **Past timesheets**) on Home.
+
+### Work Hours Report (CHW Trainees)
+
+For the ADHS **Community Health Worker Hours Worked/Volunteered Attestation Form**. Tap **Eligible** in My stats once you reach 480 hours, or open it any time from **Settings › Work Hours Report**. It lists your invoiced or submitted hours from the past three years for each core competency, in the form's order, with the dates. Tap **Share report** to send yourself a PDF, a picture (PNG) and a CSV, then copy each line onto the form. Your organization's representative fills in and signs the rest of the form.
 
 ### Don't lose your hours
 
-Entries are saved **only on your phone**. There is no backup. **Removing the app from your Home Screen (iPhone) or clearing the site's data (Android) erases every entry that isn't invoiced yet.** Invoice often: once it's emailed, your work is safe.
+Entries are saved **only on your phone**. There is no backup. **Removing the app from your Home Screen (iPhone) or clearing the site's data (Android) erases every entry that isn't invoiced or submitted yet.** Invoice or submit often: once it's emailed, your work is safe.
 
-When the app has a new version, Home shows **Updated, tap to reload**. Tap it when you're ready; it never interrupts an entry.
+When the app has a new version, Home shows **Updated, tap to reload**. Tap it when you're ready; it never interrupts an entry. If the office changed your role, Home tells you once after the update.
+
+## Editing roles
+
+_For office staff. Roles live in [`src/roles/roles.json`](src/roles/roles.json); funding sources in [`src/funding-sources/`](src/funding-sources/). Every change is a commit to `main`, which builds, checks and deploys the app; phones get it through "Updated, tap to reload". Bump the file's `version` with each change._
+
+**What a role holds.** A code and name (for example `R-TL01`, "Resilience Team Lead"), `employment` (`contractor` or `employee`), `chw` (true for CHW roles: core competency column and Work Hours Report), and its `funding`: for each source, the rate and NTE (`rate_cents`, `nte_cents`, in cents), an optional raise (`rate_step`) and end date (`ends`), and the budget lines it bills with the tasks under each and the counts each task shows (`count_ids`). An optional `certification_step` (CHW roles only) sets the hours for CHW Cert eligibility. Roles never name a person.
+
+- **Add a role:** add an entry under `roles` with a new `id` (lowercase, hyphens) and `code`. Every budget line and task it lists must already be in the source file; add new ones there first.
+- **Change what a role sees:** add or remove budget lines, tasks or `count_ids`. Everyone in the role sees the change after the update. Entries already logged keep their line, task and counts and can still be invoiced; editing one asks for a new pick.
+- **Add a count:** add it at the **end** of `counts`, with an `id` in lowercase with underscores (it becomes an entry log column) and a `label`; add a `unit` such as `"gal"` if it has one. Then list it in tasks' `count_ids`.
+- **Retire a count:** take it out of every task and mark it `"retired": true`. Never delete or rename a count, and never reuse an id.
+- **Retire a role:** mark it `"retired": true`. With `"replaced_by": "<new role id>"`, everyone in it moves to the new role on their next open and sees a one-time notice; rates are not changed, only noted. With no `replaced_by`, its people can still invoice or submit waiting hours but can't log new time ("Your role is no longer active. Ask the office."). Never delete a role.
+- **Contractor to employee (or back):** create the new role and retire the old one with `replaced_by`. Hours already logged go out under the old role first.
+- **Grant dates:** a source's `period_start` and `period_end`, or an earlier `ends` on a role's funding entry. Time can't be dated outside them; hours inside can still be billed after the end. When all of a role's sources have ended, Home says "No active funding for your role. Ask the office."
+
+**When the build fails**, the message names the role and the field. Common ones:
+
+| Message                                                                                                             | Fix                                                               |
+| ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `role X: id "…" is already used by role Y` / `code is used by more than one role`                                   | Give each role its own id and code, retired roles included.       |
+| `count "…": id is used more than once` / `label "…" matches count "…"`                                              | Each count needs its own id and a label no other count has.       |
+| `funding source "…" doesn't exist`                                                                                  | Use a source id from `src/funding-sources/`.                      |
+| `budget line "…" isn't in SOURCE` / `task "…" isn't in SOURCE`                                                      | Add the line or task to the source file first, or fix the id.     |
+| `count "…" isn't in the count list` / `count "…" is retired`                                                        | Add the count to `counts`, or stop listing a retired one.         |
+| `… is listed twice`                                                                                                 | Remove the repeated line, task or count.                          |
+| `nte_cents is set but SOURCE has no NTE`                                                                            | Remove `nte_cents` for that source.                               |
+| `employee role, but SOURCE has no employee_certification_text …`                                                    | Add `employee_certification_text` to the source file or the role. |
+| `certification_step is only for CHW roles (chw: true)`                                                              | Remove it, or set `chw: true`.                                    |
+| `replaced_by is set but the role isn't retired` / `replaced_by "…" doesn't exist` / `… is retired` / `forms a loop` | Point `replaced_by` from a retired role to an active one.         |
+| `ends … isn't a real date` / `is outside SOURCE's period`                                                           | Use a YYYY-MM-DD date inside the source's period.                 |
 
 ## For developers
 
@@ -96,6 +144,7 @@ Pushes to `main` run CI and, when every check passes, deploy `dist/` to GitHub P
 | `src/ui/`              | Preact screens                                                    |
 | `src/files/`           | PDF, CSV and QR writers                                           |
 | `src/funding-sources/` | One JSON file per funding source                                  |
+| `src/roles/`           | Roles and the shared count list                                   |
 | `schemas/`             | JSON Schemas                                                      |
 | `tests/`               | Unit tests (core, storage, UI helpers)                            |
 | `e2e/`                 | Playwright tests                                                  |

@@ -6,7 +6,7 @@ import {
   heading,
   noShare,
   readPng,
-  setUp,
+  setUpWithoutRole,
   sharedFiles,
   stubShare,
   ZONE,
@@ -28,16 +28,16 @@ const DATES = [
 test('create, share and re-share an invoice', async ({ page }) => {
   test.setTimeout(120_000);
   await stubShare(page);
-  await setUp(page);
+  await setUpWithoutRole(page);
   for (const date of DATES) await addEntry(page, { date, start: '09:00', end: '10:00' });
 
-  await page.getByRole('button', { name: 'Generate TISUPP invoice' }).click();
+  await page.getByRole('button', { name: 'Generate Regen Invoice' }).click();
   await expect(heading(page, 'New invoice')).toBeVisible();
   await expect(page.getByText(/^CC-\d{4}-001$/)).toBeVisible();
   await expect(page.getByText('8 on 8 dates (2 timesheet pages)')).toBeVisible();
-  await expect(page.getByText('$20.00 / h')).toBeVisible();
-  await expect(page.getByRole('row', { name: 'CHW referrals 8.00 h $160.00' })).toBeVisible();
-  await expect(page.getByRole('row', { name: 'Total 8.00 h $160.00' })).toBeVisible();
+  await expect(page.getByText('$20.00 / hr')).toBeVisible();
+  await expect(page.getByRole('row', { name: 'CHW referrals 8.00 hrs $160.00' })).toBeVisible();
+  await expect(page.getByRole('row', { name: 'Total 8.00 hrs $160.00' })).toBeVisible();
   await expect(page.getByText('Enter your not-to-exceed amount in Settings.')).toBeVisible();
   await expect(page.getByText('These 8 entries will be locked.')).toBeVisible();
 
@@ -80,8 +80,8 @@ test('create, share and re-share an invoice', async ({ page }) => {
   // Back on Home, the entries are locked away.
   await page.getByRole('button', { name: 'Done' }).click();
   await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
-  await expect(page.getByText('No TISUPP entries waiting.', { exact: false })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Generate TISUPP invoice' })).toHaveCount(0);
+  await expect(page.getByText('Start timer and start working or record time.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Generate Regen Invoice' })).toHaveCount(0);
 
   // Re-share from Past invoices on Home: the same bytes (SPEC §6, decision 0019).
   await page.getByRole('button', { name: /Past invoices 1 invoice/ }).click();
@@ -99,15 +99,15 @@ test('create, share and re-share an invoice', async ({ page }) => {
   await page.getByRole('button', { name: 'Back' }).click();
   await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
   await addEntry(page, { date: '2026-10-31', start: '09:00', end: '10:00' });
-  await page.getByRole('button', { name: 'Generate TISUPP invoice' }).click();
+  await page.getByRole('button', { name: 'Generate Regen Invoice' }).click();
   await expect(page.getByText(/^CC-\d{4}-002$/)).toBeVisible();
 });
 
 test('without file sharing, the files download; leaving unshared asks first', async ({ page }) => {
   await noShare(page);
-  await setUp(page);
+  await setUpWithoutRole(page);
   await addEntry(page, { date: '2026-10-30', start: '09:12', end: '10:37' });
-  await page.getByRole('button', { name: 'Generate TISUPP invoice' }).click();
+  await page.getByRole('button', { name: 'Generate Regen Invoice' }).click();
   await page.getByRole('button', { name: 'Create invoice files' }).click();
   await expect(heading(page, 'Invoice created')).toBeVisible();
 
@@ -140,9 +140,9 @@ test('without file sharing, the files download; leaving unshared asks first', as
 
 test('Done anyway leaves an unshared invoice; it stays in Past invoices', async ({ page }) => {
   await stubShare(page);
-  await setUp(page);
+  await setUpWithoutRole(page);
   await addEntry(page, { date: '2026-10-30', start: '09:12', end: '10:37' });
-  await page.getByRole('button', { name: 'Generate TISUPP invoice' }).click();
+  await page.getByRole('button', { name: 'Generate Regen Invoice' }).click();
   await page.getByRole('button', { name: 'Create invoice files' }).click();
   await page.getByRole('button', { name: 'Done' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Done anyway' }).click();

@@ -67,14 +67,17 @@ export function paginateTimesheet(
     const onPage = invoice.entries.filter((e) => column.has(e.entry_date));
 
     const rows = new Map<string, TimesheetRow & { notesList: string[] }>();
-    for (const e of onPage) {
-      const key = `${e.task_id}\u0000${e.budget_line_id}`;
+    // A split entry adds each task share to its own row, and its notes to each (decision 0024).
+    for (const { entry: e, share } of onPage.flatMap((entry) =>
+      entry.tasks.map((share) => ({ entry, share })),
+    )) {
+      const key = `${share.task_id}\u0000${e.budget_line_id}`;
       let row = rows.get(key);
       if (!row) {
         row = {
-          task_id: e.task_id,
-          task_name: e.task_name,
-          core_competency: e.core_competency,
+          task_id: share.task_id,
+          task_name: share.task_name,
+          core_competency: share.core_competency,
           budget_line_id: e.budget_line_id,
           budget_line_name: e.budget_line_name,
           cells: dates.map(() => null),
@@ -85,8 +88,8 @@ export function paginateTimesheet(
         rows.set(key, row);
       }
       const i = column.get(e.entry_date) ?? 0;
-      row.cells[i] = (row.cells[i] ?? 0) + e.quarters;
-      row.total += e.quarters;
+      row.cells[i] = (row.cells[i] ?? 0) + share.quarters;
+      row.total += share.quarters;
       row.notesList.push(e.notes);
     }
 

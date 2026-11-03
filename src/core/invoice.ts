@@ -3,8 +3,10 @@ import { sumCounts } from './counts';
 import { CANONICAL_VERSION, fingerprintOf, type FingerprintedInvoice } from './fingerprint';
 import { formatInvoiceNumber, normalizeInitials, takeNumber } from './invoice-number';
 import { lineAmountCents, sumCents } from './money';
+import { sharesMatch } from './task-split';
 import { checkEntryTimes, entryDateOf, parseIso } from './time';
 import type {
+  CountDef,
   Entry,
   FundingSourceConfig,
   Invoice,
@@ -13,6 +15,7 @@ import type {
   InvoiceLine,
   NteStatus,
   Profile,
+  Role,
   SourceSettings,
 } from './types';
 
@@ -26,6 +29,19 @@ export interface InvoiceInput {
   source: FundingSourceConfig;
   settings: SourceSettings;
   profile: Profile;
+  /**
+   * The role this invoice is made under: that of the hours it bills, which after an office
+   * change may be an older role than the person's (roles plan R7). Null for no role. Employees
+   * get a timesheet (decision 0031).
+   */
+  role: Role | null;
+  /**
+   * Bill only waiting entries logged under this role id (see invoiceRoleId); the rest wait for
+   * the next invoice. Undefined bills every waiting entry of the source.
+   */
+  entry_role_id?: string | null;
+  /** The shared count list, for the labels the invoice freezes (decision 0029). */
+  count_defs: readonly CountDef[];
   counter: InvoiceCounter;
   /** All entries on the phone; only this source's uninvoiced ones are used. */
   entries: readonly Entry[];
@@ -57,6 +73,21 @@ export function uninvoicedEntries(entries: readonly Entry[], sourceId: string): 
 }
 
 /**
+ * The role the next invoice or timesheet at a source is made under: that of the oldest waiting
+ * entry. Hours keep the role they were logged with, so after a role change the old role's hours
+ * go first (roles plan R7). Undefined when nothing waits.
+ */
+export function invoiceRoleId(
+  entries: readonly Entry[],
+  sourceId: string,
+): string | null | undefined {
+  const waiting = uninvoicedEntries(entries, sourceId).sort((a, b) =>
+    a.start < b.start ? -1 : a.start > b.start ? 1 : 0,
+  );
+  return waiting[0]?.role_id;
+}
+
+/**
  * Everything the invoice preview shows, without the fingerprint. Pure and synchronous;
  * createInvoice adds the fingerprint.
  */
@@ -72,16 +103,23 @@ export function buildInvoiceDraft(input: InvoiceInput): InvoiceDraftResult {
   if (!isDate(input.invoice_date)) return { ok: false, reason: 'bad_date' };
 
   const tasks = new Map(source.tasks.map((t) => [t.id, t]));
+  const taskIds = new Set(tasks.keys());
   const lines = new Map(source.budget_lines.map((l) => [l.id, l]));
-  const billed = uninvoicedEntries(input.entries, source.id);
+  const billed = uninvoicedEntries(input.entries, source.id).filter(
+    (e) => input.entry_role_id === undefined || e.role_id === input.entry_role_id,
+  );
   if (billed.length === 0) return { ok: false, reason: 'no_entries' };
 
   const frozen: InvoiceEntry[] = [];
   for (const e of billed) {
-    const task = tasks.get(e.task_id);
     const line = lines.get(e.budget_line_id);
     const times = checkEntryTimes(e.start, e.stop);
-    if (!task || !line || !times.ok || entryDateOf(e.start) !== e.entry_date) {
+    if (
+      !line ||
+      !times.ok ||
+      entryDateOf(e.start) !== e.entry_date ||
+      !sharesMatch(e.tasks, times.quarters, taskIds)
+    ) {
       return { ok: false, reason: 'bad_entry', entry_id: e.id };
     }
     frozen.push({
@@ -90,9 +128,15 @@ export function buildInvoiceDraft(input: InvoiceInput): InvoiceDraftResult {
       stop: e.stop,
       entry_date: e.entry_date,
       quarters: times.quarters,
-      task_id: task.id,
-      task_name: task.name,
-      core_competency: task.core_competency,
+      tasks: e.tasks.map((s) => {
+        const task = tasks.get(s.task_id) ?? { id: s.task_id, name: '', core_competency: null };
+        return {
+          task_id: task.id,
+          task_name: task.name,
+          core_competency: task.core_competency,
+          quarters: s.quarters,
+        };
+      }),
       budget_line_id: line.id,
       budget_line_name: line.name,
       counts: structuredClone(e.counts),
@@ -126,9 +170,16 @@ export function buildInvoiceDraft(input: InvoiceInput): InvoiceDraftResult {
   const totalQuarters = invoiceLines.reduce((sum, l) => sum + l.quarters, 0);
 
   const earlier = input.prior_invoices.filter((i) => i.source.id === source.id);
-  const nte = nteStatus(source, settings, earlier, totalCents);
+  // Timesheets track no not-to-exceed amount (decision 0031).
+  const nte: NteStatus =
+    input.role?.employment === 'employee'
+      ? { state: 'none' }
+      : nteStatus(source, settings, earlier, totalCents);
   const countsPeriod = sumCounts(frozen.map((e) => e.counts));
   const countsAllTime = sumCounts([...earlier.map((i) => i.counts_period), countsPeriod]);
+  const hasValue = (id: string) =>
+    (countsPeriod.values[id] ?? 0) !== 0 || (countsAllTime.values[id] ?? 0) !== 0;
+  const role = input.role;
 
   const dates = frozen.map((e) => e.entry_date).sort();
   const { sequence, counter } = takeNumber(input.counter);
@@ -142,12 +193,22 @@ export function buildInvoiceDraft(input: InvoiceInput): InvoiceDraftResult {
       id: input.id,
       number: formatInvoiceNumber(profile.initials, year, sequence),
       sequence,
+      kind: role?.employment === 'employee' ? 'timesheet' : 'invoice',
+      role: role
+        ? {
+            id: role.id,
+            code: role.code,
+            name: role.name,
+            employment: role.employment,
+            chw: role.chw,
+          }
+        : null,
       source: {
         id: source.id,
         code: source.code,
         name: source.name,
         version: source.version,
-        certification_text: source.certification_text,
+        certification_text: certificationText(source, role),
       },
       chw: {
         name: profile.name,
@@ -164,12 +225,28 @@ export function buildInvoiceDraft(input: InvoiceInput): InvoiceDraftResult {
       total_cents: totalCents,
       counts_period: countsPeriod,
       counts_all_time: countsAllTime,
+      count_defs: input.count_defs.filter((c) => hasValue(c.id)).map((c) => structuredClone(c)),
       nte,
       canonical_version: CANONICAL_VERSION,
       created_at: input.now,
       updated_at: input.now,
     },
   };
+}
+
+/**
+ * The certification the page prints: employees sign the employee text, others the contractor
+ * text; a role may override either (decision 0031).
+ */
+export function certificationText(source: FundingSourceConfig, role: Role | null): string {
+  if (role?.employment === 'employee') {
+    return (
+      role.employee_certification_text ??
+      source.employee_certification_text ??
+      source.certification_text
+    );
+  }
+  return role?.certification_text ?? source.certification_text;
 }
 
 function nteStatus(

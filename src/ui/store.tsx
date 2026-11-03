@@ -5,14 +5,20 @@ import {
   checkEntryTimes,
   defaultBudgetLine,
   findOverlaps,
+  fundingChoices,
+  invoiceRoleId,
+  roleDefaultLine,
+  roleUpdate,
   type Entry,
   type FundingSourceConfig,
   type Invoice,
   type InvoiceCounter,
   type Profile,
+  type Role,
   type SourceSettings,
 } from '../core';
 import { findFundingSource, FUNDING_SOURCES } from '../funding-sources';
+import { COUNT_DEFS, findRole, ROLES } from '../roles';
 import {
   emptyAppState,
   persistenceStatus,
@@ -33,21 +39,23 @@ import {
   withHand,
   type DraftProblem,
 } from './draft';
-import { hoursLabel, localDateTime } from './format';
+import { hoursLabel, localDateTime, tasksLabel } from './format';
 
 export type Screen =
   | 'home'
   | 'times'
   | 'task'
+  | 'split'
   | 'counts'
   | 'edit'
   | 'all'
   | 'settings'
   | 'invoice'
   | 'invoice-ready'
-  | 'invoices';
+  | 'invoices'
+  | 'report';
 
-const ENTRY_SCREENS: readonly Screen[] = ['times', 'task', 'counts', 'edit'];
+const ENTRY_SCREENS: readonly Screen[] = ['times', 'task', 'split', 'counts', 'edit'];
 
 export interface Data {
   profile: Profile | null;
@@ -66,16 +74,16 @@ export interface Viewing {
   created: boolean;
 }
 
-/** Why "Create invoice files" saved nothing, in plain words (SPEC §10). */
+/** Why "Create invoice files" (or timesheet files) saved nothing, in plain words (SPEC §10). */
 const CREATE_PROBLEMS: Record<string, string> = {
   changed:
-    'Your entries changed while the invoice was being made. Nothing was locked. Check the invoice and try again.',
-  no_entries: 'There are no entries left to invoice.',
+    'Your entries changed while the files were being made. Nothing was locked. Check them and try again.',
+  no_entries: 'There are no entries waiting.',
   no_rate: 'Enter your hourly rate in Settings first.',
   bad_settings: 'Enter your hourly rate in Settings first.',
   no_profile: 'Enter your details in Settings first.',
   bad_initials: 'Check your initials in Settings.',
-  bad_entry: "One entry can't be invoiced. Open it from Home and check its task and times.",
+  bad_entry: "One entry can't be included. Open it from Home and check its task and times.",
 };
 
 export interface Toast {
@@ -122,7 +130,12 @@ function stackFor(app: AppState): Screen[] {
   const d = app.draft;
   if (d?.kind !== 'entry') return ['home'];
   if (d.step === 'edit') return ['home', 'edit'];
-  const steps: Screen[] = d.hand ? ['times', 'task', 'counts'] : ['task', 'counts'];
+  const steps: Screen[] = [
+    ...(d.hand ? (['times'] as const) : []),
+    'task',
+    ...(d.tasks.length > 1 ? (['split'] as const) : []),
+    'counts',
+  ];
   const at = steps.indexOf(d.step);
   return ['home', ...steps.slice(0, at < 0 ? 1 : at + 1)];
 }
@@ -134,15 +147,9 @@ function initialSetupDraft(): SetupDraft {
     initials: '',
     mailing_address: '',
     next_number: '1',
-    sources: Object.fromEntries(
-      FUNDING_SOURCES.map((s, i) => [
-        s.id,
-        {
-          picked: i === 0,
-          rate: s.default_rate_cents === null ? '' : (s.default_rate_cents / 100).toFixed(2),
-        },
-      ]),
-    ),
+    step: 'details',
+    role_id: null,
+    sources: {},
   };
 }
 
@@ -156,7 +163,52 @@ export async function loadData(storage: Storage): Promise<Data> {
     storage.getAppState(),
     persistenceStatus(),
   ]);
-  return { profile, settings, entries, invoices, counter, app, persistence };
+  const data = { profile, settings, entries, invoices, counter, app, persistence };
+  return applyRoleUpdate(storage, data);
+}
+
+/**
+ * After an update retired the person's role in favor of another (decision 0027, roles plan R7):
+ * move the profile to the new role, add settings for any new source, and leave a notice for
+ * Home. The profile is written last, so an interrupted switch runs again on the next open.
+ */
+export async function applyRoleUpdate(
+  storage: Storage,
+  data: Data,
+  roles: readonly Role[] = ROLES,
+): Promise<Data> {
+  const update = roleUpdate(roles, data.profile?.role_id ?? null, data.settings, FUNDING_SOURCES);
+  if (update.state !== 'replaced' || !data.profile) return data;
+  for (const s of update.add_settings) await storage.saveSourceSettings(s);
+  const app: AppState = {
+    ...data.app,
+    role_notice: {
+      from_code: update.from.code,
+      from_name: update.from.name,
+      to_code: update.role.code,
+      to_name: update.role.name,
+      rate_notes: update.rate_notes,
+    },
+  };
+  await storage.saveAppState(app);
+  const profile = { ...data.profile, role_id: update.role.id };
+  await storage.saveProfile(profile);
+  return { ...data, profile, app, settings: await storage.listSourceSettings() };
+}
+
+/**
+ * The role the next invoice or timesheet at a source is made under, and the role id of the
+ * hours it bills: hours keep the role they were logged with, oldest first (roles plan R7).
+ */
+export function invoiceRoleFor(
+  data: Pick<Data, 'entries' | 'profile'>,
+  sourceId: string,
+): { role: Role | null; entry_role_id: string | null | undefined } {
+  const current = findRole(data.profile?.role_id ?? null);
+  const id = invoiceRoleId(data.entries, sourceId);
+  if (id === undefined) return { role: current, entry_role_id: undefined };
+  if (id === null) return { role: current, entry_role_id: null };
+  return { role: ROLES.find((r) => r.id === id) ?? current, entry_role_id: id };
 }
 
 function useStore(storage: Storage, initial: Data) {
@@ -308,6 +360,8 @@ function useStore(storage: Storage, initial: Data) {
   const actions = useMemo(() => {
     const d = () => dataRef.current;
 
+    const role = () => findRole(d().profile?.role_id ?? null);
+
     const selectedSourceId = (): string => {
       const { app, settings } = d();
       const id = app.selected_source_id;
@@ -317,16 +371,28 @@ function useStore(storage: Storage, initial: Data) {
       return first;
     };
 
-    const lastLine = (sourceId: string) =>
-      defaultBudgetLine(
-        sourceOf(sourceId),
-        d().app.per_source[sourceId]?.last_budget_line_id ?? null,
-      );
+    /** The source new time goes to: the selected one, unless the role's period for it ended (0033). */
+    const newEntrySourceId = (): string => {
+      const selected = selectedSourceId();
+      const r = role();
+      if (!r) return selected;
+      const open = fundingChoices(r, FUNDING_SOURCES, localDateTime(phoneNow()).date);
+      return open.some((c) => c.source.id === selected)
+        ? selected
+        : (open[0]?.source.id ?? selected);
+    };
+
+    const lastLine = (sourceId: string) => {
+      const last = d().app.per_source[sourceId]?.last_budget_line_id ?? null;
+      const r = role();
+      return r
+        ? roleDefaultLine(r, sourceOf(sourceId), last)
+        : defaultBudgetLine(sourceOf(sourceId), last);
+    };
 
     const entryWords = (e: Entry) => {
       const times = checkEntryTimes(e.start, e.stop);
-      const task = sourceOf(e.source_id).tasks.find((t) => t.id === e.task_id);
-      return `${times.ok ? hoursLabel(times.quarters) : ''}, ${task?.name ?? ''}`;
+      return `${times.ok ? hoursLabel(times.quarters) : ''}, ${tasksLabel(sourceOf(e.source_id), e.tasks)}`;
     };
 
     return {
@@ -342,7 +408,7 @@ function useStore(storage: Storage, initial: Data) {
         setToast(null);
         return saveApp({
           ...d().app,
-          running_timer: { start: phoneNow(), source_id: selectedSourceId() },
+          running_timer: { start: phoneNow(), source_id: newEntrySourceId() },
         });
       },
 
@@ -388,7 +454,7 @@ function useStore(storage: Storage, initial: Data) {
 
       async startHandEntry() {
         setToast(null);
-        const sourceId = selectedSourceId();
+        const sourceId = newEntrySourceId();
         const today = localDateTime(phoneNow()).date;
         await saveApp({
           ...d().app,
@@ -428,15 +494,27 @@ function useStore(storage: Storage, initial: Data) {
           ? (d().entries.find((e) => e.id === draft.entry_id) ?? null)
           : null;
         const source = sourceOf(draft.source_id);
-        const built = buildEntry(draft, source, d().entries, existing, phoneNow(), () =>
-          crypto.randomUUID(),
+        const built = buildEntry(
+          draft,
+          source,
+          d().entries,
+          existing,
+          phoneNow(),
+          () => crypto.randomUUID(),
+          role(),
+          COUNT_DEFS,
         );
         if (!built.ok) return built.problem;
         const entry = built.entry;
         const saved = await serial(() => storage.saveEntry(entry));
         if (!saved.ok) return 'times';
         await saveApp({
-          ...rememberPicks(d().app, entry.source_id, entry.task_id, entry.budget_line_id),
+          ...rememberPicks(
+            d().app,
+            entry.source_id,
+            entry.tasks.map((s) => s.task_id),
+            entry.budget_line_id,
+          ),
           draft: null,
           selected_source_id: entry.source_id,
         });
@@ -483,6 +561,11 @@ function useStore(storage: Storage, initial: Data) {
         setToast(null);
       },
 
+      /** "OK" on the role-change notice: it shows once (roles plan R7). */
+      dismissRoleNotice() {
+        return saveApp({ ...d().app, role_notice: null });
+      },
+
       /** Invoice preview for a funding source (SPEC §6), replacing Settings when it asks first. */
       async openInvoicePreview(sourceId: string, from: 'push' | 'replace' = 'push') {
         setToast(null);
@@ -499,9 +582,13 @@ function useStore(storage: Storage, initial: Data) {
         const now = phoneNow();
         let result;
         try {
+          const next = invoiceRoleFor(d(), sourceId);
           result = await serial(() =>
             storage.generateInvoice({
               source: sourceOf(sourceId),
+              role: next.role,
+              ...(next.entry_role_id === undefined ? {} : { entry_role_id: next.entry_role_id }),
+              count_defs: COUNT_DEFS,
               now,
               invoice_date: now.slice(0, 10),
             }),
@@ -518,7 +605,7 @@ function useStore(storage: Storage, initial: Data) {
         if (!result?.ok) {
           return (
             (result && CREATE_PROBLEMS[result.reason]) ??
-            "The invoice couldn't be created. Nothing was locked. Try again."
+            "The files couldn't be created. Nothing was locked. Try again."
           );
         }
         setViewing({ invoice_id: result.invoice.id, created: true });
@@ -608,6 +695,17 @@ function useStore(storage: Storage, initial: Data) {
     return id ? (findFundingSource(id) ?? null) : null;
   }, [data]);
 
+  /** The person's role; null on a phone set up before roles, which keeps working as it did. */
+  const role = useMemo((): Role | null => findRole(data.profile?.role_id ?? null), [data.profile]);
+
+  /** True when the role was retired with no replacement or left the roles file (roles plan R7). */
+  const roleInactive = useMemo(
+    () =>
+      roleUpdate(ROLES, data.profile?.role_id ?? null, data.settings, FUNDING_SOURCES).state ===
+      'inactive',
+    [data.profile, data.settings],
+  );
+
   return {
     data,
     stack,
@@ -616,6 +714,8 @@ function useStore(storage: Storage, initial: Data) {
     asking,
     answerLeave,
     selectedSource,
+    role,
+    roleInactive,
     viewing,
     actions,
   };

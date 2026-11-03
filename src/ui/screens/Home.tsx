@@ -1,10 +1,36 @@
-// Home (SPEC §5, §6): source chip, "Not yet invoiced", Past invoices, Generate, Start, Enter
-// times.
+// Home (SPEC §5, §6): source chip, "Not yet invoiced", My stats, Past invoices, Generate,
+// Start, Record time, the 240-hour raise reminder, and the role's wording (decisions 0023, 0025,
+// 0026, 0030, 0031, 0033).
 import { useState } from 'preact/hooks';
-import { formatDollars, uninvoicedEntries, uninvoicedSummary } from '../../core';
-import { EntryRow, Page, SettingsIcon, SourceChip, ToastBar, ListPicker } from '../components';
-import { hoursLabel, plural } from '../format';
-import { sourceById, useApp } from '../store';
+import {
+  formatDollars,
+  fundingChoices,
+  myStats,
+  raiseStatus,
+  sourceMyStats,
+  rateStepReminder,
+  uninvoicedEntries,
+  uninvoicedSummary,
+  type CertificationStat,
+  type FundingSourceConfig,
+  type PayStat,
+  type RateStepReminder,
+  type Role,
+} from '../../core';
+import { FUNDING_SOURCES } from '../../funding-sources';
+import { COUNT_DEFS } from '../../roles';
+import { phoneNow } from '../../storage';
+import {
+  EntryRow,
+  ListPicker,
+  Page,
+  SettingsIcon,
+  SourceChip,
+  ToastBar,
+  Warning,
+} from '../components';
+import { hoursLabel, localDateTime, plural, roleRaiseText } from '../format';
+import { invoiceRoleFor, sourceById, useApp } from '../store';
 import { isMidEntry, useUpdate } from '../update';
 
 /** How many entries Home lists before "Show all". */
@@ -31,6 +57,204 @@ export function SourcePickerSheet({ onClose }: { onClose: () => void }) {
   );
 }
 
+/** The hours row: invoiced or submitted, with the hours still waiting under it (decision 0032). */
+function HoursRow({
+  invoiced,
+  waiting,
+  employee,
+}: {
+  invoiced: number;
+  waiting: number;
+  employee: boolean;
+}) {
+  const done = employee ? 'submitted' : 'invoiced';
+  return (
+    <div class="stat">
+      <dt>
+        Hours {done}
+        {waiting > 0 && (
+          <span class="stat-detail">
+            + {hoursLabel(waiting)} not yet {done}
+          </span>
+        )}
+      </dt>
+      <dd>{hoursLabel(invoiced)}</dd>
+    </div>
+  );
+}
+
+/** The pay increase and certification rows (decisions 0026, 0030, 0032). */
+function GoalRows({
+  pay,
+  certification,
+}: {
+  pay: PayStat | null;
+  certification: CertificationStat | null;
+}) {
+  const { actions } = useApp();
+  return (
+    <>
+      {pay?.state === 'counting' && (
+        <div class="stat">
+          <dt>
+            Hrs needed for pay increase
+            <span class="stat-detail">
+              to {formatDollars(pay.rate_cents)}/hr at {hoursLabel(pay.after_quarters)}
+            </span>
+          </dt>
+          <dd>{hoursLabel(pay.left_quarters)}</dd>
+        </div>
+      )}
+      {pay?.state === 'reached' && (
+        <div class="stat">
+          <dt>
+            Pay increase
+            <span class="stat-detail">
+              Reached. Change your rate to {formatDollars(pay.rate_cents)} in Settings.
+            </span>
+          </dt>
+          <dd class="stat-done">Reached</dd>
+        </div>
+      )}
+      {certification?.state === 'counting' && (
+        <div class="stat">
+          <dt>
+            Hrs needed for {certification.name} eligibility
+            <span class="stat-detail">at {hoursLabel(certification.after_quarters)}</span>
+          </dt>
+          <dd>{hoursLabel(certification.left_quarters)}</dd>
+        </div>
+      )}
+      {certification?.state === 'eligible' && (
+        <div class="stat">
+          <dt>
+            {certification.name} eligibility
+            <span class="stat-detail">Press "Eligible" to generate your Work Hours Report</span>
+          </dt>
+          <dd>
+            <button
+              type="button"
+              class="btn btn-small"
+              onClick={() => {
+                actions.dismissToast();
+                actions.push('report');
+              }}
+            >
+              Eligible
+            </button>
+          </dd>
+        </div>
+      )}
+    </>
+  );
+}
+
+/** My stats (decision 0026): invoiced hours, and the hours still needed for the raise and for certification. */
+export function MyStats({
+  source,
+  rateCents,
+  waitingQuarters,
+}: {
+  source: FundingSourceConfig;
+  rateCents: number | null;
+  waitingQuarters: number;
+}) {
+  const { data } = useApp();
+  const stats = sourceMyStats(source, rateCents, data.invoices, waitingQuarters);
+  return (
+    <section class="stats-sec" aria-labelledby="stats-head">
+      <h2 class="stats-head" id="stats-head">
+        My stats
+      </h2>
+      <dl class="card stats">
+        <HoursRow
+          invoiced={stats.invoiced_quarters}
+          waiting={stats.waiting_quarters}
+          employee={false}
+        />
+        <GoalRows pay={stats.pay} certification={stats.certification} />
+      </dl>
+      <p class="hint">Counts invoices made on this phone.</p>
+    </section>
+  );
+}
+
+/**
+ * My stats with a role (decision 0032): hours across all the person's sources, the role's goals,
+ * and all-time totals of the role's counts above 0.
+ */
+export function RoleMyStats({ role }: { role: Role }) {
+  const { data } = useApp();
+  const rates = Object.fromEntries(data.settings.map((s) => [s.source_id, s.rate_cents]));
+  const waiting = data.settings.reduce(
+    (sum, s) => sum + uninvoicedSummary(data.entries, s.source_id, s.rate_cents).quarters,
+    0,
+  );
+  const stats = myStats(COUNT_DEFS, role, rates, data.invoices, waiting);
+  return (
+    <section class="stats-sec" aria-labelledby="stats-head">
+      <h2 class="stats-head" id="stats-head">
+        My stats
+      </h2>
+      <dl class="card stats">
+        <HoursRow
+          invoiced={stats.invoiced_quarters}
+          waiting={stats.waiting_quarters}
+          employee={role.employment === 'employee'}
+        />
+        <GoalRows pay={stats.pay} certification={stats.certification} />
+        {stats.counts.map((c) => (
+          <div key={c.id} class="stat">
+            <dt>{c.label}</dt>
+            <dd>{c.unit ? `${String(c.total)} ${c.unit}` : String(c.total)}</dd>
+          </div>
+        ))}
+      </dl>
+      {stats.counts.length === 0 && <p class="hint">No counts yet.</p>}
+      <p class="hint">Counts invoices and timesheets made on this phone.</p>
+    </section>
+  );
+}
+
+/** The raise reminder's words (decision 0023). */
+export function rateStepText(reminder: RateStepReminder, code: string): string {
+  const hours = `${String(reminder.after_quarters / 4)} hours`;
+  const rate = formatDollars(reminder.rate_cents);
+  return reminder.invoice_first
+    ? `You've reached ${hours}. Generate your ${code} invoice now, then change your rate to ${rate} in Settings.`
+    : `You've billed ${hours}. Your rate goes up to ${rate}. Change it in Settings before your next invoice.`;
+}
+
+export const NO_FUNDING = 'No active funding for your role. Ask the office.';
+export const ROLE_INACTIVE = 'Your role is no longer active. Ask the office.';
+
+/** Shown once after the office moved the person to a new role (decision 0027, roles plan R7). */
+function RoleNotice() {
+  const { data, actions } = useApp();
+  const notice = data.app.role_notice;
+  if (!notice) return null;
+  return (
+    <div class="card role-notice" role="status">
+      <p>
+        Your role was updated by the office:{' '}
+        <strong>
+          {notice.to_code} · {notice.to_name}
+        </strong>
+        .
+      </p>
+      {notice.rate_notes.map((n) => (
+        <p key={n.source_id} class="hint">
+          Suggested rate for {sourceById(n.source_id).code} is now {formatDollars(n.rate_cents)}.
+          Change it in Settings if your agreement changed.
+        </p>
+      ))}
+      <button type="button" class="btn2 btn-small" onClick={() => void actions.dismissRoleNotice()}>
+        OK
+      </button>
+    </div>
+  );
+}
+
 export function HomeHeaderAside({ onChip }: { onChip: () => void }) {
   const { actions } = useApp();
   return (
@@ -52,14 +276,34 @@ export function HomeHeaderAside({ onChip }: { onChip: () => void }) {
 }
 
 export function Home() {
-  const { data, selectedSource, actions } = useApp();
+  const { data, selectedSource, role, roleInactive, actions } = useApp();
   const [picking, setPicking] = useState(false);
   const update = useUpdate();
   if (!selectedSource) return null;
+  // The next invoice or timesheet goes under the role its hours were logged with (R7).
+  const nextRole = invoiceRoleFor(data, selectedSource.id).role;
 
   const rate = data.settings.find((s) => s.source_id === selectedSource.id)?.rate_cents ?? null;
   const open = uninvoicedEntries(data.entries, selectedSource.id).reverse();
   const summary = uninvoicedSummary(data.entries, selectedSource.id, rate);
+  const employee = role?.employment === 'employee';
+  const funding = role?.funding.find((f) => f.source_id === selectedSource.id);
+  const reminder = role
+    ? funding
+      ? raiseStatus(funding, rate, data.invoices, summary.quarters)
+      : null
+    : rateStepReminder(selectedSource, rate, data.invoices, summary.quarters);
+  const reminderText = reminder
+    ? role
+      ? roleRaiseText(reminder, employee)
+      : rateStepText(reminder, selectedSource.code)
+    : null;
+  // Decision 0033: every source ended. Record time stays for dates inside a period.
+  const noFunding =
+    role !== null &&
+    fundingChoices(role, FUNDING_SOURCES, localDateTime(phoneNow()).date).length === 0;
+  // Roles plan R7: a role retired with no replacement takes no new time at all.
+  const newTime = !roleInactive;
 
   return (
     <Page
@@ -79,26 +323,32 @@ export function Home() {
               Updated, tap to reload
             </button>
           )}
-          {summary.count > 0 && (
-            <button
-              type="button"
-              class="btn2"
-              onClick={() => void actions.openInvoicePreview(selectedSource.id)}
-            >
-              Generate {selectedSource.code} invoice
+          {newTime && !noFunding && (
+            <button type="button" class="btn btn-start" onClick={() => void actions.startTimer()}>
+              Start timer
             </button>
           )}
-          <button type="button" class="btn btn-start" onClick={() => void actions.startTimer()}>
-            Start timer
-          </button>
-          <button type="button" class="txt" onClick={() => void actions.startHandEntry()}>
-            Enter times instead
-          </button>
+          {newTime && (
+            <button
+              type="button"
+              class="btn btn-start btn-green"
+              onClick={() => void actions.startHandEntry()}
+            >
+              Record time
+            </button>
+          )}
         </>
       }
     >
+      <RoleNotice />
+      {roleInactive ? (
+        <Warning>{ROLE_INACTIVE}</Warning>
+      ) : (
+        noFunding && <Warning>{NO_FUNDING}</Warning>
+      )}
+      {reminderText && <Warning>{reminderText}</Warning>}
       <div class="list-head">
-        <h2>Not yet invoiced</h2>
+        <h2>{employee ? 'Not yet submitted' : 'Not yet invoiced'}</h2>
         {summary.count > 0 && (
           <span class="summary">
             {plural(summary.count, 'entry', 'entries')} · {hoursLabel(summary.quarters)}
@@ -108,7 +358,11 @@ export function Home() {
       </div>
       {summary.count === 0 ? (
         <p class="empty">
-          No {selectedSource.code} entries waiting. Tap Start timer when you begin work.
+          {roleInactive
+            ? 'Nothing waiting.'
+            : noFunding
+              ? 'Record time for dates your funding covered.'
+              : 'Start timer and start working or record time.'}
         </p>
       ) : (
         <ul class="entries">
@@ -136,6 +390,11 @@ export function Home() {
           Show all {plural(open.length, 'entry', 'entries')}
         </button>
       )}
+      {role ? (
+        <RoleMyStats role={role} />
+      ) : (
+        <MyStats source={selectedSource} rateCents={rate} waitingQuarters={summary.quarters} />
+      )}
       {/* Decision 0019: Past invoices lives on Home, under the list. */}
       <button
         type="button"
@@ -145,13 +404,26 @@ export function Home() {
           actions.push('invoices');
         }}
       >
-        <span>Past invoices</span>
+        <span>{employee ? 'Past timesheets' : 'Past invoices'}</span>
         <span class="nav-row-detail">
           {data.invoices.length > 0
-            ? plural(data.invoices.length, 'invoice', 'invoices')
+            ? employee
+              ? plural(data.invoices.length, 'timesheet', 'timesheets')
+              : plural(data.invoices.length, 'invoice', 'invoices')
             : 'None yet'}
         </span>
       </button>
+      {/* Decision 0026: under Past invoices, the same size, light green with dark gold text.
+          Employees submit a timesheet instead (decision 0031). */}
+      {summary.count > 0 && (
+        <button
+          type="button"
+          class="card nav-row home-generate"
+          onClick={() => void actions.openInvoicePreview(selectedSource.id)}
+        >
+          {nextRole?.employment === 'employee' ? 'Submit timesheet' : 'Generate Regen Invoice'}
+        </button>
+      )}
       <ToastBar />
       {picking && (
         <SourcePickerSheet

@@ -1,19 +1,22 @@
 // Invoice preview (SPEC §6, §9, wireframe Invoice): what the invoice will say, then
-// "Create invoice files", which locks the entries.
+// "Create invoice files", which locks the entries. Employees preview a timesheet: hours only, no
+// contract limit (decision 0031).
 import { useState } from 'preact/hooks';
 import {
   buildInvoiceDraft,
-  COUNT_FIELDS,
   formatDollars,
   formatQuarters,
+  invoiceCounts,
   paginateTimesheet,
+  uninvoicedEntries,
   type NteStatus,
 } from '../../core';
 import { dateRange, longDate } from '../../files/text';
+import { COUNT_DEFS } from '../../roles';
 import { phoneNow } from '../../storage';
 import { ErrorText, Page, Warning } from '../components';
 import { plural, shortDateLabel } from '../format';
-import { useApp } from '../store';
+import { invoiceRoleFor, useApp } from '../store';
 
 function ContractLimit({ nte }: { nte: NteStatus }) {
   const { actions } = useApp();
@@ -78,6 +81,12 @@ export function InvoicePreview() {
   const source = selectedSource;
   const profile = data.profile;
   if (!source || !profile) return null;
+  // The hours that go next keep the role they were logged with (roles plan R7).
+  const next = invoiceRoleFor(data, source.id);
+  const role = next.role;
+  const employee = role?.employment === 'employee';
+  const noun = employee ? 'timesheet' : 'invoice';
+  const title = employee ? 'New timesheet' : 'New invoice';
 
   const settings = data.settings.find((s) => s.source_id === source.id);
   const now = phoneNow();
@@ -89,6 +98,9 @@ export function InvoicePreview() {
         source,
         settings,
         profile,
+        role,
+        ...(next.entry_role_id === undefined ? {} : { entry_role_id: next.entry_role_id }),
+        count_defs: COUNT_DEFS,
         counter: data.counter,
         entries: data.entries,
         prior_invoices: data.invoices,
@@ -98,11 +110,11 @@ export function InvoicePreview() {
   if (!draft?.ok) {
     const reason = draft ? draft.reason : 'no_rate';
     return (
-      <Page title="New invoice" back aside={<span class="bar-code">{source.code}</span>}>
+      <Page title={title} back aside={<span class="bar-code">{source.code}</span>}>
         <p class="empty">
           {reason === 'no_entries'
-            ? `No ${source.code} entries waiting to be invoiced.`
-            : "This invoice can't be made yet. Check your details and rate in Settings."}
+            ? `No ${source.code} entries waiting to be ${employee ? 'submitted' : 'invoiced'}.`
+            : `This ${noun} can't be made yet. Check your details and rate in Settings.`}
         </p>
       </Page>
     );
@@ -112,10 +124,16 @@ export function InvoicePreview() {
   const dates = new Set(invoice.entries.map((e) => e.entry_date)).size;
   const pages = paginateTimesheet(invoice, source).length;
   const count = invoice.entries.length;
-  const counts = [
-    ...COUNT_FIELDS.map((f) => ({ label: f.label, value: invoice.counts_period[f.key] })),
-    ...invoice.counts_period.other,
-  ];
+  const later = uninvoicedEntries(data.entries, source.id).length - count;
+  // Only counts with a value this period, as page 1 lists them (decision 0029).
+  const counts = invoiceCounts(
+    invoice.count_defs,
+    invoice.counts_period,
+    invoice.counts_all_time,
+  ).map((c) => ({
+    label: c.label,
+    value: c.unit ? `${String(c.period)} ${c.unit}` : String(c.period),
+  }));
 
   const create = async () => {
     if (busy) return;
@@ -129,7 +147,7 @@ export function InvoicePreview() {
 
   return (
     <Page
-      title="New invoice"
+      title={title}
       back
       aside={<span class="bar-code">{source.code}</span>}
       footer={
@@ -140,20 +158,26 @@ export function InvoicePreview() {
             aria-disabled={busy ? 'true' : undefined}
             onClick={() => void create()}
           >
-            {busy ? 'Creating files…' : 'Create invoice files'}
+            {busy ? 'Creating files…' : `Create ${noun} files`}
           </button>
           <p class="foot-note">These {plural(count, 'entry', 'entries')} will be locked.</p>
+          {later > 0 && (
+            <p class="foot-note">
+              {plural(later, 'more entry waits', 'more entries wait')} under your new role. Make{' '}
+              {later === 1 ? 'it' : 'them'} next.
+            </p>
+          )}
         </>
       }
     >
       {problem && <ErrorText>{problem}</ErrorText>}
       <dl class="card kv">
         <div class="kv-row">
-          <dt>Invoice #</dt>
+          <dt>{employee ? 'Timesheet #' : 'Invoice #'}</dt>
           <dd>{invoice.number}</dd>
         </div>
         <div class="kv-row">
-          <dt>Invoice date</dt>
+          <dt>{employee ? 'Date' : 'Invoice date'}</dt>
           <dd>{longDate(invoice.invoice_date)}</dd>
         </div>
         <div class="kv-row">
@@ -168,51 +192,55 @@ export function InvoicePreview() {
           </dd>
         </div>
         <div class="kv-row">
-          <dt>Rate</dt>
-          <dd>{formatDollars(invoice.rate_cents)} / h</dd>
+          <dt>{employee ? 'Pay rate' : 'Rate'}</dt>
+          <dd>{formatDollars(invoice.rate_cents)} / hr</dd>
         </div>
       </dl>
 
-      <h2 class="sec">Amount by budget line</h2>
+      <h2 class="sec">{employee ? 'Hours by budget line' : 'Amount by budget line'}</h2>
       <table class="card lines">
         <caption class="sr-only">
-          Hours and amount by budget line, {shortDateLabel(invoice.period_start)} to{' '}
-          {shortDateLabel(invoice.period_end)}
+          {employee ? 'Hours' : 'Hours and amount'} by budget line,{' '}
+          {shortDateLabel(invoice.period_start)} to {shortDateLabel(invoice.period_end)}
         </caption>
         <thead class="sr-only">
           <tr>
             <th scope="col">Budget line</th>
             <th scope="col">Hours</th>
-            <th scope="col">Amount</th>
+            {!employee && <th scope="col">Amount</th>}
           </tr>
         </thead>
         <tbody>
           {invoice.lines.map((l) => (
             <tr key={l.budget_line_id}>
               <th scope="row">{l.budget_line_name}</th>
-              <td class="lines-hours">{formatQuarters(l.quarters)} h</td>
-              <td class="lines-amount">{formatDollars(l.amount_cents)}</td>
+              <td class="lines-hours">{formatQuarters(l.quarters)} hrs</td>
+              {!employee && <td class="lines-amount">{formatDollars(l.amount_cents)}</td>}
             </tr>
           ))}
           <tr class="lines-total">
             <th scope="row">Total</th>
-            <td class="lines-hours">{formatQuarters(invoice.total_quarters)} h</td>
-            <td class="lines-amount">{formatDollars(invoice.total_cents)}</td>
+            <td class="lines-hours">{formatQuarters(invoice.total_quarters)} hrs</td>
+            {!employee && <td class="lines-amount">{formatDollars(invoice.total_cents)}</td>}
           </tr>
         </tbody>
       </table>
 
-      <ContractLimit nte={invoice.nte} />
+      {!employee && <ContractLimit nte={invoice.nte} />}
 
       <h2 class="sec">Counts this period</h2>
-      <dl class="card kv">
-        {counts.map((c) => (
-          <div key={c.label} class="kv-row">
-            <dt>{c.label}</dt>
-            <dd>{c.value}</dd>
-          </div>
-        ))}
-      </dl>
+      {counts.length === 0 ? (
+        <p class="hint">None this period.</p>
+      ) : (
+        <dl class="card kv">
+          {counts.map((c) => (
+            <div key={c.label} class="kv-row">
+              <dt>{c.label}</dt>
+              <dd>{c.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
     </Page>
   );
 }

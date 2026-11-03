@@ -3,7 +3,7 @@ import type { ComponentChildren, JSX } from 'preact';
 import { useEffect, useId, useRef } from 'preact/hooks';
 import type { Entry, FundingSourceConfig } from '../core';
 import { checkEntryTimes } from '../core';
-import { dateLabel, hoursLabel, timeRangeLabel } from './format';
+import { dateLabel, hoursLabel, lineName, tasksLabel, timeRangeLabel } from './format';
 import { sourceById, useApp } from './store';
 
 // --- Icons (stroke SVG, hidden from screen readers) -----------------------------------------
@@ -60,6 +60,8 @@ interface PageProps {
   title: string;
   /** Shows a Back button that leaves this screen. */
   back?: boolean;
+  /** What Back does instead of leaving, for steps inside one screen (setup). */
+  onBack?: () => void;
   /** Right side of the header: chip, settings, "Step 1 of 2". */
   aside?: ComponentChildren;
   footer?: ComponentChildren;
@@ -68,7 +70,7 @@ interface PageProps {
 }
 
 /** One screen: header with the screen's h1 (focused on arrival), scrolling main, footer. */
-export function Page({ title, back, aside, footer, children, mainClass }: PageProps) {
+export function Page({ title, back, onBack, aside, footer, children, mainClass }: PageProps) {
   const { actions } = useApp();
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
@@ -78,7 +80,7 @@ export function Page({ title, back, aside, footer, children, mainClass }: PagePr
     <div class="screen">
       <header class={back ? 'bar bar-back' : 'bar'}>
         {back && (
-          <button type="button" class="icon" aria-label="Back" onClick={actions.back}>
+          <button type="button" class="icon" aria-label="Back" onClick={onBack ?? actions.back}>
             <BackIcon />
           </button>
         )}
@@ -229,6 +231,8 @@ export function ListPicker<T extends { id: string }>({
 export function SourceChip({ onOpen }: { onOpen: () => void }) {
   const { selectedSource, data } = useApp();
   if (!selectedSource) return null;
+  // Nothing to switch to with one source: a label, not a control (decisions 0023, 0028).
+  if (data.settings.length < 2) return <BilledTo label={selectedSource.code} />;
   if (data.app.running_timer) {
     return (
       <button
@@ -250,6 +254,15 @@ export function SourceChip({ onOpen }: { onOpen: () => void }) {
     >
       {selectedSource.code} <ChevronIcon />
     </button>
+  );
+}
+
+/** A step with one option, picked for the CHW: "Billed to: TISUPP" (decision 0028). */
+export function BilledTo({ label }: { label: string }) {
+  return (
+    <p class="billed-to">
+      Billed to: <strong>{label}</strong>
+    </p>
   );
 }
 
@@ -346,12 +359,19 @@ export function Stepper({
   value,
   onChange,
   noun,
+  less = 'Fewer',
+  more = 'More',
+  show = String,
 }: {
   label: string;
   value: number;
   onChange: (value: number) => void;
   /** For the button names: "Fewer contacts", "More contacts". */
   noun: string;
+  less?: string;
+  more?: string;
+  /** How the value reads, e.g. "1.5 hrs". */
+  show?: (value: number) => string;
 }) {
   const id = useId();
   return (
@@ -361,7 +381,7 @@ export function Stepper({
         <button
           type="button"
           class="stp"
-          aria-label={`Fewer ${noun}`}
+          aria-label={`${less} ${noun}`}
           disabled={value === 0}
           onClick={() => {
             onChange(Math.max(0, value - 1));
@@ -370,12 +390,12 @@ export function Stepper({
           −
         </button>
         <span class="val" aria-live="polite">
-          {value}
+          {show(value)}
         </span>
         <button
           type="button"
           class="stp"
-          aria-label={`More ${noun}`}
+          aria-label={`${more} ${noun}`}
           onClick={() => {
             onChange(value + 1);
           }}
@@ -397,8 +417,11 @@ export function entryNames(
   source: FundingSourceConfig = sourceById(entry.source_id),
 ) {
   return {
-    task: source.tasks.find((t) => t.id === entry.task_id)?.name ?? 'Task',
-    line: source.budget_lines.find((l) => l.id === entry.budget_line_id)?.name ?? 'Budget line',
+    task: tasksLabel(source, entry.tasks),
+    line: (() => {
+      const line = source.budget_lines.find((l) => l.id === entry.budget_line_id);
+      return line ? lineName(line) : 'Budget line';
+    })(),
   };
 }
 

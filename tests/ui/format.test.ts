@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
+  billedToLabel,
   clockLabel,
   dateLabel,
   durationLabel,
   hoursLabel,
+  lineName,
   localDateTime,
+  paperWord,
   plural,
+  roleLabel,
+  roleRaiseText,
   shortDateLabel,
   timeLabel,
   timeRangeLabel,
@@ -16,12 +21,14 @@ const AZ = 'America/Phoenix';
 
 describe('display formats (wireframes)', () => {
   it('hours', () => {
-    expect(hoursLabel(6)).toBe('1.5 h');
-    expect(hoursLabel(7)).toBe('1.75 h');
-    expect(hoursLabel(37)).toBe('9.25 h');
-    expect(hoursLabel(8)).toBe('2 h');
-    expect(hoursLabel(1)).toBe('0.25 h');
-    expect(hoursLabel(40)).toBe('10 h');
+    expect(hoursLabel(6)).toBe('1.5 hrs');
+    expect(hoursLabel(7)).toBe('1.75 hrs');
+    expect(hoursLabel(37)).toBe('9.25 hrs');
+    expect(hoursLabel(8)).toBe('2 hrs');
+    expect(hoursLabel(4)).toBe('1 hr');
+    expect(hoursLabel(1)).toBe('0.25 hrs');
+    expect(hoursLabel(0)).toBe('0 hrs');
+    expect(hoursLabel(40)).toBe('10 hrs');
   });
 
   it('dates', () => {
@@ -45,9 +52,9 @@ describe('display formats (wireframes)', () => {
   });
 
   it('durations and the running clock', () => {
-    expect(durationLabel(5106)).toBe('1 h 25 min');
+    expect(durationLabel(5106)).toBe('1 hr 25 min');
     expect(durationLabel(1500)).toBe('25 min');
-    expect(durationLabel(7200)).toBe('2 h');
+    expect(durationLabel(7200)).toBe('2 hrs');
     expect(durationLabel(59)).toBe('0 min');
     expect(clockLabel(5047)).toBe('1:24:07');
     expect(clockLabel(0)).toBe('0:00:00');
@@ -78,5 +85,59 @@ describe('version label (decision 0016)', () => {
 
   it('shows a dev build as is', () => {
     expect(versionLabel('dev')).toBe('dev');
+  });
+});
+
+describe('billedToLabel (decision 0028)', () => {
+  it('joins the one-option picks with a middle dot', () => {
+    expect(billedToLabel('TISUPP', 'CHW experience hours')).toBe('TISUPP · CHW experience hours');
+    expect(billedToLabel('TISUPP', null)).toBe('TISUPP');
+    expect(billedToLabel(null, 'CHW experience hours')).toBe('CHW experience hours');
+  });
+
+  it('is null when every step has a choice', () => {
+    expect(billedToLabel(null, null)).toBeNull();
+  });
+});
+
+describe('role words (decisions 0027, 0028, 0031)', () => {
+  it('names a role by code and name', () => {
+    expect(roleLabel({ code: 'CHW-TC01', name: 'CHW Trainee (Contractor)' })).toBe(
+      'CHW-TC01 · CHW Trainee (Contractor)',
+    );
+  });
+
+  it('shows a budget line by its display name when it has one', () => {
+    expect(lineName({ name: 'Other contractors', display_name: 'Other' })).toBe('Other');
+    expect(lineName({ name: 'Maintenance labor' })).toBe('Maintenance labor');
+  });
+
+  it('says timesheet for employees, invoice otherwise', () => {
+    expect(paperWord({ employment: 'employee' })).toBe('timesheet');
+    expect(paperWord({ employment: 'contractor' })).toBe('invoice');
+    expect(paperWord(null)).toBe('invoice');
+  });
+});
+
+describe('roleRaiseText (decision 0030)', () => {
+  const reached = { invoice_first: true, after_quarters: 960, rate_cents: 2300 };
+  const billed = { ...reached, invoice_first: false };
+
+  it('asks a contractor to invoice first, an employee to submit first', () => {
+    expect(roleRaiseText(reached, false)).toBe(
+      "You've reached 240 hours. Generate your invoice now, then change your rate to $23.00 in Settings.",
+    );
+    expect(roleRaiseText(reached, true)).toBe(
+      "You've reached 240 hours. Submit your timesheet now, then change your rate to $23.00 in Settings.",
+    );
+  });
+
+  it('once billed, asks for the new rate before the next invoice or timesheet', () => {
+    expect(roleRaiseText(billed, false)).toBe(
+      "You've invoiced 240 hours. Your rate is now $23.00. Change it in Settings before your next invoice.",
+    );
+    expect(roleRaiseText(billed, true)).toBe(
+      "You've submitted 240 hours. Your rate is now $23.00. Change it in Settings before your next timesheet.",
+    );
   });
 });

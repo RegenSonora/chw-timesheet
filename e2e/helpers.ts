@@ -24,17 +24,86 @@ export function heading(page: Page, name: string | RegExp) {
   return page.getByRole('heading', { level: 1, name });
 }
 
-/** Fill in setup with TISUPP at $20.00 (and REGEN-GO at $18.00 when asked). */
-export async function setUp(page: Page, options: { regen?: boolean } = {}): Promise<void> {
+/**
+ * Name and initials on setup's first step. In WebKit a fill right after the screen mounts
+ * sometimes fires no input event; fill until both values stick.
+ */
+export async function fillDetails(page: Page): Promise<void> {
+  await expect(async () => {
+    await page.getByLabel('Your name').fill('Carmen Cruz');
+    await page.getByLabel('Initials').fill('cc');
+    await expect(page.getByLabel('Your name')).toHaveValue('Carmen Cruz', { timeout: 500 });
+    await expect(page.getByLabel('Initials')).toHaveValue('cc', { timeout: 500 });
+  }).toPass();
+}
+
+/** Setup with a role (decision 0027): details, pick the role, review, "This is my role". */
+export async function setUp(page: Page, role = 'CHW-TC01'): Promise<void> {
   await page.goto('./');
   await expect(heading(page, 'Set up')).toBeVisible();
-  await page.getByLabel('Your name').fill('Carmen Cruz');
-  await page.getByLabel('Initials').fill('cc');
-  if (options.regen) {
-    await page.getByRole('checkbox', { name: /REGEN-GO/ }).check();
-    await page.getByLabel('Hourly rate for REGEN-GO').fill('18.00');
-  }
-  await page.getByRole('button', { name: 'Save and start' }).click();
+  await fillDetails(page);
+  await page.getByRole('button', { name: 'Next' }).click();
+  await expect(heading(page, 'Pick your role')).toBeVisible();
+  await page.getByRole('button', { name: new RegExp(`^${role}`) }).click();
+  await expect(heading(page, 'Your role')).toBeVisible();
+  await page.getByRole('button', { name: 'This is my role' }).click();
+  await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
+}
+
+/**
+ * A phone set up before roles (0.10.0): no role, TISUPP at $20.00 with no NTE, and REGEN-GO at
+ * $18.00 when asked. Such phones keep working as before (roles plan R4, Chris Nov 3).
+ */
+export async function setUpWithoutRole(
+  page: Page,
+  options: { regen?: boolean } = {},
+): Promise<void> {
+  await setUp(page);
+  await page.evaluate(async (regen) => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const req = indexedDB.open('regen-time-tracking');
+      req.onsuccess = () => {
+        resolve(req.result);
+      };
+      req.onerror = () => {
+        reject(req.error ?? new Error('open failed'));
+      };
+    });
+    const now = '2026-10-01T09:00:00-07:00';
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(['profile', 'source_settings'], 'readwrite');
+      const profiles = tx.objectStore('profile').getAll();
+      profiles.onsuccess = () => {
+        for (const p of profiles.result as object[]) {
+          tx.objectStore('profile').put({ ...p, role_id: null });
+        }
+      };
+      const settings = tx.objectStore('source_settings').getAll();
+      settings.onsuccess = () => {
+        for (const s of settings.result as object[]) {
+          tx.objectStore('source_settings').put({ ...s, nte_cents: null });
+        }
+      };
+      if (regen) {
+        tx.objectStore('source_settings').put({
+          id: 'seed-regen',
+          source_id: 'regen-general-operating',
+          rate_cents: 1800,
+          nte_cents: null,
+          created_at: now,
+          updated_at: now,
+        });
+      }
+      tx.oncomplete = () => {
+        resolve();
+      };
+      tx.onerror = () => {
+        reject(tx.error ?? new Error('write failed'));
+      };
+    });
+    db.close();
+  }, options.regen ?? false);
+  await page.reload();
   await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
 }
 
@@ -49,7 +118,7 @@ export async function addEntry(
     line?: string;
   },
 ): Promise<void> {
-  await page.getByRole('button', { name: 'Enter times instead' }).click();
+  await page.getByRole('button', { name: 'Record time' }).click();
   await expect(heading(page, 'Enter times')).toBeVisible();
   // In WebKit a fill right after the screen mounts sometimes fires no input event, and the
   // field shows today's date again. Fill until all three values stick.
@@ -67,14 +136,27 @@ export async function addEntry(
   await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
 }
 
-export async function pickTaskAndLine(page: Page, task: string, line: string): Promise<void> {
-  await expect(heading(page, 'What did you do?')).toBeVisible();
+export function taskBox(page: Page, task: string) {
+  return page.getByRole('checkbox', { name: new RegExp(`^${task}`) });
+}
+
+/** Open the budget line picker and pick a line. */
+export async function pickLine(page: Page, line: string): Promise<void> {
   await page
-    .getByRole('button', { name: /^(Not picked yet|.+) (Choose|Change)$/ })
-    .nth(1)
+    .locator('.field', { has: page.getByText('Budget line', { exact: true }) })
+    .getByRole('button')
     .click();
   await page.getByRole('dialog').getByRole('button', { name: line, exact: true }).click();
-  await page.getByRole('radio', { name: new RegExp(`^${task}`) }).check();
+}
+
+/**
+ * Pick a budget line, check one task and go on: the task gets all the hours, so there is no
+ * split step (decision 0024).
+ */
+export async function pickTaskAndLine(page: Page, task: string, line: string): Promise<void> {
+  await expect(heading(page, 'What did you do?')).toBeVisible();
+  await pickLine(page, line);
+  await taskBox(page, task).check();
   await page.getByRole('button', { name: 'Next' }).click();
   await expect(heading(page, 'Counts and notes')).toBeVisible();
   await expect(page.getByText('Step 2 of 2')).toBeVisible();

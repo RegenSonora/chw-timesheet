@@ -1,6 +1,13 @@
 // WCAG 2.1 AA (axe) on every M3 screen, in light and dark (SPEC §10).
 import { expect, test } from '@playwright/test';
-import { addEntry, expectAccessible, heading, pickTaskAndLine, setUp, ZONE } from './helpers.js';
+import {
+  addEntry,
+  expectAccessible,
+  heading,
+  pickTaskAndLine,
+  setUpWithoutRole,
+  ZONE,
+} from './helpers.js';
 
 test.use({ timezoneId: ZONE });
 
@@ -15,7 +22,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expect(heading(page, 'Set up')).toBeVisible();
       await expectAccessible(page, 'setup');
 
-      await setUp(page, { regen: true });
+      await setUpWithoutRole(page, { regen: true });
       await expectAccessible(page, 'home, empty');
 
       await page.getByRole('button', { name: /Funding source TISUPP/ }).click();
@@ -23,14 +30,14 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expectAccessible(page, 'source picker');
       await page.getByRole('button', { name: 'Cancel' }).click();
 
-      await page.getByRole('button', { name: 'Enter times instead' }).click();
+      await page.getByRole('button', { name: 'Record time' }).click();
       await page.getByLabel('Date').fill('2026-10-30');
       await page.getByLabel('Start').fill('09:12');
       await page.getByLabel('End').fill('10:37');
       await expectAccessible(page, 'enter times');
       await page.getByRole('button', { name: 'Next' }).click();
       await page.getByRole('button', { name: 'Next' }).click();
-      await expect(page.getByText('Pick what you did.')).toBeVisible();
+      await expect(page.getByText('Check what you did.')).toBeVisible();
       await expectAccessible(page, 'task step with errors');
       await pickTaskAndLine(page, 'Client check in', 'CHW referrals');
       await page.getByRole('button', { name: '+ Add another count' }).click();
@@ -74,7 +81,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await page.getByRole('dialog').getByRole('button', { name: 'Discard timer' }).click();
 
       // Invoices (M4): preview, created, the unshared question, past invoices.
-      await page.getByRole('button', { name: 'Generate TISUPP invoice' }).click();
+      await page.getByRole('button', { name: 'Generate Regen Invoice' }).click();
       await expect(heading(page, 'New invoice')).toBeVisible();
       await expectAccessible(page, 'invoice preview');
       await page.getByRole('button', { name: 'Create invoice files' }).click();

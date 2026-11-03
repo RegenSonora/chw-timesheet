@@ -3,9 +3,11 @@
   "id": "regen-general-operating",
   "code": "REGEN-GO",
   "name": "Regen General Operating",
-  "version": 2,
+  "version": 3,
   "has_nte": false,
   "default_rate_cents": null,
+  "period_start": null,
+  "period_end": null,
   "certification_text": "I certify that the services listed were performed on the dates shown on the attached timesheet pages, the hours are accurate, and no participant names are included.",
   "tasks": [
     {
@@ -117,6 +119,81 @@
       "id": "domestic-support",
       "name": "Domestic support",
       "core_competency": null
+    },
+    {
+      "id": "firewise-assessing",
+      "name": "Firewise assessing",
+      "core_competency": null
+    },
+    {
+      "id": "residential-fuel-reduction",
+      "name": "Residential fuel reduction",
+      "core_competency": null
+    },
+    {
+      "id": "municipal-fuel-reduction",
+      "name": "Municipal fuel reduction",
+      "core_competency": null
+    },
+    {
+      "id": "dump-runs",
+      "name": "Dump runs",
+      "core_competency": null
+    },
+    {
+      "id": "lehr-maintenance",
+      "name": "LEHR maintenance",
+      "core_competency": null
+    },
+    {
+      "id": "pinal-garden-maintenance",
+      "name": "Pinal garden maintenance",
+      "core_competency": null
+    },
+    {
+      "id": "regen-lot-clean-and-maintenance",
+      "name": "Regen lot clean and maintenance",
+      "core_competency": null
+    },
+    {
+      "id": "transport-and-supply-runs",
+      "name": "Transport and supply runs",
+      "core_competency": null
+    },
+    {
+      "id": "plant-propagation",
+      "name": "Plant propagation",
+      "core_competency": null
+    },
+    {
+      "id": "tree-planting",
+      "name": "Tree planting",
+      "core_competency": null
+    },
+    {
+      "id": "tree-removal",
+      "name": "Tree removal",
+      "core_competency": null
+    },
+    {
+      "id": "water-harvesting",
+      "name": "Water harvesting",
+      "core_competency": null
+    },
+    {
+      "id": "garden-support",
+      "name": "Garden support",
+      "core_competency": null
+    },
+    {
+      "id": "paid-training",
+      "name": "Paid training",
+      "core_competency": null
+    },
+    {
+      "id": "other",
+      "name": "Other",
+      "core_competency": null
     }
   ],
   "budget_lines": [
@@ -171,6 +248,27 @@
     {
       "id": "domestic-support",
       "name": "Domestic support"
+    },
+    {
+      "id": "fire-risk-reduction-work",
+      "name": "Fire risk reduction work"
+    },
+    {
+      "id": "maintenance-labor",
+      "name": "Maintenance labor"
+    },
+    {
+      "id": "resilient-home-services-contracting",
+      "name": "Resilient Home Services contracting"
+    },
+    {
+      "id": "team-development",
+      "name": "Team development"
+    },
+    {
+      "id": "other-contractors",
+      "name": "Other contractors",
+      "display_name": "Other"
     }
   ]
 }

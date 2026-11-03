@@ -1,18 +1,18 @@
 // Enter times (SPEC §5, decision 0004): overlap blocked, back-to-back allowed, next day.
 import { expect, test } from '@playwright/test';
-import { addEntry, heading, setUp, ZONE } from './helpers.js';
+import { addEntry, heading, setUpWithoutRole, ZONE } from './helpers.js';
 
 test.use({ timezoneId: ZONE });
 
 test.beforeEach(async ({ page }) => {
-  await setUp(page);
+  await setUpWithoutRole(page);
   await addEntry(page, {
     date: '2026-10-29',
     start: '13:15',
     end: '15:00',
     task: 'Client follow up',
   });
-  await page.getByRole('button', { name: 'Enter times instead' }).click();
+  await page.getByRole('button', { name: 'Record time' }).click();
   await expect(heading(page, 'Enter times')).toBeVisible();
   await page.getByLabel('Date').fill('2026-10-29');
 });
@@ -31,7 +31,7 @@ test('back-to-back is allowed', async ({ page }) => {
   await page.getByLabel('Start').fill('15:00');
   await page.getByLabel('End').fill('16:00');
   await expect(page.getByRole('alert')).toHaveCount(0);
-  await expect(page.getByText('1 h', { exact: true })).toBeVisible();
+  await expect(page.getByText('1 hr', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Next' })).toBeEnabled();
 });
 
@@ -39,7 +39,7 @@ test('an end before the start ends the next day', async ({ page }) => {
   await page.getByLabel('Start').fill('23:00');
   await page.getByLabel('End').fill('01:00');
   await expect(page.getByText(/Ends the next day\./)).toBeVisible();
-  await expect(page.getByText('2 h', { exact: true })).toBeVisible();
+  await expect(page.getByText('2 hrs', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Next' }).click();
   await expect(page.getByText('Thu, Oct 29 · 11:00 PM–1:00 AM (next day)')).toBeVisible();
 });

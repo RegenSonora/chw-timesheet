@@ -6,6 +6,8 @@ import type { Entry } from '../../src/core/types';
 import { emptyAppState, rememberPicks } from '../../src/storage/storage';
 import { RECENT_TASKS_MAX, type AppState, type Storage } from '../../src/storage/types';
 import {
+  countDefs,
+  findTestRole,
   makeEntry,
   must,
   regen,
@@ -16,7 +18,13 @@ import {
 import { adapters, NOW, profile, seedSample } from './helpers';
 
 const generate = (storage: Storage) =>
-  storage.generateInvoice({ source: tisupp, now: NOW, invoice_date: '2026-10-31' });
+  storage.generateInvoice({
+    source: tisupp,
+    role: null,
+    count_defs: countDefs,
+    now: NOW,
+    invoice_date: '2026-10-31',
+  });
 
 async function generated(storage: Storage) {
   const result = await generate(storage);
@@ -118,7 +126,7 @@ describe.each(adapters)('$name adapter', (adapter) => {
       const state = rememberPicks(
         { ...emptyAppState(), running_timer: { start: NOW, source_id: 'tisupp' } },
         'tisupp',
-        'outreach',
+        ['outreach'],
         'outreach-and-marketing',
       );
       await storage.saveAppState(state);
@@ -138,9 +146,16 @@ describe.each(adapters)('$name adapter', (adapter) => {
           start: '2026-10-30T09:12:04-07:00',
           stop: '2026-10-30T10:37:10-07:00',
           source_id: 'tisupp',
-          task_id: 'client-check-in',
+          tasks: [
+            { task_id: 'client-check-in', quarters: 4 },
+            { task_id: 'outreach', quarters: 2 },
+          ],
           budget_line_id: 'chw-referrals',
-          counts: { ...emptyCounts(), contacts: 1, other: [{ label: 'Food boxes', value: 2 }] },
+          counts: {
+            ...emptyCounts(),
+            values: { contacts: 1 },
+            other: [{ label: 'Food boxes', value: 2 }],
+          },
           notes: 'Library',
         },
       };
@@ -176,6 +191,60 @@ describe.each(adapters)('$name adapter', (adapter) => {
       expect(
         await verifyFingerprint(must((await storage.getInvoice(invoice.id)) ?? undefined)),
       ).toBe(true);
+      storage.close();
+    });
+
+    it('keeps roles on profile and entries, and freezes the role and kind (roles plan R3)', async () => {
+      const storage = await adapter.make();
+      await seedSample(storage);
+      await storage.saveProfile({ ...profile, role_id: 'chw-te01' });
+      const entry = { ...must(sampleEntries[0]), role_id: 'chw-te01' };
+      await storage.saveEntry(entry);
+      expect(await storage.getProfile()).toEqual({ ...profile, role_id: 'chw-te01' });
+      expect(await storage.getEntry(entry.id)).toEqual(entry);
+
+      const result = await storage.generateInvoice({
+        source: tisupp,
+        role: findTestRole('chw-te01'),
+        count_defs: countDefs,
+        now: NOW,
+        invoice_date: '2026-10-31',
+      });
+      if (!result.ok) throw new Error(result.reason);
+      const stored = must((await storage.getInvoice(result.invoice.id)) ?? undefined);
+      expect(stored.kind).toBe('timesheet');
+      expect(stored.role?.code).toBe('CHW-TE01');
+      expect(stored.count_defs.map((c) => c.id)).toEqual([
+        'contacts',
+        'referrals_given',
+        'referral_followups',
+        'rides_provided',
+        'applications_completed',
+      ]);
+      expect(await verifyFingerprint(stored)).toBe(true);
+      storage.close();
+    });
+
+    it("locks only the hours logged under the invoice's role (roles plan R7)", async () => {
+      const storage = await adapter.make();
+      await seedSample(storage);
+      const [first, ...rest] = sampleEntries;
+      await storage.saveEntry({ ...must(first), role_id: 'chw-te01' });
+      for (const e of rest) await storage.saveEntry({ ...e, role_id: 'chw-tc01' });
+      const result = await storage.generateInvoice({
+        source: tisupp,
+        role: findTestRole('chw-te01'),
+        entry_role_id: 'chw-te01',
+        count_defs: countDefs,
+        now: NOW,
+        invoice_date: '2026-10-31',
+      });
+      if (!result.ok) throw new Error(result.reason);
+      expect(result.invoice.kind).toBe('timesheet');
+      const entries = await storage.listEntries();
+      expect(entries.filter((e) => e.invoice_id !== null).map((e) => e.id)).toEqual([
+        must(first).id,
+      ]);
       storage.close();
     });
 
@@ -222,6 +291,8 @@ describe.each(adapters)('$name adapter', (adapter) => {
 
       const second = await storage.generateInvoice({
         source: regen,
+        role: null,
+        count_defs: countDefs,
         now: NOW,
         invoice_date: '2026-10-31',
       });
@@ -336,11 +407,21 @@ describe.each(adapters)('$name adapter', (adapter) => {
 });
 
 describe('rememberPicks (SPEC §5)', () => {
+  it('puts every task of a split entry at the front, in the order checked (decision 0024)', () => {
+    const state = rememberPicks(
+      rememberPicks(emptyAppState(), 's', ['t1', 't2'], 'b1'),
+      's',
+      ['t3', 't1'],
+      'b1',
+    );
+    expect(state.per_source['s']?.recent_task_ids).toEqual(['t3', 't1', 't2']);
+  });
+
   it('moves the task to the front, keeps the budget line and caps the list', () => {
     let state = emptyAppState();
     for (let i = 0; i < RECENT_TASKS_MAX + 3; i++)
-      state = rememberPicks(state, 's', `t${String(i)}`, 'b1');
-    state = rememberPicks(state, 's', 't5', 'b2');
+      state = rememberPicks(state, 's', [`t${String(i)}`], 'b1');
+    state = rememberPicks(state, 's', ['t5'], 'b2');
     const picks = must(state.per_source['s']);
     expect(picks.last_budget_line_id).toBe('b2');
     expect(picks.recent_task_ids[0]).toBe('t5');
@@ -349,7 +430,12 @@ describe('rememberPicks (SPEC §5)', () => {
   });
 
   it('keeps sources apart', () => {
-    const state = rememberPicks(rememberPicks(emptyAppState(), 'a', 't1', 'b1'), 'b', 't2', 'b2');
+    const state = rememberPicks(
+      rememberPicks(emptyAppState(), 'a', ['t1'], 'b1'),
+      'b',
+      ['t2'],
+      'b2',
+    );
     expect(state.per_source['a']?.recent_task_ids).toEqual(['t1']);
     expect(state.per_source['b']?.last_budget_line_id).toBe('b2');
   });

@@ -1,7 +1,7 @@
-// The three invoice files (SPEC §7). Pure: an invoice in, bytes out. Re-creating a past
-// invoice's files from stored data gives the same bytes (SPEC §6).
+// The three invoice or timesheet files (SPEC §7). Pure: an invoice in, bytes out. Re-creating a
+// past invoice's files from stored data gives the same bytes, for the same roles file (SPEC §6).
 import { paginateTimesheet } from '../core/timesheet';
-import type { FundingSourceConfig, Invoice } from '../core/types';
+import type { CountDef, FundingSourceConfig, Invoice } from '../core/types';
 import { entriesCsv } from './csv/entries-csv';
 import { timesheetCsv } from './csv/timesheet-csv';
 import { entriesCsvName, pdfName, timesheetCsvName } from './names';
@@ -17,16 +17,18 @@ export interface InvoiceFile {
 
 /**
  * PDF, timesheet CSV, entry log CSV, in that order. `source` is the current funding source
- * file, used only to order timesheet rows; ids it no longer lists sort by name.
+ * file, used only to order timesheet rows; ids it no longer lists sort by name. `countDefs` is
+ * the roles file's count list, the entry log's count columns (decision 0029).
  */
 export function buildInvoiceFiles(
   invoice: Invoice,
   source: Pick<FundingSourceConfig, 'tasks' | 'budget_lines'>,
+  countDefs: readonly CountDef[],
 ): InvoiceFile[] {
   return [
     { name: pdfName(invoice), type: 'application/pdf', bytes: invoicePdf(invoice, source) },
     { name: timesheetCsvName(invoice), type: 'text/csv', bytes: timesheetCsv(invoice, source) },
-    { name: entriesCsvName(invoice), type: 'text/csv', bytes: entriesCsv(invoice) },
+    { name: entriesCsvName(invoice), type: 'text/csv', bytes: entriesCsv(invoice, countDefs) },
   ];
 }
 
@@ -45,3 +47,13 @@ export function invoicePageShapes(
 
 export type { Shape } from './pdf/writer';
 export { pdfName, pngName, timesheetCsvName, entriesCsvName } from './names';
+export { entryLogColumns } from './csv/entries-csv';
+export {
+  buildWorkHoursFiles,
+  datesText,
+  reportBaseName,
+  splitName,
+  usDate,
+  workHoursPageShapes,
+  type ReportDetails,
+} from './report/work-hours';

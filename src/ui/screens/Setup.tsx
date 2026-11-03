@@ -1,15 +1,25 @@
-// Setup (SPEC §4, decision 0005): details, funding sources with rates, storage status.
+// Setup (SPEC §4, decisions 0005, 0027, 0030): your details, pick your role, review the role with
+// its rates prefilled, then storage status.
 import { useEffect, useState } from 'preact/hooks';
 import {
+  formatDollars,
   formatInvoiceNumber,
   normalizeInitials,
   parseDollars,
+  prefillRate,
+  roleChoices,
+  taskChoices,
+  type FundingSourceConfig,
+  type RateStep,
+  type Role,
   type SourceSettings,
 } from '../../core';
 import { FUNDING_SOURCES } from '../../funding-sources';
+import { findRole, ROLES } from '../../roles';
 import type { SetupDraft } from '../../storage';
 import { Field, Page } from '../components';
-import { useApp } from '../store';
+import { lineName, roleLabel } from '../format';
+import { sourceById, useApp } from '../store';
 import { StorageStatus } from './StorageStatus';
 
 type Errors = Partial<Record<string, string>>;
@@ -17,6 +27,29 @@ type Errors = Partial<Record<string, string>>;
 export function validNextNumber(text: string): number | null {
   const n = Number(text.trim());
   return /^\d+$/.test(text.trim()) && Number.isSafeInteger(n) && n >= 1 ? n : null;
+}
+
+/** The raise the agreement names, or null (decisions 0023, 0030). */
+export function raiseHint(funding: { rate_step?: RateStep }): string | null {
+  const step = funding.rate_step;
+  return step
+    ? `It goes up to ${formatDollars(step.rate_cents)} after ${String(step.after_quarters / 4)} hours.`
+    : null;
+}
+
+/** The rate as typed, prefilled from the role, its funding entry or the source (decision 0030). */
+function prefilledRates(role: Role): SetupDraft['sources'] {
+  return Object.fromEntries(
+    role.funding.map((f) => {
+      const cents = prefillRate(role, f, sourceById(f.source_id));
+      return [f.source_id, { rate: cents === null ? '' : (cents / 100).toFixed(2) }];
+    }),
+  );
+}
+
+/** The role's sources, in the role's order. */
+function roleSources(role: Role): FundingSourceConfig[] {
+  return role.funding.flatMap((f) => FUNDING_SOURCES.filter((s) => s.id === f.source_id));
 }
 
 export function Setup() {
@@ -28,66 +61,64 @@ export function Setup() {
     void actions.requestPersistence();
   }, [actions]);
 
-  // Every keystroke is kept, so an interruption never loses the form (SPEC §10).
+  // Every keystroke and step is kept, so an interruption never loses the form (SPEC §10).
   const update = (next: SetupDraft) => {
     setForm(next);
     void actions.updateSetupDraft(next);
   };
-  const setSource = (id: string, patch: Partial<{ picked: boolean; rate: string }>) => {
-    const current = form.sources[id] ?? { picked: false, rate: '' };
-    update({ ...form, sources: { ...form.sources, [id]: { ...current, ...patch } } });
+  const go = (step: SetupDraft['step'], patch: Partial<SetupDraft> = {}) => {
+    setErrors({});
+    update({ ...form, ...patch, step });
   };
 
-  const save = async () => {
+  const role = form.role_id === null ? null : findRole(form.role_id);
+  if (form.step === 'review' && role) {
+    return <Review form={form} role={role} update={update} go={go} />;
+  }
+  if (form.step !== 'details') {
+    return (
+      <PickRole
+        onPick={(picked) => {
+          go('review', { role_id: picked.id, sources: prefilledRates(picked) });
+        }}
+        onBack={() => {
+          go('details');
+        }}
+      />
+    );
+  }
+
+  const next = () => {
     const found: Errors = {};
     if (!form.name.trim()) found['name'] = 'Enter your name.';
-    const initials = normalizeInitials(form.initials);
-    if (!initials) found['initials'] = 'Use 1 to 4 letters, like CC.';
-    const next = validNextNumber(form.next_number);
-    if (next === null) found['next'] = 'Enter a whole number, like 1.';
-    const settings: SourceSettings[] = [];
-    for (const source of FUNDING_SOURCES) {
-      const s = form.sources[source.id];
-      if (!s?.picked) continue;
-      const rate = parseDollars(s.rate);
-      if (rate === null || rate < 1)
-        found[`rate-${source.id}`] = 'Enter your hourly rate, like 20.00.';
-      else settings.push({ source_id: source.id, rate_cents: rate, nte_cents: null });
-    }
-    if (!FUNDING_SOURCES.some((s) => form.sources[s.id]?.picked)) {
-      found['sources'] = 'Pick at least one funding source.';
+    if (!normalizeInitials(form.initials)) found['initials'] = 'Use 1 to 4 letters, like CC.';
+    if (validNextNumber(form.next_number) === null) {
+      found['next'] = 'Enter a whole number, like 1.';
     }
     setErrors(found);
-    if (Object.keys(found).length || !initials || next === null) return;
-    await actions.finishSetup({
-      profile: {
-        name: form.name.trim(),
-        initials,
-        mailing_address: form.mailing_address.trim(),
-        logo: null,
-      },
-      next_number: next,
-      settings,
-    });
+    if (Object.keys(found).length === 0) go('role');
   };
 
   const initials = normalizeInitials(form.initials);
-  const next = validNextNumber(form.next_number);
+  const number = validNextNumber(form.next_number);
   const example =
-    initials && next !== null
-      ? `Your next invoice will be ${formatInvoiceNumber(initials, new Date().getFullYear(), next)}.`
-      : 'Used in invoice numbers, like CC-2026-001.';
+    initials && number !== null
+      ? `Your next number will be ${formatInvoiceNumber(initials, new Date().getFullYear(), number)}.`
+      : 'Used in invoice and timesheet numbers, like CC-2026-001.';
 
   return (
     <Page
+      key="details"
       title="Set up"
       footer={
-        <button type="button" class="btn" onClick={() => void save()}>
-          Save and start
+        <button type="button" class="btn" onClick={next}>
+          Next
         </button>
       }
     >
-      <p class="lead">This goes on your invoices. You can change it later in Settings.</p>
+      <p class="lead">
+        This goes on your invoices or timesheets. You can change it later in Settings.
+      </p>
       <h2 class="sec">Your details</h2>
       <Field label="Your name" error={errors['name']}>
         {(p) => (
@@ -133,7 +164,7 @@ export function Setup() {
       </Field>
       <Field
         label="Next invoice number"
-        hint="Already sent paper invoices? Enter the next number, like 4. Otherwise leave 1."
+        hint="Already sent paper invoices or timesheets? Enter the next number, like 4. Otherwise leave 1."
         error={errors['next']}
       >
         {(p) => (
@@ -148,57 +179,162 @@ export function Setup() {
           />
         )}
       </Field>
+      <StorageStatus status={data.persistence} setup />
+    </Page>
+  );
+}
 
-      <h2 class="sec" id="sources-heading">
-        Funding sources you work under
-      </h2>
-      {errors['sources'] && <p class="error-plain">{errors['sources']}</p>}
-      {FUNDING_SOURCES.map((source) => {
-        const s = form.sources[source.id] ?? { picked: false, rate: '' };
-        return (
-          <div key={source.id} class={s.picked ? 'card card-on' : 'card'}>
-            <label class="check">
-              <input
-                type="checkbox"
-                checked={s.picked}
-                onChange={(e) => {
-                  setSource(source.id, { picked: e.currentTarget.checked });
-                }}
-              />
+/** Pick your role: active roles by code and name (decision 0027). */
+function PickRole({ onPick, onBack }: { onPick: (role: Role) => void; onBack: () => void }) {
+  return (
+    <Page key="role" title="Pick your role" back onBack={onBack}>
+      <p class="lead">Pick the role on your agreement. Ask the office if you're not sure.</p>
+      <ul class="role-list">
+        {roleChoices(ROLES).map((r) => (
+          <li key={r.id}>
+            <button
+              type="button"
+              class="card nav-row role-row"
+              onClick={() => {
+                onPick(r);
+              }}
+            >
               <span class="check-text">
-                <span class="check-name">{source.code}</span>
-                <span class="check-detail">{source.name}</span>
+                <span class="check-name">{r.code}</span>
+                <span class="check-detail">{r.name}</span>
               </span>
-            </label>
-            {s.picked && (
-              <div class="card-body">
-                <Field
-                  label={`Hourly rate for ${source.code}`}
-                  hint={
-                    source.has_nte
-                      ? 'From your agreement. Add the not-to-exceed amount later in Settings.'
-                      : 'From your agreement.'
-                  }
-                  error={errors[`rate-${source.id}`]}
-                >
-                  {(p) => (
-                    <input
-                      {...p}
-                      class="inp inp-money"
-                      inputMode="decimal"
-                      value={s.rate}
-                      onInput={(e) => {
-                        setSource(source.id, { rate: e.currentTarget.value });
-                      }}
-                    />
-                  )}
-                </Field>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </Page>
+  );
+}
+
+/** The role's sources, budget lines and tasks, with a rate per source (decisions 0027, 0030). */
+function Review({
+  form,
+  role,
+  update,
+  go,
+}: {
+  form: SetupDraft;
+  role: Role;
+  update: (next: SetupDraft) => void;
+  go: (step: SetupDraft['step'], patch?: Partial<SetupDraft>) => void;
+}) {
+  const { actions } = useApp();
+  const [errors, setErrors] = useState<Errors>({});
+  const sources = roleSources(role);
+  const rateOf = (id: string) => form.sources[id]?.rate ?? '';
+
+  const save = async () => {
+    const found: Errors = {};
+    const settings: SourceSettings[] = [];
+    for (const f of role.funding) {
+      const rate = parseDollars(rateOf(f.source_id));
+      if (rate === null || rate < 1) {
+        found[`rate-${f.source_id}`] = 'Enter your hourly rate, like 20.00.';
+      } else {
+        settings.push({ source_id: f.source_id, rate_cents: rate, nte_cents: f.nte_cents ?? null });
+      }
+    }
+    const initials = normalizeInitials(form.initials);
+    const next = validNextNumber(form.next_number);
+    setErrors(found);
+    if (Object.keys(found).length) return;
+    if (!initials || next === null) {
+      go('details');
+      return;
+    }
+    await actions.finishSetup({
+      profile: {
+        name: form.name.trim(),
+        initials,
+        mailing_address: form.mailing_address.trim(),
+        logo: null,
+        role_id: role.id,
+      },
+      next_number: next,
+      settings,
+    });
+  };
+
+  return (
+    <Page
+      key="review"
+      title="Your role"
+      back
+      onBack={() => {
+        go('role');
+      }}
+      footer={
+        <>
+          <button type="button" class="btn" onClick={() => void save()}>
+            This is my role
+          </button>
+          <button
+            type="button"
+            class="txt"
+            onClick={() => {
+              go('role');
+            }}
+          >
+            Pick a different role
+          </button>
+        </>
+      }
+    >
+      <p class="lead">
+        <strong>{roleLabel(role)}</strong>. Check what you'll bill. Your role can't be changed after
+        setup.
+      </p>
+      {role.funding.map((f) => {
+        const source = sources.find((s) => s.id === f.source_id);
+        if (!source) return null;
+        const lines = f.budget_lines.flatMap((l) =>
+          source.budget_lines.filter((b) => b.id === l.id),
+        );
+        const hint = ['From your agreement.', raiseHint(f)].filter(Boolean).join(' ');
+        return (
+          <section key={source.id} class="card review" aria-labelledby={`review-${source.id}`}>
+            <h2 class="review-source" id={`review-${source.id}`}>
+              {source.code}
+              {source.name !== source.code && <span class="check-detail">{source.name}</span>}
+            </h2>
+            {lines.map((line) => (
+              <div key={line.id} class="review-line">
+                <h3 class="review-line-name">{lineName(line)}</h3>
+                <ul class="review-tasks">
+                  {taskChoices(role, source, line.id, []).all.map((t) => (
+                    <li key={t.id}>{t.name}</li>
+                  ))}
+                </ul>
               </div>
-            )}
-          </div>
+            ))}
+            <Field
+              label={`Hourly rate for ${source.code}`}
+              hint={hint}
+              error={errors[`rate-${source.id}`]}
+            >
+              {(p) => (
+                <input
+                  {...p}
+                  class="inp inp-money"
+                  inputMode="decimal"
+                  value={rateOf(source.id)}
+                  onInput={(e) => {
+                    update({
+                      ...form,
+                      sources: { ...form.sources, [source.id]: { rate: e.currentTarget.value } },
+                    });
+                  }}
+                />
+              )}
+            </Field>
+          </section>
         );
       })}
-      <StorageStatus status={data.persistence} setup />
     </Page>
   );
 }

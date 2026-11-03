@@ -1,4 +1,5 @@
-// Settings (SPEC §4, decisions 0005, 0010): details, next invoice #, rates and NTE, storage, version.
+// Settings (SPEC §4, decisions 0005, 0010, 0023, 0027): details, role, next number, rates and NTE,
+// storage, version.
 import { useLayoutEffect, useState } from 'preact/hooks';
 import {
   formatDollars,
@@ -11,9 +12,9 @@ import {
 } from '../../core';
 import { FUNDING_SOURCES } from '../../funding-sources';
 import { Confirm, Field, Page } from '../components';
-import { plural, versionLabel } from '../format';
+import { paperWord, plural, roleLabel, versionLabel } from '../format';
 import { sourceById, useApp } from '../store';
-import { validNextNumber } from './Setup';
+import { raiseHint, validNextNumber } from './Setup';
 import { StorageStatus } from './StorageStatus';
 
 const dollars = (cents: number | null) => (cents === null ? '' : (cents / 100).toFixed(2));
@@ -35,7 +36,7 @@ interface RateQuestion {
 }
 
 export function Settings() {
-  const { data, actions } = useApp();
+  const { data, role, roleInactive, actions } = useApp();
   const profile = data.profile;
   const initialForm = (): Form => ({
     name: profile?.name ?? '',
@@ -184,7 +185,14 @@ export function Settings() {
   const initials = normalizeInitials(form.initials) ?? profile.initials;
   const next = validNextNumber(form.next_number) ?? data.counter.next;
   const nextLabel = formatInvoiceNumber(initials, new Date().getFullYear(), next);
-  const notAdded = FUNDING_SOURCES.filter((s) => !(s.id in form.sources));
+  // With a role, its sources come from the role: nothing to add (decision 0027).
+  const notAdded = role ? [] : FUNDING_SOURCES.filter((s) => !(s.id in form.sources));
+  const paper = paperWord(role);
+  const employee = role?.employment === 'employee';
+  // Decision 0032: the report is for roles counting toward CHW certification; no role keeps it.
+  const showReport = !role || role.certification_step !== undefined;
+  // With one source, "all funding sources" says nothing (decision 0023).
+  const allSources = FUNDING_SOURCES.length > 1 ? ' (all funding sources)' : '';
   const ask = question?.asks[0];
 
   return (
@@ -197,6 +205,19 @@ export function Settings() {
         </button>
       }
     >
+      {role && (
+        <>
+          <h2 class="sec">Your role</h2>
+          <p class="info-row">
+            <strong>{roleLabel(role)}</strong>
+          </p>
+          <p class="hint">
+            {roleInactive
+              ? 'No longer active. Ask the office.'
+              : 'Set at setup. Ask the office to change it.'}
+          </p>
+        </>
+      )}
       <h2 class="sec">Your details</h2>
       <Field label="Your name" error={errors['name']}>
         {(p) => (
@@ -244,13 +265,13 @@ export function Settings() {
       </Field>
       {data.counter.locked ? (
         <p class="info-row">
-          <span class="hint">Next invoice # (all funding sources)</span>
+          <span class="hint">Next invoice #{allSources}</span>
           <strong>{nextLabel}</strong>
         </p>
       ) : (
         <Field
-          label="Next invoice number (all funding sources)"
-          hint={`Your next invoice will be ${nextLabel}. This can't change after your first invoice.`}
+          label={`Next invoice number${allSources}`}
+          hint={`Your next ${paper} will be ${nextLabel}. This can't change after your first ${paper}.`}
           error={errors['next']}
         >
           {(p) => (
@@ -277,11 +298,14 @@ export function Settings() {
             </h2>
             <Field
               label={`Hourly rate for ${source.code}`}
-              hint={
+              hint={[
                 s.adding
                   ? 'From your agreement.'
-                  : "Used for your next invoice. Past invoices don't change."
-              }
+                  : `Used for your next ${paper}. Past ${paper}s don't change.`,
+                raiseHint(role?.funding.find((f) => f.source_id === id) ?? source),
+              ]
+                .filter(Boolean)
+                .join(' ')}
               error={errors[`rate-${id}`]}
             >
               {(p) => (
@@ -296,7 +320,7 @@ export function Settings() {
                 />
               )}
             </Field>
-            {source.has_nte ? (
+            {employee ? null : source.has_nte ? (
               <Field
                 label={`Not-to-exceed amount for ${source.code}`}
                 hint="Update it if your agreement is amended."
@@ -349,6 +373,24 @@ export function Settings() {
         </>
       )}
 
+      {/* Decision 0026: run any time, for the ADHS CHW hours attestation form. */}
+      {showReport && (
+        <>
+          <h2 class="sec">Reports</h2>
+          <button
+            type="button"
+            class="card nav-row"
+            onClick={() => {
+              actions.push('report');
+            }}
+          >
+            <span>Work Hours Report</span>
+            <span class="nav-row-detail">Hours by core competency</span>
+          </button>
+          <p class="hint">For the ADHS CHW hours attestation form. Run it any time.</p>
+        </>
+      )}
+
       <h2 class="sec">This phone</h2>
       <StorageStatus status={data.persistence} />
       <p class="hint">Version {versionLabel(__APP_VERSION__)} · Open source (Apache 2.0)</p>
@@ -359,14 +401,18 @@ export function Settings() {
           body={
             <>
               <p>
-                You have <strong>{plural(ask.count, 'entry', 'entries')}</strong> not yet invoiced.
-                If you change the rate now, they will be billed at{' '}
-                {formatDollars(ask.new_rate_cents)} instead of {formatDollars(ask.old_rate_cents)}.
+                You have <strong>{plural(ask.count, 'entry', 'entries')}</strong> not yet{' '}
+                {employee ? 'submitted' : 'invoiced'}. If you change the rate now, they will be
+                billed at {formatDollars(ask.new_rate_cents)} instead of{' '}
+                {formatDollars(ask.old_rate_cents)}.
               </p>
-              <p>To bill them at {formatDollars(ask.old_rate_cents)}, create an invoice first.</p>
+              <p>
+                To bill them at {formatDollars(ask.old_rate_cents)},{' '}
+                {employee ? 'submit a timesheet' : 'create an invoice'} first.
+              </p>
             </>
           }
-          confirm="Create invoice first"
+          confirm={employee ? 'Submit timesheet first' : 'Create invoice first'}
           second={{ label: 'Change rate now', onClick: () => void answer('change') }}
           cancel="Cancel"
           onConfirm={() => void answer('invoice_first')}

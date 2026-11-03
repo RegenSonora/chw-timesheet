@@ -1,17 +1,27 @@
 import { describe, expect, it } from 'vitest';
 import { sumCounts } from '../../src/core/counts';
-import { buildInvoiceDraft, createInvoice, uninvoicedEntries } from '../../src/core/invoice';
+import {
+  buildInvoiceDraft,
+  certificationText,
+  createInvoice,
+  invoiceRoleId,
+  uninvoicedEntries,
+} from '../../src/core/invoice';
 import type { InvoiceInput } from '../../src/core/invoice';
 import { verifyFingerprint } from '../../src/core/fingerprint';
 import {
   counts,
+  countDefs,
+  findTestRole,
   makeEntry,
   must,
   priorInvoice,
   regen,
   sampleEntries,
   sampleInput,
+  splitSampleInput,
   tisupp,
+  uuid,
 } from './fixtures/wireframe-sample';
 
 function draft(input: InvoiceInput) {
@@ -113,8 +123,14 @@ describe('wireframe sample invoice (SPEC §6)', () => {
       start: '2026-10-30T09:12:04-07:00',
       stop: '2026-10-30T10:37:10-07:00',
       quarters: 6,
-      task_name: 'Client check in',
-      core_competency: 'Interpersonal & Relationship-Building',
+      tasks: [
+        {
+          task_id: 'client-check-in',
+          task_name: 'Client check in',
+          core_competency: 'Interpersonal & Relationship-Building',
+          quarters: 6,
+        },
+      ],
       budget_line_name: 'CHW referrals',
     });
   });
@@ -124,10 +140,62 @@ describe('wireframe sample invoice (SPEC §6)', () => {
       id: 'tisupp',
       code: 'TISUPP',
       name: 'Trauma-Informed Substance Use Prevention Program',
-      version: 2,
+      version: tisupp.version,
       certification_text: tisupp.certification_text,
     });
     expect(invoice.chw).toEqual({ name: 'Carmen Cruz', initials: 'CC', mailing_address: '' });
+  });
+});
+
+describe('several tasks per entry (decision 0024)', () => {
+  const { invoice } = draft(splitSampleInput());
+
+  it('freezes each task share with its names, in the order checked', () => {
+    expect(must(invoice.entries[7]).tasks).toEqual([
+      {
+        task_id: 'client-check-in',
+        task_name: 'Client check in',
+        core_competency: 'Interpersonal & Relationship-Building',
+        quarters: 4,
+      },
+      { task_id: 'outreach', task_name: 'Outreach', core_competency: 'Outreach', quarters: 2 },
+    ]);
+  });
+
+  it('leaves hours, lines and the total as they were', () => {
+    const plain = draft(sampleInput()).invoice;
+    expect(invoice.total_quarters).toBe(plain.total_quarters);
+    expect(invoice.total_cents).toBe(plain.total_cents);
+    expect(invoice.lines).toEqual(plain.lines);
+  });
+
+  it('refuses an entry whose shares do not add up to its billed hours', () => {
+    for (const tasks of [
+      [
+        { task_id: 'client-check-in', quarters: 4 },
+        { task_id: 'outreach', quarters: 1 },
+      ],
+      [
+        { task_id: 'client-check-in', quarters: 6 },
+        { task_id: 'outreach', quarters: 0 },
+      ],
+      [{ task_id: 'no-such-task', quarters: 6 }],
+      [],
+    ]) {
+      const entries = sampleEntries.map((e) => (e.id === uuid(8) ? { ...e, tasks } : e));
+      expect(buildInvoiceDraft(sampleInput({ entries })), JSON.stringify(tasks)).toEqual({
+        ok: false,
+        reason: 'bad_entry',
+        entry_id: uuid(8),
+      });
+    }
+  });
+
+  it('new invoices use the current canonical form (v3) and verify', async () => {
+    const result = await createInvoice(splitSampleInput());
+    if (!result.ok) throw new Error(result.reason);
+    expect(result.invoice.canonical_version).toBe(3);
+    expect(await verifyFingerprint(result.invoice)).toBe(true);
   });
 });
 
@@ -244,7 +312,13 @@ describe('invoice number', () => {
         settings: { source_id: 'regen-general-operating', rate_cents: 2000, nte_cents: null },
         entries: [regenEntry],
         counter: { next: 5, locked: true },
-        profile: { name: 'Carmen Cruz', initials: 'CM', mailing_address: '', logo: null },
+        profile: {
+          name: 'Carmen Cruz',
+          initials: 'CM',
+          mailing_address: '',
+          logo: null,
+          role_id: null,
+        },
       }),
     );
     expect(invoice.number).toBe('CM-2026-005');
@@ -298,7 +372,7 @@ describe('NTE tracker (SPEC §6)', () => {
       remaining_cents: 481_500,
       over: false,
     });
-    expect(invoice.counts_all_time.contacts).toBe(6);
+    expect(invoice.counts_all_time.values['contacts']).toBe(6);
   });
 
   it('uses the NTE as it is now (edits are allowed)', () => {
@@ -336,6 +410,68 @@ describe('custom counts', () => {
   });
 });
 
+describe('kind, role and count labels (roles plan R3)', () => {
+  it('is an invoice with no role before a role is picked', () => {
+    const { invoice } = draft(sampleInput());
+    expect(invoice.kind).toBe('invoice');
+    expect(invoice.role).toBeNull();
+  });
+
+  it('freezes a contractor role and stays an invoice', () => {
+    const { invoice } = draft(sampleInput({ role: findTestRole('chw-tc01') }));
+    expect(invoice.kind).toBe('invoice');
+    expect(invoice.role).toEqual({
+      id: 'chw-tc01',
+      code: 'CHW-TC01',
+      name: 'CHW Trainee (Contractor)',
+      employment: 'contractor',
+      chw: true,
+    });
+  });
+
+  it('is a timesheet for an employee role', () => {
+    const { invoice } = draft(sampleInput({ role: findTestRole('chw-te01') }));
+    expect(invoice.kind).toBe('timesheet');
+    expect(invoice.role?.employment).toBe('employee');
+    expect(invoice.total_cents).toBe(18_500);
+  });
+
+  it('freezes the labels and units of counts with a value, in list order', () => {
+    const entries = sampleEntries.map((e, i) =>
+      i === 0 ? { ...e, counts: counts({ contacts: 1 }, { water_capacity_added: 50 }) } : e,
+    );
+    const { invoice } = draft(sampleInput({ entries }));
+    expect(invoice.count_defs).toEqual([
+      { id: 'contacts', label: 'Contacts' },
+      { id: 'referrals_given', label: 'Referrals given' },
+      { id: 'referral_followups', label: 'Referral follow-ups' },
+      { id: 'rides_provided', label: 'Rides provided' },
+      { id: 'applications_completed', label: 'Applications completed' },
+      { id: 'water_capacity_added', label: 'Water capacity added', unit: 'gal' },
+    ]);
+    expect(invoice.counts_period.values['water_capacity_added']).toBe(50);
+  });
+
+  it('leaves out counts that are 0 in the period and all time', () => {
+    const entries = sampleEntries.map((e) => ({ ...e, counts: counts() }));
+    const { invoice } = draft(sampleInput({ entries, prior_invoices: [] }));
+    expect(invoice.count_defs).toEqual([]);
+    expect(countDefs.length).toBeGreaterThan(5);
+  });
+});
+
+describe('sumCounts over counts by id', () => {
+  it('adds ids only some entries have', () => {
+    expect(
+      sumCounts([
+        { values: { trees_planted: 2 }, other: [] },
+        { values: { trees_planted: 3, trees_removed: 1 }, other: [] },
+        { values: {}, other: [] },
+      ]),
+    ).toEqual({ values: { trees_planted: 5, trees_removed: 1 }, other: [] });
+  });
+});
+
 describe('createInvoice', () => {
   it('adds a fingerprint that verifies', async () => {
     const result = await createInvoice(sampleInput());
@@ -356,5 +492,83 @@ describe('createInvoice', () => {
     const before = structuredClone(input);
     await createInvoice(input);
     expect(input).toEqual(before);
+  });
+});
+
+describe('certification text by role (decision 0031)', () => {
+  const employee = findTestRole('chw-te01');
+  const contractor = findTestRole('chw-tc01');
+
+  it('employees sign the source employee text, contractors the contractor text', () => {
+    expect(certificationText(tisupp, employee)).toBe(tisupp.employee_certification_text);
+    expect(certificationText(tisupp, contractor)).toBe(tisupp.certification_text);
+    expect(certificationText(tisupp, null)).toBe(tisupp.certification_text);
+  });
+
+  it('a role overrides either text, and an employee falls back to the contractor text', () => {
+    expect(certificationText(tisupp, { ...employee, employee_certification_text: 'E' })).toBe('E');
+    expect(certificationText(tisupp, { ...contractor, certification_text: 'C' })).toBe('C');
+    const noEmployeeText = { ...tisupp };
+    delete noEmployeeText.employee_certification_text;
+    expect(certificationText(noEmployeeText, employee)).toBe(tisupp.certification_text);
+  });
+
+  it('a timesheet tracks no not-to-exceed amount', async () => {
+    const result = await createInvoice(sampleInput({ role: employee }));
+    if (!result.ok) throw new Error(result.reason);
+    expect(result.invoice.nte).toEqual({ state: 'none' });
+  });
+
+  it('a new timesheet freezes the employee text and seals it with form v3', async () => {
+    const result = await createInvoice(sampleInput({ role: employee }));
+    if (!result.ok) throw new Error(result.reason);
+    expect(result.invoice.source.certification_text).toBe(tisupp.employee_certification_text);
+    expect(result.invoice.canonical_version).toBe(3);
+  });
+});
+
+describe('hours keep the role they were logged under (roles plan R7)', () => {
+  // The two oldest entries were logged as an employee; the role then became a contractor one.
+  const entries = [...sampleEntries]
+    .sort((a, b) => (a.start < b.start ? -1 : 1))
+    .map((e, i) => ({ ...e, role_id: i < 2 ? 'chw-te01' : 'chw-tc01' }));
+
+  it('the next invoice takes the role of the oldest waiting entry', () => {
+    expect(invoiceRoleId(entries, 'tisupp')).toBe('chw-te01');
+    expect(invoiceRoleId(entries.slice(2), 'tisupp')).toBe('chw-tc01');
+    expect(invoiceRoleId([], 'tisupp')).toBeUndefined();
+  });
+
+  it("bills only that role's hours, as that role's kind; the rest wait", () => {
+    const first = buildInvoiceDraft(
+      sampleInput({ entries, role: findTestRole('chw-te01'), entry_role_id: 'chw-te01' }),
+    );
+    if (!first.ok) throw new Error(first.reason);
+    expect(first.invoice.kind).toBe('timesheet');
+    expect(first.entry_ids).toEqual([entries[0]?.id, entries[1]?.id]);
+
+    const second = buildInvoiceDraft(
+      sampleInput({ entries, role: findTestRole('chw-tc01'), entry_role_id: 'chw-tc01' }),
+    );
+    if (!second.ok) throw new Error(second.reason);
+    expect(second.invoice.kind).toBe('invoice');
+    expect(second.entry_ids).toHaveLength(entries.length - 2);
+  });
+
+  it('bills every waiting entry when no role id is given', () => {
+    const all = buildInvoiceDraft(sampleInput({ entries }));
+    expect(all.ok && all.entry_ids).toHaveLength(entries.length);
+  });
+});
+
+describe('an entry whose task the role no longer lists (roles plan R7)', () => {
+  it('is still invoiced from the source file', () => {
+    const entry = makeEntry('2026-10-20', '09:00:00', '10:00:00', 'outreach', 'chw-referrals', {
+      role_id: 'chw-tc01',
+    });
+    const draft = buildInvoiceDraft(
+      sampleInput({ entries: [entry], role: findTestRole('chw-tc01') }),
+    );
+    expect(draft.ok && draft.invoice.entries[0]?.tasks[0]?.task_name).toBe('Outreach');
   });
 });

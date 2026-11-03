@@ -10,6 +10,7 @@ describe('file names (SPEC §7, decision 0006)', () => {
     expect(timesheetCsvName(invoice)).toBe('TISUPP_CC-2026-004_timesheet.csv');
     expect(entriesCsvName(invoice)).toBe('TISUPP_CC-2026-004_entries.csv');
     expect(pngName(invoice)).toBe('TISUPP_CC-2026-004_invoice.png');
+    expect(pngName({ ...invoice, kind: 'timesheet' })).toBe('TISUPP_CC-2026-004_timesheet.png');
   });
 
   it('use the short code', () => {

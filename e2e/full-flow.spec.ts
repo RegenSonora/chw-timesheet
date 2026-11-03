@@ -7,8 +7,9 @@ import {
   expectAccessible,
   heading,
   parseCsv,
-  pickTaskAndLine,
-  setUp,
+  pickLine,
+  setUpWithoutRole,
+  taskBox,
   readPng,
   sharedFiles,
   stubShare,
@@ -71,7 +72,7 @@ test('setup → 9 dates of entries → invoice → files → re-share', async ({
   await page.goto('./');
   await expect(heading(page, 'Set up')).toBeVisible();
   await expectAccessible(page, 'setup');
-  await setUp(page, { regen: true });
+  await setUpWithoutRole(page, { regen: true });
   await expectAccessible(page, 'home, empty');
 
   // A timed entry with counts and notes: Oct 30, 9:00–10:30.
@@ -80,8 +81,22 @@ test('setup → 9 dates of entries → invoice → files → re-share', async ({
   await expectAccessible(page, 'timer running');
   await page.clock.fastForward('01:30:00');
   await page.getByRole('button', { name: 'Stop' }).click();
+  // Split between two tasks: Client check in 1 h, Outreach 0.5 h (decision 0024).
+  await taskBox(page, 'Client check in').check();
+  await taskBox(page, 'Outreach').check();
   await expectAccessible(page, 'task step');
-  await pickTaskAndLine(page, 'Client check in', 'CHW referrals');
+  await pickLine(page, 'CHW referrals');
+  await page.getByRole('button', { name: 'Next' }).click();
+  await expect(heading(page, 'Split your time')).toBeVisible();
+  await page.getByRole('button', { name: 'Less time on Client check in' }).click();
+  await page.getByRole('button', { name: 'Less time on Client check in' }).click();
+  await expectAccessible(page, 'split step, hours left');
+  await page.getByRole('button', { name: 'More time on Outreach' }).click();
+  await page.getByRole('button', { name: 'More time on Outreach' }).click();
+  await expect(page.getByText('All 1.5 hrs assigned')).toBeVisible();
+  await expectAccessible(page, 'split step');
+  await page.getByRole('button', { name: 'Next' }).click();
+  await expect(heading(page, 'Counts and notes')).toBeVisible();
   await page.getByRole('button', { name: 'More contacts' }).click();
   await page.getByRole('button', { name: 'More contacts' }).click();
   await page.getByRole('button', { name: 'More referrals given' }).click();
@@ -91,7 +106,7 @@ test('setup → 9 dates of entries → invoice → files → re-share', async ({
   await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
 
   for (const entry of TYPED) await addEntry(page, entry);
-  await expect(page.getByText('9 entries · 12 h · $240.00')).toBeVisible();
+  await expect(page.getByText('9 entries · 12 hrs · $240.00')).toBeVisible();
 
   // One REGEN-GO entry stays off the TISUPP invoice.
   await pickSource(page, 'REGEN-GO');
@@ -102,23 +117,23 @@ test('setup → 9 dates of entries → invoice → files → re-share', async ({
     task: 'Outreach',
     line: 'Outreach and marketing',
   });
-  await expect(page.getByText('1 entry · 1 h · $18.00')).toBeVisible();
+  await expect(page.getByText('1 entry · 1 hr · $18.00')).toBeVisible();
   await pickSource(page, 'TISUPP');
   await expectAccessible(page, 'home with entries');
 
   // Preview.
-  await page.getByRole('button', { name: 'Generate TISUPP invoice' }).click();
+  await page.getByRole('button', { name: 'Generate Regen Invoice' }).click();
   await expect(heading(page, 'New invoice')).toBeVisible();
   await expect(page.getByText('CC-2026-001')).toBeVisible();
   await expect(page.getByText('9 on 9 dates (2 timesheet pages)')).toBeVisible();
   await expect(
-    page.getByRole('row', { name: 'New CHWs: training, stipends, field hours 2.00 h $40.00' }),
+    page.getByRole('row', { name: 'New CHWs: training, stipends, field hours 2.00 hrs $40.00' }),
   ).toBeVisible();
-  await expect(page.getByRole('row', { name: 'CHW referrals 7.00 h $140.00' })).toBeVisible();
+  await expect(page.getByRole('row', { name: 'CHW referrals 7.00 hrs $140.00' })).toBeVisible();
   await expect(
-    page.getByRole('row', { name: 'Outreach and marketing 3.00 h $60.00' }),
+    page.getByRole('row', { name: 'Outreach and marketing 3.00 hrs $60.00' }),
   ).toBeVisible();
-  await expect(page.getByRole('row', { name: 'Total 12.00 h $240.00' })).toBeVisible();
+  await expect(page.getByRole('row', { name: 'Total 12.00 hrs $240.00' })).toBeVisible();
   await expectAccessible(page, 'invoice preview');
 
   // Create and share.
@@ -137,19 +152,23 @@ test('setup → 9 dates of entries → invoice → files → re-share', async ({
   ]);
   const [pdfFile, pngFile, timesheetFile, entriesFile] = first ?? [];
 
-  // Entry log CSV: one row per TISUPP entry, all sharing one fingerprint.
+  // Entry log CSV: one row per task share of each TISUPP entry, all sharing one fingerprint.
   const [header = [], ...rows] = parseCsv(entriesFile?.bytes ?? []);
   const col = (name: string) => header.indexOf(name);
-  expect(rows).toHaveLength(9);
+  expect(rows).toHaveLength(10);
   expect(new Set(rows.map((r) => r[col('funding_source')]))).toEqual(new Set(['TISUPP']));
   const billed = rows.reduce((sum, r) => sum + Number(r[col('billed_hours')]) * 4, 0);
   expect(billed).toBe(48);
   const midnight = rows.find((r) => r[col('start')] === '2026-10-23T22:30:00-07:00');
   expect(midnight?.[col('entry_date')]).toBe('2026-10-23');
   expect(midnight?.[col('billed_hours')]).toBe('1.75');
-  const timed = rows.find((r) => r[col('entry_date')] === '2026-10-30');
-  expect(timed?.[col('contacts')]).toBe('2');
-  expect(timed?.[col('notes')]).toBe('Met at the clinic, follow up next week');
+  const timed = rows.filter((r) => r[col('entry_date')] === '2026-10-30');
+  expect(
+    timed.map((r) => ['part', 'task', 'billed_hours', 'contacts', 'notes'].map((c) => r[col(c)])),
+  ).toEqual([
+    ['1 of 2', 'Client check in', '1.00', '2', 'Met at the clinic, follow up next week'],
+    ['2 of 2', 'Outreach', '0.50', '', ''],
+  ]);
   const fingerprints = new Set(rows.map((r) => r[col('fingerprint')]));
   expect(fingerprints.size).toBe(1);
   const fingerprint = [...fingerprints][0] ?? '';
@@ -177,9 +196,9 @@ test('setup → 9 dates of entries → invoice → files → re-share', async ({
 
   // Home: TISUPP is clear; REGEN-GO still waits.
   await page.getByRole('button', { name: 'Done' }).click();
-  await expect(page.getByText('No TISUPP entries waiting.', { exact: false })).toBeVisible();
+  await expect(page.getByText('Start timer and start working or record time.')).toBeVisible();
   await pickSource(page, 'REGEN-GO');
-  await expect(page.getByText('1 entry · 1 h · $18.00')).toBeVisible();
+  await expect(page.getByText('1 entry · 1 hr · $18.00')).toBeVisible();
 
   // Settings, then re-share from Past invoices on Home: the same bytes (SPEC §6).
   await page.getByRole('button', { name: 'Settings' }).click();

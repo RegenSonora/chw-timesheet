@@ -1,11 +1,14 @@
 // Task and budget line choices on the new-entry screen (SPEC §5, decision 0008).
-import type { FundingSourceConfig, Task } from './types';
+import type { FundingSourceConfig, Task, TaskShare } from './types';
 
 /** How many recent tasks the "Recent" group shows. */
 export const RECENT_TASKS_SHOWN = 3;
 
-/** "Recent" (most recent first, only tasks this source has) above every task in source order. */
-export function taskChoices(
+/**
+ * "Recent" (most recent first, only tasks this source has) above every task in source order.
+ * Replaced by the role-based taskChoices in roles.ts once the entry screen uses roles (roles plan R4).
+ */
+export function sourceTaskChoices(
   source: FundingSourceConfig,
   recentIds: readonly string[],
 ): { recent: Task[]; all: Task[] } {
@@ -19,22 +22,27 @@ export function taskChoices(
   return { recent, all: source.tasks };
 }
 
-/** The budget line a new entry starts with: the last one used, if this source has it. */
+/**
+ * The budget line a new entry starts with: the source's only line (decision 0023), else the last
+ * one used, if this source has it.
+ */
 export function defaultBudgetLine(
   source: FundingSourceConfig,
   lastId: string | null,
 ): string | null {
+  const [only, ...more] = source.budget_lines;
+  if (only && more.length === 0) return only.id;
   return lastId !== null && source.budget_lines.some((l) => l.id === lastId) ? lastId : null;
 }
 
 /** Moving an entry to another source keeps the picks that source also has (decision 0008). */
 export function carryPicks(
   source: FundingSourceConfig,
-  taskId: string | null,
+  tasks: readonly TaskShare[],
   budgetLineId: string | null,
-): { task_id: string | null; budget_line_id: string | null } {
+): { tasks: TaskShare[]; budget_line_id: string | null } {
   return {
-    task_id: taskId !== null && source.tasks.some((t) => t.id === taskId) ? taskId : null,
+    tasks: tasks.filter((s) => source.tasks.some((t) => t.id === s.task_id)),
     budget_line_id: defaultBudgetLine(source, budgetLineId),
   };
 }

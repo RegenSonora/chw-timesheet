@@ -1,5 +1,6 @@
 // PDF timesheet pages (SPEC §7, wireframe PdfTimesheet): landscape, the next 7 dates worked per
 // page. When the rows don't fit, the grid's text shrinks to 7 pt, then notes are cut (decision 0013).
+// The core competency column is for CHW roles only (decision 0032); wording follows the role (0034).
 import { shortFingerprint } from '../../core/fingerprint';
 import { formatDollars, formatQuarters } from '../../core/money';
 import type { TimesheetPage } from '../../core/timesheet';
@@ -30,10 +31,18 @@ interface Column {
   align: 'left' | 'right';
 }
 
-function columns(dateCount: number) {
-  const task: Column = { x: LEFT, width: 96, align: 'left' };
-  const competency: Column = { x: task.x + task.width, width: 104, align: 'left' };
-  const line: Column = { x: competency.x + competency.width, width: 112, align: 'left' };
+/** Width of the core competency column; without it, task and budget line share the space. */
+const COMPETENCY_WIDTH = 104;
+
+function columns(dateCount: number, chw: boolean) {
+  const extra = chw ? 0 : COMPETENCY_WIDTH / 2;
+  const task: Column = { x: LEFT, width: 96 + extra, align: 'left' };
+  const competency: Column = {
+    x: task.x + task.width,
+    width: chw ? COMPETENCY_WIDTH : 0,
+    align: 'left',
+  };
+  const line: Column = { x: competency.x + competency.width, width: 112 + extra, align: 'left' };
   const dates: Column[] = Array.from({ length: dateCount }, (_, i) => ({
     x: line.x + line.width + 38 * i,
     width: 38,
@@ -57,13 +66,13 @@ interface GridRow {
   height: number;
 }
 
-function gridRows(page: TimesheetPage, size: number, notesLines: number): GridRow[] {
-  const cols = columns(page.dates.length);
+function gridRows(page: TimesheetPage, size: number, notesLines: number, chw: boolean): GridRow[] {
+  const cols = columns(page.dates.length, chw);
   const leading = size * 1.25;
   const wrap = (s: string, col: Column) => wrapText(s, 'regular', size, col.width - PAD * 2);
   return page.rows.map((row) => {
     const task = wrap(row.task_name, cols.task);
-    const competency = wrap(row.core_competency ?? '', cols.competency);
+    const competency = chw ? wrap(row.core_competency ?? '', cols.competency) : [];
     const line = wrap(row.budget_line_name, cols.line);
     const notes = wrapLines(row.notes, 'regular', size, cols.notes.width - PAD * 2, notesLines);
     const lines = Math.max(1, task.length, competency.length, line.length, notes.length);
@@ -85,25 +94,26 @@ function gridHeight(rows: GridRow[], size: number): number {
 function fitGrid(
   page: TimesheetPage,
   space: number,
+  chw: boolean,
 ): { size: number; rows: GridRow[]; cut: boolean } {
   for (const size of SIZES) {
-    const rows = gridRows(page, size, Number.MAX_SAFE_INTEGER);
+    const rows = gridRows(page, size, Number.MAX_SAFE_INTEGER, chw);
     if (gridHeight(rows, size) <= space) return { size, rows, cut: false };
   }
   const fullest = Math.max(
     1,
-    ...gridRows(page, FLOOR, Number.MAX_SAFE_INTEGER).map((r) => r.notes.length),
+    ...gridRows(page, FLOOR, Number.MAX_SAFE_INTEGER, chw).map((r) => r.notes.length),
   );
   for (let lines = fullest - 1; lines >= 1; lines--) {
-    const rows = gridRows(page, FLOOR, lines);
+    const rows = gridRows(page, FLOOR, lines, chw);
     if (gridHeight(rows, FLOOR) <= space) return { size: FLOOR, rows, cut: true };
   }
   for (const size of LAST_RESORT) {
-    const rows = gridRows(page, size, 1);
+    const rows = gridRows(page, size, 1, chw);
     if (gridHeight(rows, size) <= space) return { size, rows, cut: true };
   }
   const size = LAST_RESORT[LAST_RESORT.length - 1] ?? FLOOR;
-  return { size, rows: gridRows(page, size, 1), cut: true };
+  return { size, rows: gridRows(page, size, 1, chw), cut: true };
 }
 
 export interface TimesheetPageResult {
@@ -132,6 +142,9 @@ export function drawTimesheetPage(
     pdf.text(x, y, s, { size, font, gray, align });
   };
 
+  const chw = invoice.role?.chw !== false;
+  const timesheet = invoice.kind === 'timesheet';
+
   // Header.
   let y = MARGIN + 16;
   text(LEFT, y, `Timesheet · ${invoice.source.code}`, 17, 'bold');
@@ -152,7 +165,9 @@ export function drawTimesheetPage(
   text(
     RIGHT,
     y - 4,
-    `Invoice ${invoice.number} · Rate ${formatDollars(invoice.rate_cents)}/h`,
+    timesheet
+      ? `Timesheet ${invoice.number} · Pay rate ${formatDollars(invoice.rate_cents)}/h`
+      : `Invoice ${invoice.number} · Rate ${formatDollars(invoice.rate_cents)}/h`,
     10,
     'regular',
     INK,
@@ -165,10 +180,10 @@ export function drawTimesheetPage(
   const continuedHeight = next ? 16 : 0;
   const footerHeight = 34;
   const space = BOTTOM - footerHeight - continuedHeight - subtotalHeight - 14 - y;
-  const fit = fitGrid(page, space);
+  const fit = fitGrid(page, space, chw);
   const { size, rows } = fit;
   const leading = size * 1.25;
-  const cols = columns(page.dates.length);
+  const cols = columns(page.dates.length, chw);
 
   // Grid header.
   const cell = (
@@ -185,7 +200,7 @@ export function drawTimesheetPage(
   const headerBase = y + HEADER_HEIGHT - 6;
   const head = 7.5;
   cell(cols.task, headerBase, 'TASK', 'bold', MUTED, head);
-  cell(cols.competency, headerBase, 'CORE COMPETENCY', 'bold', MUTED, head);
+  if (chw) cell(cols.competency, headerBase, 'CORE COMPETENCY', 'bold', MUTED, head);
   cell(cols.line, headerBase, 'BUDGET LINE', 'bold', MUTED, head);
   page.dates.forEach((date, i) => {
     const col = cols.dates[i];
@@ -260,7 +275,7 @@ export function drawTimesheetPage(
   }
 
   // Footer: initials line, fingerprint, invoice # and page number.
-  const label = 'CHW initials';
+  const label = timesheet ? 'Employee initials' : 'Contractor initials';
   text(LEFT, BOTTOM, label, 9, 'regular', MUTED);
   const lineStart = LEFT + textWidth(label, 'regular', 9) + 6;
   pdf.line(lineStart, BOTTOM + 2, lineStart + 110, BOTTOM + 2, { width: 0.75, gray: INK });

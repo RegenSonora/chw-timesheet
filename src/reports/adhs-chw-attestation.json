@@ -1,0 +1,32 @@
+{
+  "id": "adhs-chw-attestation",
+  "title": "Community Health Worker Hours Worked/Volunteered Attestation Form",
+  "issuer": "Arizona Department of Health Services",
+  "revised": "06.16.2025",
+  "window_years": 3,
+  "rows": [
+    { "name": "Communication Skills", "competencies": ["Communication Skills"] },
+    { "name": "Capacity-Building", "competencies": ["Capacity-Building"] },
+    { "name": "Outreach", "competencies": ["Outreach"] },
+    {
+      "name": "Interpersonal and Relationship Building",
+      "competencies": ["Interpersonal & Relationship-Building"]
+    },
+    { "name": "Advocacy", "competencies": ["Advocacy"] },
+    {
+      "name": "Individual and Community Assessment",
+      "competencies": ["Individual & Community Assessment"]
+    },
+    {
+      "name": "Service Coordination and Navigation",
+      "competencies": ["Service Coordination & Navigation"]
+    },
+    { "name": "Education and Facilitation", "competencies": ["Education & Facilitation"] },
+    {
+      "name": "Professional Skills and Conduct",
+      "competencies": ["Professional Skills & Conduct"]
+    },
+    { "name": "Evaluation and Research Skills", "competencies": ["Evaluation & Research Skills"] },
+    { "name": "Knowledge Base", "competencies": ["Knowledge Base"] }
+  ]
+}

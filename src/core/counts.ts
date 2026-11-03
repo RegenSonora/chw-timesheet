@@ -1,9 +1,12 @@
 // Summing counts across entries and invoices (SPEC §5, §6).
 import type { Counts, OtherCount } from './types';
 
-/** The five fixed counts (SPEC §5), in the order screens and invoice files list them. */
+/**
+ * The five CHW counts (SPEC §5), in the order screens and invoice files list them. Screens and
+ * files show these until they follow each task's counts (roles plan R4, R5).
+ */
 export const COUNT_FIELDS: readonly {
-  key: Exclude<keyof Counts, 'other'>;
+  key: string;
   label: string;
   noun: string;
 }[] = [
@@ -19,29 +22,25 @@ export const COUNT_FIELDS: readonly {
 ];
 
 export function emptyCounts(): Counts {
-  return {
-    contacts: 0,
-    referrals_given: 0,
-    referral_followups: 0,
-    rides_provided: 0,
-    applications_completed: 0,
-    other: [],
-  };
+  return { values: {}, other: [] };
+}
+
+/** A count's value, 0 when the entry doesn't have it. */
+export function countValue(counts: Counts, id: string): number {
+  return counts.values[id] ?? 0;
 }
 
 /**
- * Add counts together. Custom counts with the same label (trimmed, any letter case) are
- * merged under the first spelling seen; custom counts that total 0 are left out.
+ * Add counts together, by count id. Custom counts with the same label (trimmed, any letter
+ * case) are merged under the first spelling seen; custom counts that total 0 are left out.
  */
 export function sumCounts(list: readonly Counts[]): Counts {
   const total = emptyCounts();
   const other = new Map<string, OtherCount>();
   for (const c of list) {
-    total.contacts += c.contacts;
-    total.referrals_given += c.referrals_given;
-    total.referral_followups += c.referral_followups;
-    total.rides_provided += c.rides_provided;
-    total.applications_completed += c.applications_completed;
+    for (const [id, value] of Object.entries(c.values)) {
+      total.values[id] = (total.values[id] ?? 0) + value;
+    }
     for (const { label, value } of c.other) {
       const trimmed = label.trim();
       const key = trimmed.toLowerCase();

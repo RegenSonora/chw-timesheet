@@ -1,9 +1,10 @@
-// PDF page 1, the invoice (SPEC §7 "PDF page 1", wireframe PdfInvoice). Laid out top to bottom
-// at a scale; when a long invoice doesn't fit, it is drawn again smaller.
-import { COUNT_FIELDS } from '../../core/counts';
+// PDF page 1 (SPEC §7 "PDF page 1", wireframe PdfInvoice): the invoice, or for an employee the
+// timesheet summary with hours only and the supervisor's approval (decision 0031). Laid out top to
+// bottom at a scale; when a long one doesn't fit, it is drawn again smaller.
 import { shortFingerprint } from '../../core/fingerprint';
 import { formatDollars, formatQuarters } from '../../core/money';
-import type { Counts, Invoice } from '../../core/types';
+import { invoiceCounts } from '../../core/roles';
+import type { Invoice } from '../../core/types';
 import { qrMatrix } from '../qr/matrix';
 import { qrPayloadV1 } from '../qr/payload';
 import { dateRange, longDate } from '../text';
@@ -21,8 +22,8 @@ const BOTTOM = LETTER.height - 36;
 const INK: Gray = 0.1;
 const MUTED: Gray = 0.3;
 const RULE: Gray = 0.75;
-/** Custom counts listed on page 1; the rest are in the entry log CSV. */
-const OTHER_COUNTS_SHOWN = 6;
+/** Counts listed on page 1; the rest are in the entry log CSV (decision 0029). */
+const COUNTS_SHOWN = 10;
 const ADDRESS_LINES = 4;
 
 interface Ctx {
@@ -61,36 +62,37 @@ function signBox(c: Ctx, x: number, y: number, width: number, height: number) {
   text(c, x + 6, y + height - 5, 'Sign here', 7.5, 'regular', MUTED);
 }
 
-/** Custom counts for page 1: those used this period, with their all-time totals. */
-function otherCounts(period: Counts, allTime: Counts) {
-  const all = new Map(allTime.other.map((o) => [o.label.trim().toLowerCase(), o.value]));
-  return period.other.map((o) => ({
-    label: o.label,
-    period: o.value,
-    all: all.get(o.label.trim().toLowerCase()) ?? o.value,
-  }));
-}
+/** "40 gal", or "40" for a count with no unit. */
+const withUnit = (n: number, unit: string | null) => (unit ? `${String(n)} ${unit}` : String(n));
 
 /** Draw page 1 at scale k. Returns how far down the content above the footer reaches. */
 function layout(c: Ctx, invoice: Invoice, pageCount: number, footerTop: number): number {
   const k = c.k;
   const half = (WIDTH - 24) / 2;
   const rightCol = LEFT + half + 24;
+  const timesheet = invoice.kind === 'timesheet';
   let y = MARGIN;
 
-  // Title, funding source, and the invoice's number, date and period.
-  text(c, LEFT, y + 22 * k, 'INVOICE', 24, 'bold');
+  // Title, funding source, and the number, date and period.
+  text(c, LEFT, y + 22 * k, timesheet ? 'TIMESHEET' : 'INVOICE', 24, 'bold');
   const title = wrapText(`${invoice.source.code} · ${invoice.source.name}`, 'bold', 10.5 * k, 300);
   let left = y + 22 * k;
   for (const line of title) {
     left += 14 * k;
     text(c, LEFT, left, line, 10.5, 'bold');
   }
-  const facts: [string, string, FontName][] = [
-    ['Invoice #', invoice.number, 'bold'],
-    ['Invoice date', longDate(invoice.invoice_date), 'regular'],
-    ['Service period', dateRange(invoice.period_start, invoice.period_end), 'regular'],
-  ];
+  const facts: [string, string, FontName][] = timesheet
+    ? [
+        ['Timesheet #', invoice.number, 'bold'],
+        ['Date', longDate(invoice.invoice_date), 'regular'],
+        ['Service period', dateRange(invoice.period_start, invoice.period_end), 'regular'],
+        ['Pay rate', `${formatDollars(invoice.rate_cents)}/hr`, 'regular'],
+      ]
+    : [
+        ['Invoice #', invoice.number, 'bold'],
+        ['Invoice date', longDate(invoice.invoice_date), 'regular'],
+        ['Service period', dateRange(invoice.period_start, invoice.period_end), 'regular'],
+      ];
   let right = y + 4 * k;
   for (const [label, value, font] of facts) {
     right += 13 * k;
@@ -100,8 +102,8 @@ function layout(c: Ctx, invoice: Invoice, pageCount: number, footerTop: number):
   y = Math.max(left, right) + 22 * k;
 
   // From and Bill to.
-  caption(c, LEFT, y, 'From (contractor)', half);
-  caption(c, rightCol, y, 'Bill to', half);
+  caption(c, LEFT, y, timesheet ? 'From (employee)' : 'From (contractor)', half);
+  caption(c, rightCol, y, timesheet ? 'Employer' : 'Bill to', half);
   const from = [
     invoice.chw.name,
     ...wrapLines(invoice.chw.mailing_address, 'regular', 9.5 * k, half, ADDRESS_LINES),
@@ -114,14 +116,16 @@ function layout(c: Ctx, invoice: Invoice, pageCount: number, footerTop: number):
   });
   y += (14 + 12 * Math.max(from.length, BILL_TO.length)) * k + 12 * k;
 
-  // Lines by budget line and the amount due.
-  const hoursX = 400;
+  // Lines by budget line and the amount due; a timesheet shows hours only (decision 0031).
+  const hoursX = timesheet ? RIGHT : 400;
   const rateX = 476;
   const nameWidth = 300;
   caption(c, LEFT, y, 'Budget line', nameWidth);
   text(c, hoursX, y, 'HOURS', 7.5, 'bold', MUTED, 'right');
-  text(c, rateX, y, 'RATE', 7.5, 'bold', MUTED, 'right');
-  text(c, RIGHT, y, 'AMOUNT', 7.5, 'bold', MUTED, 'right');
+  if (!timesheet) {
+    text(c, rateX, y, 'RATE', 7.5, 'bold', MUTED, 'right');
+    text(c, RIGHT, y, 'AMOUNT', 7.5, 'bold', MUTED, 'right');
+  }
   y += 5 * k;
   c.page.line(LEFT, y, RIGHT, y, { width: 1.5, gray: INK });
   for (const line of invoice.lines) {
@@ -131,15 +135,17 @@ function layout(c: Ctx, invoice: Invoice, pageCount: number, footerTop: number):
       text(c, LEFT, first + 12 * i * k, name, 10);
     });
     text(c, hoursX, first, formatQuarters(line.quarters), 10, 'regular', INK, 'right');
-    text(c, rateX, first, formatDollars(line.rate_cents), 10, 'regular', INK, 'right');
-    text(c, RIGHT, first, formatDollars(line.amount_cents), 10, 'regular', INK, 'right');
+    if (!timesheet) {
+      text(c, rateX, first, formatDollars(line.rate_cents), 10, 'regular', INK, 'right');
+      text(c, RIGHT, first, formatDollars(line.amount_cents), 10, 'regular', INK, 'right');
+    }
     y = first + (12 * (names.length - 1) + 6) * k;
     c.page.line(LEFT, y, RIGHT, y, { width: 0.5, gray: RULE });
   }
   y += 15 * k;
-  text(c, LEFT, y, 'Amount due', 10.5, 'bold');
+  text(c, LEFT, y, timesheet ? 'Total hours' : 'Amount due', 10.5, 'bold');
   text(c, hoursX, y, formatQuarters(invoice.total_quarters), 10.5, 'bold', INK, 'right');
-  text(c, RIGHT, y, formatDollars(invoice.total_cents), 12, 'bold', INK, 'right');
+  if (!timesheet) text(c, RIGHT, y, formatDollars(invoice.total_cents), 12, 'bold', INK, 'right');
   y += 6 * k;
   c.page.line(LEFT, y, RIGHT, y, { width: 1.5, gray: INK });
   y += 22 * k;
@@ -161,22 +167,21 @@ function layout(c: Ctx, invoice: Invoice, pageCount: number, footerTop: number):
     MUTED,
     'right',
   );
-  const rows = COUNT_FIELDS.map((f) => ({
-    label: f.label,
-    period: invoice.counts_period[f.key],
-    all: invoice.counts_all_time[f.key],
-  }));
-  const others = otherCounts(invoice.counts_period, invoice.counts_all_time);
-  rows.push(...others.slice(0, OTHER_COUNTS_SHOWN));
-  for (const row of rows) {
+  // Only counts with a value this period, each with its all-time total (decision 0029).
+  const rows = invoiceCounts(invoice.count_defs, invoice.counts_period, invoice.counts_all_time);
+  if (rows.length === 0) {
+    y += 12 * k;
+    text(c, LEFT, y, 'None this period', 9, 'regular', MUTED);
+  }
+  for (const row of rows.slice(0, COUNTS_SHOWN)) {
     y += 12 * k;
     text(c, LEFT, y, fitText(row.label, 'regular', 9 * k, 108), 9);
-    text(c, periodX, y, String(row.period), 9, 'bold', INK, 'right');
-    text(c, allX, y, String(row.all), 9, 'regular', INK, 'right');
+    text(c, periodX, y, withUnit(row.period, row.unit), 9, 'bold', INK, 'right');
+    text(c, allX, y, withUnit(row.all_time, row.unit), 9, 'regular', INK, 'right');
   }
-  if (others.length > OTHER_COUNTS_SHOWN) {
+  if (rows.length > COUNTS_SHOWN) {
     y += 12 * k;
-    const more = others.length - OTHER_COUNTS_SHOWN;
+    const more = rows.length - COUNTS_SHOWN;
     text(c, LEFT, y, `${String(more)} more in the entry log CSV`, 8, 'regular', MUTED);
   }
   const countsBottom = y;
@@ -233,16 +238,28 @@ function layout(c: Ctx, invoice: Invoice, pageCount: number, footerTop: number):
   });
   y += certHeight + 18 * k;
 
-  // Signatures.
-  caption(c, LEFT, y, 'Contractor (CHW)', half);
-  caption(c, rightCol, y, 'Services received (reviewer)', half);
-  signBox(c, LEFT, y + 6 * k, half, 44 * k);
-  fieldLine(c, LEFT, y + 70 * k, 'Date', half);
-  fieldLine(c, rightCol, y + 20 * k, 'Printed name', half);
-  fieldLine(c, rightCol, y + 38 * k, 'Title', half);
-  signBox(c, rightCol, y + 44 * k, half, 34 * k);
-  fieldLine(c, rightCol, y + 94 * k, 'Date', half);
-  y += 108 * k;
+  // Signatures. An employee signs first, then the supervisor signs below (decision 0031).
+  if (timesheet) {
+    caption(c, LEFT, y, 'Employee', half);
+    signBox(c, LEFT, y + 6 * k, half, 44 * k);
+    fieldLine(c, LEFT, y + 70 * k, 'Date', half);
+    y += 88 * k;
+    caption(c, LEFT, y, 'Supervisor signature', half);
+    signBox(c, LEFT, y + 6 * k, half, 44 * k);
+    fieldLine(c, rightCol, y + 26 * k, 'Supervisor name', half);
+    fieldLine(c, rightCol, y + 50 * k, 'Date', half);
+    y += 64 * k;
+  } else {
+    caption(c, LEFT, y, 'Contractor', half);
+    caption(c, rightCol, y, 'Services received (reviewer)', half);
+    signBox(c, LEFT, y + 6 * k, half, 44 * k);
+    fieldLine(c, LEFT, y + 70 * k, 'Date', half);
+    fieldLine(c, rightCol, y + 20 * k, 'Printed name', half);
+    fieldLine(c, rightCol, y + 38 * k, 'Title', half);
+    signBox(c, rightCol, y + 44 * k, half, 34 * k);
+    fieldLine(c, rightCol, y + 94 * k, 'Date', half);
+    y += 108 * k;
+  }
 
   // Office use, beside the QR code in the footer row.
   const officeWidth = footerQrLeft(invoice) - LEFT - 16;
@@ -254,7 +271,7 @@ function layout(c: Ctx, invoice: Invoice, pageCount: number, footerTop: number):
   const pairs: [string, string][] = [
     ['Reviewed by', 'Date'],
     ['Approved by', 'Date'],
-    ['Payment date', 'Check or transaction #'],
+    ...(timesheet ? [] : [['Payment date', 'Check or transaction #'] as [string, string]]),
   ];
   pairs.forEach(([a, b], i) => {
     const row = officeTop + (32 + 18 * i) * k;
@@ -298,7 +315,7 @@ function drawFooter(c: Ctx, invoice: Invoice, pageCount: number) {
   c.page.text(
     LEFT,
     textTop + 10,
-    'QR: invoice #, period, hours and amount by budget line, fingerprint',
+    `QR: ${invoice.kind === 'timesheet' ? 'timesheet' : 'invoice'} #, period, hours and amount by budget line, fingerprint`,
     {
       size: 7,
       gray: MUTED,

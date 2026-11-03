@@ -3,13 +3,13 @@ import {
   carryPicks,
   defaultBudgetLine,
   RECENT_TASKS_SHOWN,
-  taskChoices,
+  sourceTaskChoices,
 } from '../../src/core/picks';
 import { regen, tisupp } from './fixtures/wireframe-sample';
 
-describe('taskChoices (SPEC §5 "recent tasks first")', () => {
+describe('sourceTaskChoices (SPEC §5 "recent tasks first")', () => {
   it('lists recent tasks first, then every task in source order', () => {
-    const { recent, all } = taskChoices(tisupp, ['client-check-in', 'client-follow-up']);
+    const { recent, all } = sourceTaskChoices(tisupp, ['client-check-in', 'client-follow-up']);
     expect(recent.map((t) => t.id)).toEqual(['client-check-in', 'client-follow-up']);
     expect(all).toEqual(tisupp.tasks);
     expect(all).toHaveLength(21);
@@ -17,19 +17,24 @@ describe('taskChoices (SPEC §5 "recent tasks first")', () => {
 
   it(`shows at most ${String(RECENT_TASKS_SHOWN)} recent tasks`, () => {
     const ids = tisupp.tasks.slice(0, 6).map((t) => t.id);
-    expect(taskChoices(tisupp, ids).recent.map((t) => t.id)).toEqual(
+    expect(sourceTaskChoices(tisupp, ids).recent.map((t) => t.id)).toEqual(
       ids.slice(0, RECENT_TASKS_SHOWN),
     );
   });
 
   it('drops ids the source does not have and repeats', () => {
-    const { recent } = taskChoices(tisupp, ['domestic-support', 'outreach', 'outreach', 'gone']);
+    const { recent } = sourceTaskChoices(tisupp, [
+      'domestic-support',
+      'outreach',
+      'outreach',
+      'gone',
+    ]);
     expect(recent.map((t) => t.id)).toEqual(['outreach']);
   });
 
   it('has no recent group the first time', () => {
-    expect(taskChoices(regen, []).recent).toEqual([]);
-    expect(taskChoices(regen, []).all).toHaveLength(22);
+    expect(sourceTaskChoices(regen, []).recent).toEqual([]);
+    expect(sourceTaskChoices(regen, []).all).toHaveLength(37);
   });
 });
 
@@ -43,25 +48,38 @@ describe('defaultBudgetLine (SPEC §5 "defaults to the last one used")', () => {
     expect(defaultBudgetLine(tisupp, 'domestic-support')).toBeNull();
     expect(defaultBudgetLine(regen, 'domestic-support')).toBe('domestic-support');
   });
+
+  it('is the only line when the source has one, so nothing is asked (decision 0023)', () => {
+    const oneLine = {
+      ...tisupp,
+      budget_lines: [{ id: 'chw-experience-hours', name: 'CHW experience hours' }],
+    };
+    expect(defaultBudgetLine(oneLine, null)).toBe('chw-experience-hours');
+    expect(defaultBudgetLine(oneLine, 'chw-referrals')).toBe('chw-experience-hours');
+    expect(carryPicks(oneLine, [], 'domestic-support').budget_line_id).toBe('chw-experience-hours');
+  });
 });
 
-describe('carryPicks (decision 0008)', () => {
-  it('keeps task and budget line the new source has', () => {
-    expect(carryPicks(regen, 'outreach', 'chw-referrals')).toEqual({
-      task_id: 'outreach',
+describe('carryPicks (decisions 0008, 0024)', () => {
+  const outreach = { task_id: 'outreach', quarters: 4 };
+  const domestic = { task_id: 'domestic-support', quarters: 2 };
+
+  it('keeps tasks, with their shares, and the budget line the new source has', () => {
+    expect(carryPicks(regen, [outreach], 'chw-referrals')).toEqual({
+      tasks: [outreach],
       budget_line_id: 'chw-referrals',
     });
   });
 
   it('clears picks the new source lacks', () => {
-    expect(carryPicks(tisupp, 'domestic-support', 'domestic-support')).toEqual({
-      task_id: null,
+    expect(carryPicks(tisupp, [domestic], 'domestic-support')).toEqual({
+      tasks: [],
       budget_line_id: null,
     });
-    expect(carryPicks(tisupp, 'outreach', 'domestic-support')).toEqual({
-      task_id: 'outreach',
+    expect(carryPicks(tisupp, [outreach, domestic], 'domestic-support')).toEqual({
+      tasks: [outreach],
       budget_line_id: null,
     });
-    expect(carryPicks(tisupp, null, null)).toEqual({ task_id: null, budget_line_id: null });
+    expect(carryPicks(tisupp, [], null)).toEqual({ tasks: [], budget_line_id: null });
   });
 });

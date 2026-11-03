@@ -5,7 +5,7 @@ import { needsInstallGate } from './platform';
 import { loadData, StoreProvider, useApp, type Data } from './store';
 import { AllEntries } from './screens/AllEntries';
 import { EditEntry } from './screens/EditEntry';
-import { CountsStep, EnterTimes, TaskStep } from './screens/EntrySteps';
+import { CountsStep, EnterTimes, SplitStep, TaskStep } from './screens/EntrySteps';
 import { Home } from './screens/Home';
 import { InstallGate } from './screens/InstallGate';
 import { InvoicePreview } from './screens/InvoicePreview';
@@ -14,6 +14,7 @@ import { PastInvoices } from './screens/PastInvoices';
 import { Settings } from './screens/Settings';
 import { Setup } from './screens/Setup';
 import { TimerRunning } from './screens/TimerRunning';
+import { WorkHoursReport } from './screens/WorkHoursReport';
 import { Confirm } from './components';
 
 type Boot =
@@ -32,6 +33,9 @@ function Screens() {
       break;
     case 'task':
       view = <TaskStep />;
+      break;
+    case 'split':
+      view = <SplitStep />;
       break;
     case 'counts':
       view = <CountsStep />;
@@ -53,6 +57,9 @@ function Screens() {
       break;
     case 'invoices':
       view = <PastInvoices />;
+      break;
+    case 'report':
+      view = <WorkHoursReport />;
       break;
     default:
       view = data.app.running_timer ? <TimerRunning /> : <Home />;

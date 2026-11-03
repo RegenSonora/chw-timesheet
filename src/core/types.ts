@@ -9,11 +9,37 @@ export interface FundingSourceConfig {
   code: string;
   name: string;
   version: number;
+  /** First and last day hours can be dated for this source; null for no limit (decision 0033). */
+  period_start: string | null;
+  period_end: string | null;
   has_nte: boolean;
   default_rate_cents: number | null;
+  /** NTE prefilled at setup (decision 0023). */
+  default_nte_cents?: number;
+  /** A raise after some billed hours; the app only reminds (decision 0023). */
+  rate_step?: RateStep;
+  /** Invoiced hours for CHW certification eligibility (decision 0026). */
+  certification_step?: CertificationStep;
+  /** Who funds the work, for the Work Hours Report (decision 0026). */
+  report_funding_line?: string;
   certification_text: string;
+  /** Certification statement on employee timesheets (decision 0031). */
+  employee_certification_text?: string;
   tasks: Task[];
   budget_lines: BudgetLine[];
+}
+
+export interface RateStep {
+  /** Quarter-hours billed before the raise, e.g. 960 for 240 hours. */
+  after_quarters: number;
+  rate_cents: number;
+}
+
+export interface CertificationStep {
+  /** Quarter-hours invoiced, e.g. 1920 for 480 hours. */
+  after_quarters: number;
+  /** Short name on Home, e.g. "CHW Cert". */
+  name: string;
 }
 
 export interface Task {
@@ -25,8 +51,76 @@ export interface Task {
 
 export interface BudgetLine {
   id: string;
+  /** Printed on invoices, timesheets and CSVs. */
   name: string;
+  /** Shown in the app instead of `name` when set (decision 0028). */
+  display_name?: string;
 }
+
+/** src/roles/roles.json (schemas/roles.schema.json, decisions 0027, 0029). */
+export interface RolesFile {
+  format_version: 1;
+  version: number;
+  /** Every count any task shows, in display and entry log column order. */
+  counts: CountDef[];
+  roles: Role[];
+}
+
+/** One count in the shared list (decision 0029). */
+export interface CountDef {
+  /** Entry log column name; never changes, never reused. */
+  id: string;
+  label: string;
+  /** Shown after the number, e.g. "gal". */
+  unit?: string;
+  retired?: true;
+}
+
+export interface Role {
+  id: string;
+  /** e.g. CHW-TC01 */
+  code: string;
+  name: string;
+  employment: 'contractor' | 'employee';
+  /** Core competency column and Work Hours Report (decision 0032). */
+  chw: boolean;
+  suggested_rate_cents?: number;
+  /** Invoiced or submitted hours for CHW certification eligibility (decision 0032). */
+  certification_step?: CertificationStep;
+  certification_text?: string;
+  employee_certification_text?: string;
+  retired?: true;
+  /** Where people in this retired role move (decision 0027). */
+  replaced_by?: string;
+  /** The sources this role bills, in display order. */
+  funding: RoleFunding[];
+}
+
+/** One source a role bills (decisions 0030, 0033). */
+export interface RoleFunding {
+  source_id: string;
+  rate_cents?: number;
+  nte_cents?: number;
+  /** A raise after some invoiced or submitted hours on this source; the app only reminds. */
+  rate_step?: RateStep;
+  /** Last day this role can date hours on this source. */
+  ends?: string;
+  budget_lines: RoleBudgetLine[];
+}
+
+export interface RoleBudgetLine {
+  id: string;
+  tasks: RoleTask[];
+}
+
+export interface RoleTask {
+  id: string;
+  /** Counts this task shows, by id from the shared list. */
+  count_ids: string[];
+}
+
+/** Count values by count id (decision 0029). Whole numbers. */
+export type CountValues = Record<string, number>;
 
 /** The CHW's details (SPEC §4). */
 export interface Profile {
@@ -35,6 +129,8 @@ export interface Profile {
   mailing_address: string;
   /** Empty slot so a logo can be added later without redesign (SPEC §2). */
   logo: null;
+  /** The role picked at setup (decision 0027); null until one is picked. */
+  role_id: string | null;
 }
 
 /** Per funding source the CHW works under (SPEC §4). */
@@ -50,13 +146,10 @@ export interface OtherCount {
   value: number;
 }
 
-/** Counts on an entry, or summed over many entries (SPEC §5). */
+/** Counts on an entry, or summed over many entries (SPEC §5, decision 0029). */
 export interface Counts {
-  contacts: number;
-  referrals_given: number;
-  referral_followups: number;
-  rides_provided: number;
-  applications_completed: number;
+  /** By count id from the shared list in src/roles/roles.json. */
+  values: CountValues;
   /** "Add another count": label + number. */
   other: OtherCount[];
 }
@@ -65,13 +158,16 @@ export interface Counts {
 export interface Entry {
   id: string;
   source_id: string;
+  /** The person's role when the entry was saved (decision 0027); null before a role is picked. */
+  role_id: string | null;
   /** Raw start, ISO 8601 with offset, whole seconds. */
   start: string;
   /** Raw stop, ISO 8601 with offset, whole seconds. */
   stop: string;
   /** YYYY-MM-DD: the start's local date. */
   entry_date: string;
-  task_id: string;
+  /** The tasks done, with the billed hours split between them (decision 0024). */
+  tasks: TaskShare[];
   budget_line_id: string;
   counts: Counts;
   notes: string;
@@ -81,6 +177,20 @@ export interface Entry {
   updated_at: string;
 }
 
+/** One task's part of an entry. The shares add up to the entry's billed quarter-hours. */
+export interface TaskShare {
+  task_id: string;
+  quarters: number;
+}
+
+/** A task share as frozen into an invoice, with the names it was billed under. */
+export interface InvoiceTaskShare {
+  task_id: string;
+  task_name: string;
+  core_competency: string | null;
+  quarters: number;
+}
+
 /** An entry as frozen into an invoice, with the names it was billed under. */
 export interface InvoiceEntry {
   id: string;
@@ -88,9 +198,8 @@ export interface InvoiceEntry {
   stop: string;
   entry_date: string;
   quarters: number;
-  task_id: string;
-  task_name: string;
-  core_competency: string | null;
+  /** In the order the CHW checked them; quarters add up to `quarters`. */
+  tasks: InvoiceTaskShare[];
   budget_line_id: string;
   budget_line_name: string;
   counts: Counts;
@@ -120,13 +229,20 @@ export type NteStatus =
       over: boolean;
     };
 
-/** An invoice. Never edited after creation (CLAUDE.md rule 5). */
+/** The role an invoice or timesheet was made under, as it was then (decision 0027). */
+export type InvoiceRole = Pick<Role, 'id' | 'code' | 'name' | 'employment' | 'chw'>;
+
+/** An invoice or timesheet. Never edited after creation (CLAUDE.md rule 5). */
 export interface Invoice {
   id: string;
   /** e.g. CC-2026-004 */
   number: string;
   /** The counter value used, e.g. 4. */
   sequence: number;
+  /** Employees submit timesheets; everyone else invoices (decision 0031). */
+  kind: 'invoice' | 'timesheet';
+  /** Null for invoices made before a role was picked. */
+  role: InvoiceRole | null;
   source: {
     id: string;
     code: string;
@@ -149,6 +265,8 @@ export interface Invoice {
   counts_period: Counts;
   /** This source on this phone, including this invoice. */
   counts_all_time: Counts;
+  /** Labels and units of the counts with a value in either, in list order (decision 0029). */
+  count_defs: CountDef[];
   nte: NteStatus;
   canonical_version: number;
   /** SHA-256 of the canonical form, 64 lower-case hex characters. */

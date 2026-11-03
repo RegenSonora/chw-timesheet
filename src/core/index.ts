@@ -8,6 +8,8 @@ export * from './money';
 export * from './overlap';
 export * from './picks';
 export * from './rate-change';
+export * from './role-stats';
+export * from './roles';
 export * from './stats';
 export * from './summary';
 export * from './task-split';

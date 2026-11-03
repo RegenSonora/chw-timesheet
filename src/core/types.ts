@@ -9,6 +9,9 @@ export interface FundingSourceConfig {
   code: string;
   name: string;
   version: number;
+  /** First and last day hours can be dated for this source; null for no limit (decision 0033). */
+  period_start: string | null;
+  period_end: string | null;
   has_nte: boolean;
   default_rate_cents: number | null;
   /** NTE prefilled at setup (decision 0023). */
@@ -20,6 +23,8 @@ export interface FundingSourceConfig {
   /** Who funds the work, for the Work Hours Report (decision 0026). */
   report_funding_line?: string;
   certification_text: string;
+  /** Certification statement on employee timesheets (decision 0031). */
+  employee_certification_text?: string;
   tasks: Task[];
   budget_lines: BudgetLine[];
 }
@@ -46,8 +51,76 @@ export interface Task {
 
 export interface BudgetLine {
   id: string;
+  /** Printed on invoices, timesheets and CSVs. */
   name: string;
+  /** Shown in the app instead of `name` when set (decision 0028). */
+  display_name?: string;
 }
+
+/** src/roles/roles.json (schemas/roles.schema.json, decisions 0027, 0029). */
+export interface RolesFile {
+  format_version: 1;
+  version: number;
+  /** Every count any task shows, in display and entry log column order. */
+  counts: CountDef[];
+  roles: Role[];
+}
+
+/** One count in the shared list (decision 0029). */
+export interface CountDef {
+  /** Entry log column name; never changes, never reused. */
+  id: string;
+  label: string;
+  /** Shown after the number, e.g. "gal". */
+  unit?: string;
+  retired?: true;
+}
+
+export interface Role {
+  id: string;
+  /** e.g. CHW-TC01 */
+  code: string;
+  name: string;
+  employment: 'contractor' | 'employee';
+  /** Core competency column and Work Hours Report (decision 0032). */
+  chw: boolean;
+  suggested_rate_cents?: number;
+  /** Invoiced or submitted hours for CHW certification eligibility (decision 0032). */
+  certification_step?: CertificationStep;
+  certification_text?: string;
+  employee_certification_text?: string;
+  retired?: true;
+  /** Where people in this retired role move (decision 0027). */
+  replaced_by?: string;
+  /** The sources this role bills, in display order. */
+  funding: RoleFunding[];
+}
+
+/** One source a role bills (decisions 0030, 0033). */
+export interface RoleFunding {
+  source_id: string;
+  rate_cents?: number;
+  nte_cents?: number;
+  /** A raise after some invoiced or submitted hours on this source; the app only reminds. */
+  rate_step?: RateStep;
+  /** Last day this role can date hours on this source. */
+  ends?: string;
+  budget_lines: RoleBudgetLine[];
+}
+
+export interface RoleBudgetLine {
+  id: string;
+  tasks: RoleTask[];
+}
+
+export interface RoleTask {
+  id: string;
+  /** Counts this task shows, by id from the shared list. */
+  count_ids: string[];
+}
+
+/** Count values by count id (decision 0029). Whole numbers. */
+export type CountValues = Record<string, number>;
 
 /** The CHW's details (SPEC §4). */
 export interface Profile {

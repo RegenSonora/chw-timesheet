@@ -72,16 +72,16 @@ export interface Viewing {
   created: boolean;
 }
 
-/** Why "Create invoice files" saved nothing, in plain words (SPEC §10). */
+/** Why "Create invoice files" (or timesheet files) saved nothing, in plain words (SPEC §10). */
 const CREATE_PROBLEMS: Record<string, string> = {
   changed:
-    'Your entries changed while the invoice was being made. Nothing was locked. Check the invoice and try again.',
-  no_entries: 'There are no entries left to invoice.',
+    'Your entries changed while the files were being made. Nothing was locked. Check them and try again.',
+  no_entries: 'There are no entries waiting.',
   no_rate: 'Enter your hourly rate in Settings first.',
   bad_settings: 'Enter your hourly rate in Settings first.',
   no_profile: 'Enter your details in Settings first.',
   bad_initials: 'Check your initials in Settings.',
-  bad_entry: "One entry can't be invoiced. Open it from Home and check its task and times.",
+  bad_entry: "One entry can't be included. Open it from Home and check its task and times.",
 };
 
 export interface Toast {
@@ -551,7 +551,7 @@ function useStore(storage: Storage, initial: Data) {
         if (!result?.ok) {
           return (
             (result && CREATE_PROBLEMS[result.reason]) ??
-            "The invoice couldn't be created. Nothing was locked. Try again."
+            "The files couldn't be created. Nothing was locked. Try again."
           );
         }
         setViewing({ invoice_id: result.invoice.id, created: true });

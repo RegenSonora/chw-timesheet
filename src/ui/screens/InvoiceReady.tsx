@@ -1,14 +1,16 @@
 // Invoice created (SPEC §6–§8, wireframe Share): the four files, Share, and the signing steps.
-// The same screen re-shares a past invoice, re-creating its files from stored data.
+// The same screen re-shares a past invoice, re-creating its files from stored data. A timesheet
+// shows hours, not dollars, and its steps add the supervisor's signature (decision 0031).
 import { useLayoutEffect, useMemo, useState } from 'preact/hooks';
 import { formatDollars, paginateTimesheet, shortFingerprint } from '../../core';
 import { buildInvoiceFiles, invoicePageShapes, pngName, type InvoiceFile } from '../../files';
 import { dateRange } from '../../files/text';
 import { findFundingSource } from '../../funding-sources';
 import { CheckIcon, Confirm, Page } from '../components';
-import { plural } from '../format';
+import { hoursLabel, plural } from '../format';
 import { pagePng } from '../page-image';
 import { shareFiles, toFiles, type ShareOutcome } from '../share';
+import { COUNT_DEFS } from '../../roles';
 import { useApp } from '../store';
 
 const STATUS: Record<ShareOutcome, string> = {
@@ -30,14 +32,15 @@ export function InvoiceReady() {
     if (!invoice) return null;
     const source = findFundingSource(invoice.source.id) ?? { tasks: [], budget_lines: [] };
     const pages = paginateTimesheet(invoice, source).length;
-    const [pdf, timesheet, entries] = buildInvoiceFiles(invoice, source);
+    const [pdf, timesheet, entries] = buildInvoiceFiles(invoice, source, COUNT_DEFS);
     const png = pagePng(invoicePageShapes(invoice, source));
+    const first = invoice.kind === 'timesheet' ? 'Timesheet summary' : 'Invoice';
     const list: { file: InvoiceFile; tag: string; detail: string }[] = [];
     if (pdf) {
       list.push({
         file: pdf,
         tag: 'PDF',
-        detail: `Invoice + ${plural(pages, 'timesheet page', 'timesheet pages')}. Sign this or the picture.`,
+        detail: `${first} + ${plural(pages, 'timesheet page', 'timesheet pages')}. Sign this or the picture.`,
       });
     }
     // The picture of page 1, for signing in a photo app (decision 0018).
@@ -45,7 +48,7 @@ export function InvoiceReady() {
       list.push({
         file: { name: pngName(invoice), type: 'image/png', bytes: png },
         tag: 'PNG',
-        detail: 'Picture of the invoice page, for signing in a photo app',
+        detail: `Picture of the ${first.toLowerCase()} page, for signing in a photo app`,
       });
     }
     if (timesheet) {
@@ -64,7 +67,7 @@ export function InvoiceReady() {
       created && !shared
         ? () => ({
             title: 'Leave without sharing?',
-            body: 'You can share the files later from Past invoices on Home.',
+            body: `You can share the files later from Past ${invoice?.kind === 'timesheet' ? 'timesheets' : 'invoices'} on Home.`,
             confirm: 'Leave without sharing',
             cancel: 'Stay',
           })
@@ -76,10 +79,12 @@ export function InvoiceReady() {
   }, [actions, created, shared]);
 
   if (!invoice || !files) return null;
+  const timesheet = invoice.kind === 'timesheet';
+  const Noun = timesheet ? 'Timesheet' : 'Invoice';
 
   const share = async () => {
     setAsking(false);
-    setOutcome(await shareFiles(toFiles(files.map((f) => f.file)), `Invoice ${invoice.number}`));
+    setOutcome(await shareFiles(toFiles(files.map((f) => f.file)), `${Noun} ${invoice.number}`));
   };
 
   const done = () => {
@@ -89,7 +94,7 @@ export function InvoiceReady() {
 
   return (
     <Page
-      title={created ? 'Invoice created' : `Invoice ${invoice.number}`}
+      title={created ? `${Noun} created` : `${Noun} ${invoice.number}`}
       back={!created}
       footer={
         <>
@@ -106,17 +111,21 @@ export function InvoiceReady() {
         {created && <CheckIcon />}
         <div>
           <h2 class="ready-title">
-            {created ? `Invoice ${invoice.number} is ready` : invoice.source.code}
+            {created ? `${Noun} ${invoice.number} is ready` : invoice.source.code}
           </h2>
           <p class="hint">
             {created
               ? `${plural(invoice.entries.length, 'entry is', 'entries are')} now locked.`
-              : `${dateRange(invoice.period_start, invoice.period_end)} · ${formatDollars(invoice.total_cents)}`}
+              : `${dateRange(invoice.period_start, invoice.period_end)} · ${
+                  timesheet
+                    ? hoursLabel(invoice.total_quarters)
+                    : formatDollars(invoice.total_cents)
+                }`}
           </p>
         </div>
       </div>
 
-      <ul class="card files" aria-label="Invoice files">
+      <ul class="card files" aria-label={`${Noun} files`}>
         {files.map(({ file, tag, detail }) => (
           <li key={file.name} class="file">
             <span class="file-tag" aria-hidden="true">
@@ -137,8 +146,17 @@ export function InvoiceReady() {
           Sign the PDF (Markup on iPhone, or Adobe Acrobat Fill &amp; Sign on Android), or sign the
           picture in your photo app. Sign one, not both.
         </li>
-        <li>Email the signed file and both CSV files to your reviewer.</li>
-        <li>Your reviewer signs and sends everything to the office.</li>
+        {timesheet ? (
+          <>
+            <li>Email the signed file and both CSV files to your supervisor.</li>
+            <li>Your supervisor signs the same page and sends everything to the office.</li>
+          </>
+        ) : (
+          <>
+            <li>Email the signed file and both CSV files to your reviewer.</li>
+            <li>Your reviewer signs and sends everything to the office.</li>
+          </>
+        )}
       </ol>
       <p class="hint">Fingerprint {shortFingerprint(invoice.fingerprint)}</p>
 
@@ -149,7 +167,11 @@ export function InvoiceReady() {
       {asking && (
         <Confirm
           title="Share the files first?"
-          body={<p>You can share them later from Past invoices on Home.</p>}
+          body={
+            <p>
+              You can share them later from Past {timesheet ? 'timesheets' : 'invoices'} on Home.
+            </p>
+          }
           confirm="Share files"
           second={{
             label: 'Done anyway',

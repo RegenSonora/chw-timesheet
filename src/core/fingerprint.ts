@@ -3,8 +3,11 @@
 import { canonicalJson } from './canonical';
 import type { Counts, Invoice, InvoiceEntry, InvoiceTaskShare } from './types';
 
-/** The version new invoices get. v2: several tasks per entry (decision 0024). */
-export const CANONICAL_VERSION = 2;
+/**
+ * The version new invoices get. v2: several tasks per entry (decision 0024). v3: kind, role,
+ * certification text and counts by id (roles plan R5, decisions 0029, 0031).
+ */
+export const CANONICAL_VERSION = 3;
 
 /** The fields an invoice is fingerprinted over: header, entries, lines, totals and rate. */
 export type FingerprintedInvoice = Omit<Invoice, 'fingerprint'>;
@@ -134,9 +137,84 @@ export function canonicalFormV2(invoice: FingerprintedInvoice): string {
   });
 }
 
+/** Form v3 counts: every nonzero value by count id, then the other counts as entered. */
+function countsFormV3(counts: Counts) {
+  return {
+    values: Object.fromEntries(Object.entries(counts.values).filter(([, v]) => v !== 0)),
+    other: counts.other.map((o) => ({ label: o.label, value: o.value })),
+  };
+}
+
+/**
+ * Canonical form v3: as v2, plus the invoice's kind (invoice or timesheet), the role it was made
+ * under, the certification text it prints, and each entry's counts by count id (roles plan R5).
+ */
+export function canonicalFormV3(invoice: FingerprintedInvoice): string {
+  const role = invoice.role;
+  return canonicalJson({
+    v: 3,
+    id: invoice.id,
+    kind: invoice.kind,
+    number: invoice.number,
+    sequence: invoice.sequence,
+    invoice_date: invoice.invoice_date,
+    period_start: invoice.period_start,
+    period_end: invoice.period_end,
+    role: role
+      ? {
+          id: role.id,
+          code: role.code,
+          name: role.name,
+          employment: role.employment,
+          chw: role.chw,
+        }
+      : null,
+    source: {
+      id: invoice.source.id,
+      code: invoice.source.code,
+      name: invoice.source.name,
+      version: invoice.source.version,
+      certification_text: invoice.source.certification_text,
+    },
+    chw: {
+      name: invoice.chw.name,
+      initials: invoice.chw.initials,
+      mailing_address: invoice.chw.mailing_address,
+    },
+    rate_cents: invoice.rate_cents,
+    entries: invoice.entries.map((e) => ({
+      id: e.id,
+      start: e.start,
+      stop: e.stop,
+      entry_date: e.entry_date,
+      quarters: e.quarters,
+      tasks: e.tasks.map((t) => ({
+        task_id: t.task_id,
+        task_name: t.task_name,
+        core_competency: t.core_competency,
+        quarters: t.quarters,
+      })),
+      budget_line_id: e.budget_line_id,
+      budget_line_name: e.budget_line_name,
+      counts: countsFormV3(e.counts),
+      notes: e.notes,
+    })),
+    lines: invoice.lines.map((l) => ({
+      budget_line_id: l.budget_line_id,
+      budget_line_name: l.budget_line_name,
+      quarters: l.quarters,
+      rate_cents: l.rate_cents,
+      amount_cents: l.amount_cents,
+    })),
+    total_quarters: invoice.total_quarters,
+    total_cents: invoice.total_cents,
+  });
+}
+
 const FORMS: Record<number, (invoice: FingerprintedInvoice) => string> = {
   1: canonicalFormV1,
   2: canonicalFormV2,
+  3: canonicalFormV3,
 };
 
 /** The canonical string for the invoice's own canonical version. */

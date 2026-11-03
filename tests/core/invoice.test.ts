@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { sumCounts } from '../../src/core/counts';
-import { buildInvoiceDraft, createInvoice, uninvoicedEntries } from '../../src/core/invoice';
+import {
+  buildInvoiceDraft,
+  certificationText,
+  createInvoice,
+  uninvoicedEntries,
+} from '../../src/core/invoice';
 import type { InvoiceInput } from '../../src/core/invoice';
 import { verifyFingerprint } from '../../src/core/fingerprint';
 import {
@@ -185,10 +190,10 @@ describe('several tasks per entry (decision 0024)', () => {
     }
   });
 
-  it('new invoices use canonical form v2 and verify', async () => {
+  it('new invoices use the current canonical form (v3) and verify', async () => {
     const result = await createInvoice(splitSampleInput());
     if (!result.ok) throw new Error(result.reason);
-    expect(result.invoice.canonical_version).toBe(2);
+    expect(result.invoice.canonical_version).toBe(3);
     expect(await verifyFingerprint(result.invoice)).toBe(true);
   });
 });
@@ -486,5 +491,37 @@ describe('createInvoice', () => {
     const before = structuredClone(input);
     await createInvoice(input);
     expect(input).toEqual(before);
+  });
+});
+
+describe('certification text by role (decision 0031)', () => {
+  const employee = findTestRole('chw-te01');
+  const contractor = findTestRole('chw-tc01');
+
+  it('employees sign the source employee text, contractors the contractor text', () => {
+    expect(certificationText(tisupp, employee)).toBe(tisupp.employee_certification_text);
+    expect(certificationText(tisupp, contractor)).toBe(tisupp.certification_text);
+    expect(certificationText(tisupp, null)).toBe(tisupp.certification_text);
+  });
+
+  it('a role overrides either text, and an employee falls back to the contractor text', () => {
+    expect(certificationText(tisupp, { ...employee, employee_certification_text: 'E' })).toBe('E');
+    expect(certificationText(tisupp, { ...contractor, certification_text: 'C' })).toBe('C');
+    const noEmployeeText = { ...tisupp };
+    delete noEmployeeText.employee_certification_text;
+    expect(certificationText(noEmployeeText, employee)).toBe(tisupp.certification_text);
+  });
+
+  it('a timesheet tracks no not-to-exceed amount', async () => {
+    const result = await createInvoice(sampleInput({ role: employee }));
+    if (!result.ok) throw new Error(result.reason);
+    expect(result.invoice.nte).toEqual({ state: 'none' });
+  });
+
+  it('a new timesheet freezes the employee text and seals it with form v3', async () => {
+    const result = await createInvoice(sampleInput({ role: employee }));
+    if (!result.ok) throw new Error(result.reason);
+    expect(result.invoice.source.certification_text).toBe(tisupp.employee_certification_text);
+    expect(result.invoice.canonical_version).toBe(3);
   });
 });

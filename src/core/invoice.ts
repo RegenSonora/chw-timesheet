@@ -144,7 +144,11 @@ export function buildInvoiceDraft(input: InvoiceInput): InvoiceDraftResult {
   const totalQuarters = invoiceLines.reduce((sum, l) => sum + l.quarters, 0);
 
   const earlier = input.prior_invoices.filter((i) => i.source.id === source.id);
-  const nte = nteStatus(source, settings, earlier, totalCents);
+  // Timesheets track no not-to-exceed amount (decision 0031).
+  const nte: NteStatus =
+    input.role?.employment === 'employee'
+      ? { state: 'none' }
+      : nteStatus(source, settings, earlier, totalCents);
   const countsPeriod = sumCounts(frozen.map((e) => e.counts));
   const countsAllTime = sumCounts([...earlier.map((i) => i.counts_period), countsPeriod]);
   const hasValue = (id: string) =>
@@ -178,7 +182,7 @@ export function buildInvoiceDraft(input: InvoiceInput): InvoiceDraftResult {
         code: source.code,
         name: source.name,
         version: source.version,
-        certification_text: source.certification_text,
+        certification_text: certificationText(source, role),
       },
       chw: {
         name: profile.name,
@@ -202,6 +206,21 @@ export function buildInvoiceDraft(input: InvoiceInput): InvoiceDraftResult {
       updated_at: input.now,
     },
   };
+}
+
+/**
+ * The certification the page prints: employees sign the employee text, others the contractor
+ * text; a role may override either (decision 0031).
+ */
+export function certificationText(source: FundingSourceConfig, role: Role | null): string {
+  if (role?.employment === 'employee') {
+    return (
+      role.employee_certification_text ??
+      source.employee_certification_text ??
+      source.certification_text
+    );
+  }
+  return role?.certification_text ?? source.certification_text;
 }
 
 function nteStatus(

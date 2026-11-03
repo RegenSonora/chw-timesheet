@@ -100,11 +100,25 @@ function countsV4(counts: Record<string, unknown>) {
 
 type WithCounts = StoredRecord & { counts: Record<string, unknown> };
 
+/** A half-done v3 setup starts over at its details step with no role; typed rates are kept. */
+function setupDraftV4(draft: object) {
+  const sources = (draft as { sources?: Record<string, { rate?: unknown }> }).sources ?? {};
+  return {
+    ...draft,
+    step: 'details',
+    role_id: null,
+    sources: Object.fromEntries(
+      Object.entries(sources).map(([id, s]) => [id, { rate: s.rate ?? '' }]),
+    ),
+  };
+}
+
 /**
- * v3 → v4 (roles plan R3, decision 0027): profiles and entries get no role (`role_id: null`;
+ * v3 → v4 (roles plans R3 and R4, decision 0027): profiles and entries get no role (`role_id: null`;
  * none is guessed), counts move under their count ids, and invoices become `kind: "invoice"`
  * with no role and the labels of the five counts they hold. Frozen invoices keep their canonical
- * version and still verify: forms v1 and v2 read the same five values from the map.
+ * version and still verify: forms v1 and v2 read the same five values from the map. A half-done
+ * setup starts over at its details step, since setup now picks a role.
  */
 export const v3ToV4: UpgradeStep = (snapshot) => ({
   ...snapshot,
@@ -132,6 +146,7 @@ export const v3ToV4: UpgradeStep = (snapshot) => ({
   app_state: (snapshot['app_state'] ?? []).map((record) => {
     const state = record as StoredRecord & { draft: (WithCounts & { kind: string }) | null };
     const draft = state.draft;
+    if (draft?.kind === 'setup') return { ...state, draft: setupDraftV4(draft) };
     if (draft?.kind !== 'entry') return state;
     return { ...state, draft: { ...draft, counts: countsV4(draft.counts) } };
   }),

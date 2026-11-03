@@ -1,8 +1,11 @@
 // Home (SPEC §5, §6): source chip, "Not yet invoiced", My stats, Past invoices, Generate,
-// Start, Record time, and the 240-hour raise reminder (decisions 0023, 0025, 0026).
+// Start, Record time, the 240-hour raise reminder, and the role's wording (decisions 0023, 0025,
+// 0026, 0030, 0031, 0033).
 import { useState } from 'preact/hooks';
 import {
   formatDollars,
+  fundingChoices,
+  raiseStatus,
   sourceMyStats,
   rateStepReminder,
   uninvoicedEntries,
@@ -10,6 +13,8 @@ import {
   type FundingSourceConfig,
   type RateStepReminder,
 } from '../../core';
+import { FUNDING_SOURCES } from '../../funding-sources';
+import { phoneNow } from '../../storage';
 import {
   EntryRow,
   ListPicker,
@@ -19,7 +24,7 @@ import {
   ToastBar,
   Warning,
 } from '../components';
-import { hoursLabel, plural } from '../format';
+import { hoursLabel, localDateTime, plural, roleRaiseText } from '../format';
 import { sourceById, useApp } from '../store';
 import { isMidEntry, useUpdate } from '../update';
 
@@ -143,6 +148,8 @@ export function rateStepText(reminder: RateStepReminder, code: string): string {
     : `You've billed ${hours}. Your rate goes up to ${rate}. Change it in Settings before your next invoice.`;
 }
 
+export const NO_FUNDING = 'No active funding for your role. Ask the office.';
+
 export function HomeHeaderAside({ onChip }: { onChip: () => void }) {
   const { actions } = useApp();
   return (
@@ -164,7 +171,7 @@ export function HomeHeaderAside({ onChip }: { onChip: () => void }) {
 }
 
 export function Home() {
-  const { data, selectedSource, actions } = useApp();
+  const { data, selectedSource, role, actions } = useApp();
   const [picking, setPicking] = useState(false);
   const update = useUpdate();
   if (!selectedSource) return null;
@@ -172,7 +179,22 @@ export function Home() {
   const rate = data.settings.find((s) => s.source_id === selectedSource.id)?.rate_cents ?? null;
   const open = uninvoicedEntries(data.entries, selectedSource.id).reverse();
   const summary = uninvoicedSummary(data.entries, selectedSource.id, rate);
-  const reminder = rateStepReminder(selectedSource, rate, data.invoices, summary.quarters);
+  const employee = role?.employment === 'employee';
+  const funding = role?.funding.find((f) => f.source_id === selectedSource.id);
+  const reminder = role
+    ? funding
+      ? raiseStatus(funding, rate, data.invoices, summary.quarters)
+      : null
+    : rateStepReminder(selectedSource, rate, data.invoices, summary.quarters);
+  const reminderText = reminder
+    ? role
+      ? roleRaiseText(reminder, employee)
+      : rateStepText(reminder, selectedSource.code)
+    : null;
+  // Decision 0033: every source ended. Record time stays for dates inside a period.
+  const noFunding =
+    role !== null &&
+    fundingChoices(role, FUNDING_SOURCES, localDateTime(phoneNow()).date).length === 0;
 
   return (
     <Page
@@ -192,9 +214,11 @@ export function Home() {
               Updated, tap to reload
             </button>
           )}
-          <button type="button" class="btn btn-start" onClick={() => void actions.startTimer()}>
-            Start timer
-          </button>
+          {!noFunding && (
+            <button type="button" class="btn btn-start" onClick={() => void actions.startTimer()}>
+              Start timer
+            </button>
+          )}
           <button
             type="button"
             class="btn btn-start btn-green"
@@ -205,9 +229,10 @@ export function Home() {
         </>
       }
     >
-      {reminder && <Warning>{rateStepText(reminder, selectedSource.code)}</Warning>}
+      {noFunding && <Warning>{NO_FUNDING}</Warning>}
+      {reminderText && <Warning>{reminderText}</Warning>}
       <div class="list-head">
-        <h2>Not yet invoiced</h2>
+        <h2>{employee ? 'Not yet submitted' : 'Not yet invoiced'}</h2>
         {summary.count > 0 && (
           <span class="summary">
             {plural(summary.count, 'entry', 'entries')} · {hoursLabel(summary.quarters)}
@@ -216,7 +241,11 @@ export function Home() {
         )}
       </div>
       {summary.count === 0 ? (
-        <p class="empty">Start timer and start working or record time.</p>
+        <p class="empty">
+          {noFunding
+            ? 'Record time for dates your funding covered.'
+            : 'Start timer and start working or record time.'}
+        </p>
       ) : (
         <ul class="entries">
           {open.slice(0, HOME_ENTRIES).map((e) => (
@@ -253,21 +282,24 @@ export function Home() {
           actions.push('invoices');
         }}
       >
-        <span>Past invoices</span>
+        <span>{employee ? 'Past timesheets' : 'Past invoices'}</span>
         <span class="nav-row-detail">
           {data.invoices.length > 0
-            ? plural(data.invoices.length, 'invoice', 'invoices')
+            ? employee
+              ? plural(data.invoices.length, 'timesheet', 'timesheets')
+              : plural(data.invoices.length, 'invoice', 'invoices')
             : 'None yet'}
         </span>
       </button>
-      {/* Decision 0026: under Past invoices, the same size, light green with dark gold text. */}
+      {/* Decision 0026: under Past invoices, the same size, light green with dark gold text.
+          Employees submit a timesheet instead (decision 0031). */}
       {summary.count > 0 && (
         <button
           type="button"
           class="card nav-row home-generate"
           onClick={() => void actions.openInvoicePreview(selectedSource.id)}
         >
-          Generate Regen Invoice
+          {employee ? 'Submit timesheet' : 'Generate Regen Invoice'}
         </button>
       )}
       <ToastBar />

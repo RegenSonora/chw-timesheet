@@ -5,8 +5,12 @@ import {
   dateLabel,
   durationLabel,
   hoursLabel,
+  lineName,
   localDateTime,
+  paperWord,
   plural,
+  roleLabel,
+  roleRaiseText,
   shortDateLabel,
   timeLabel,
   timeRangeLabel,
@@ -93,5 +97,47 @@ describe('billedToLabel (decision 0028)', () => {
 
   it('is null when every step has a choice', () => {
     expect(billedToLabel(null, null)).toBeNull();
+  });
+});
+
+describe('role words (decisions 0027, 0028, 0031)', () => {
+  it('names a role by code and name', () => {
+    expect(roleLabel({ code: 'CHW-TC01', name: 'CHW Trainee (Contractor)' })).toBe(
+      'CHW-TC01 · CHW Trainee (Contractor)',
+    );
+  });
+
+  it('shows a budget line by its display name when it has one', () => {
+    expect(lineName({ name: 'Other contractors', display_name: 'Other' })).toBe('Other');
+    expect(lineName({ name: 'Maintenance labor' })).toBe('Maintenance labor');
+  });
+
+  it('says timesheet for employees, invoice otherwise', () => {
+    expect(paperWord({ employment: 'employee' })).toBe('timesheet');
+    expect(paperWord({ employment: 'contractor' })).toBe('invoice');
+    expect(paperWord(null)).toBe('invoice');
+  });
+});
+
+describe('roleRaiseText (decision 0030)', () => {
+  const reached = { invoice_first: true, after_quarters: 960, rate_cents: 2300 };
+  const billed = { ...reached, invoice_first: false };
+
+  it('asks a contractor to invoice first, an employee to submit first', () => {
+    expect(roleRaiseText(reached, false)).toBe(
+      "You've reached 240 hours. Generate your invoice now, then change your rate to $23.00 in Settings.",
+    );
+    expect(roleRaiseText(reached, true)).toBe(
+      "You've reached 240 hours. Submit your timesheet now, then change your rate to $23.00 in Settings.",
+    );
+  });
+
+  it('once billed, asks for the new rate before the next invoice or timesheet', () => {
+    expect(roleRaiseText(billed, false)).toBe(
+      "You've invoiced 240 hours. Your rate is now $23.00. Change it in Settings before your next invoice.",
+    );
+    expect(roleRaiseText(billed, true)).toBe(
+      "You've submitted 240 hours. Your rate is now $23.00. Change it in Settings before your next timesheet.",
+    );
   });
 });

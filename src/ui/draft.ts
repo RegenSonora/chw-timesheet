@@ -1,15 +1,21 @@
 // Turning a half-entered record into an entry (SPEC §5). Uses the rules in src/core; no storage.
 import {
   checkEntryTimes,
+  checkRolePicks,
+  duplicateCountLabel,
   emptyCounts,
+  entryCountChoices,
   entryDateOf,
   finalShares,
   findOverlaps,
   resolveHandTimes,
+  roleTaskIds,
   sharesMatch,
+  type CountDef,
   type Counts,
   type Entry,
   type FundingSourceConfig,
+  type Role,
 } from '../core';
 import type { EntryDraft } from '../storage';
 import { localDateTime } from './format';
@@ -105,8 +111,12 @@ export type DraftProblem =
   /** Two or more tasks whose hours don't add up to the entry's (decision 0024). */
   | 'split'
   | 'budget_line'
+  /** The source doesn't take time on the entry's date for this role (decision 0033). */
+  | 'source_period'
   /** A custom count has a number but no name. */
-  | 'count_label';
+  | 'count_label'
+  /** A custom count repeats one of the entry's counts (decision 0029). */
+  | 'count_duplicate';
 
 /** Custom counts with no name and no number are dropped; names are trimmed. */
 export function cleanCounts(counts: Counts): Counts | null {
@@ -127,16 +137,28 @@ export function buildEntry(
   existing: Entry | null,
   now: string,
   newId: () => string,
-  /** The person's role; an edited entry keeps the role it was saved under. */
-  roleId: string | null,
+  /**
+   * The person's role: choices come from it (decision 0028). Null on a phone set up before roles,
+   * which keeps the source's own choices. An edited entry keeps the role it was saved under.
+   */
+  role: Role | null,
+  countDefs: readonly CountDef[],
 ): { ok: true; entry: Entry } | { ok: false; problem: DraftProblem } {
   const times = checkDraftTimes(draft, entries);
   if (times.state !== 'ok' || !draft.start || !draft.stop) return { ok: false, problem: 'times' };
-  const known = new Set(source.tasks.map((t) => t.id));
+  const lineId = draft.budget_line_id;
+  const known = new Set(
+    role ? (lineId ? roleTaskIds(role, source.id, lineId) : []) : source.tasks.map((t) => t.id),
+  );
   const tasks = finalShares(
     draft.tasks.filter((s) => known.has(s.task_id)),
     times.quarters,
   );
+  const taskIds = tasks.map((s) => s.task_id);
+  if (role) {
+    const problem = checkRolePicks(role, source, entryDateOf(draft.start), lineId, taskIds);
+    if (problem) return { ok: false, problem };
+  }
   if (tasks.length === 0) return { ok: false, problem: 'task' };
   if (!sharesMatch(tasks, times.quarters, known)) return { ok: false, problem: 'split' };
   if (!draft.budget_line_id || !source.budget_lines.some((l) => l.id === draft.budget_line_id)) {
@@ -144,12 +166,18 @@ export function buildEntry(
   }
   const counts = cleanCounts(draft.counts);
   if (!counts) return { ok: false, problem: 'count_label' };
+  if (role) {
+    const shown = entryCountChoices(countDefs, role, source, lineId, taskIds, counts);
+    if (counts.other.some((o) => duplicateCountLabel(o.label, shown))) {
+      return { ok: false, problem: 'count_duplicate' };
+    }
+  }
   return {
     ok: true,
     entry: {
       id: existing?.id ?? newId(),
       source_id: source.id,
-      role_id: existing ? existing.role_id : roleId,
+      role_id: existing ? existing.role_id : (role?.id ?? null),
       start: draft.start,
       stop: draft.stop,
       entry_date: entryDateOf(draft.start),

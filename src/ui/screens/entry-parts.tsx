@@ -1,16 +1,25 @@
 // Pieces shared by the new-entry steps and Edit entry (SPEC §5).
 import { useState } from 'preact/hooks';
 import {
+  budgetLineChoices,
   carryPicks,
   checkTask,
   countValue,
+  duplicateCountLabel,
+  entryCountChoices,
+  entryDateOf,
+  fundingChoices,
+  roleDefaultLine,
+  roleTaskIds,
   splitStatus,
   sourceTaskChoices,
+  taskChoices,
   uncheckTask,
   type Counts,
   type Entry,
   type FundingSourceConfig,
 } from '../../core';
+import { COUNT_DEFS } from '../../roles';
 import type { EntryDraft } from '../../storage';
 import {
   BilledTo,
@@ -28,10 +37,30 @@ import {
   dateLabel,
   durationLabel,
   hoursLabel,
+  lineName,
+  localDateTime,
   shortDateLabel,
   timeRangeLabel,
 } from '../format';
 import { sourceById, useApp } from '../store';
+import { phoneNow } from '../../storage';
+
+/** The date the entry is billed on: its start date, the typed date, or today. */
+export function draftDate(draft: EntryDraft): string {
+  if (draft.start) return entryDateOf(draft.start);
+  return draft.hand?.date || localDateTime(phoneNow()).date;
+}
+
+/**
+ * The sources the entry can go to: with a role, the role's sources taking time on the entry's date
+ * (decision 0033); without one, every source set up.
+ */
+export function useEntrySources(draft: EntryDraft): FundingSourceConfig[] {
+  const { data, role } = useApp();
+  const mine = data.settings.map((s) => sourceById(s.source_id));
+  if (!role) return mine;
+  return fundingChoices(role, mine, draftDate(draft)).map((c) => c.source);
+}
 
 /** "Fri, Oct 30 · 9:12–10:37 AM", "Rounded from 1 hr 25 min", "1.5 hrs". */
 export function TimeCard({ draft, check }: { draft: EntryDraft; check: TimesCheck }) {
@@ -94,14 +123,23 @@ export function SourceAndLine({
   draft: EntryDraft;
   lineError?: string | null;
 }) {
-  const { data, actions } = useApp();
+  const { data, role, actions } = useApp();
   const [picking, setPicking] = useState<null | 'source' | 'line'>(null);
   const source = sourceById(draft.source_id);
-  const sources = data.settings.map((s) => sourceById(s.source_id));
-  const line = source.budget_lines.find((l) => l.id === draft.budget_line_id);
-  const onlySource = sources.length === 1 && sources[0]?.id === source.id;
-  const onlyLine = source.budget_lines.length === 1 && line !== undefined;
-  const billedTo = billedToLabel(onlySource ? source.code : null, onlyLine ? line.name : null);
+  const sources = useEntrySources(draft);
+  const lines = role ? budgetLineChoices(role, source) : source.budget_lines;
+  const line = lines.find((l) => l.id === draft.budget_line_id);
+  const sourceOff = !sources.some((s) => s.id === source.id);
+  const onlySource = sources.length === 1 && !sourceOff;
+  const onlyLine = lines.length === 1 && line !== undefined;
+  const billedTo = billedToLabel(onlySource ? source.code : null, onlyLine ? lineName(line) : null);
+  /** With a role, a line's tasks are the role's; other checked tasks are dropped (0028). */
+  const keepTasks = (s: FundingSourceConfig, lineId: string | null) =>
+    role && lineId
+      ? draft.tasks.filter((t) => roleTaskIds(role, s.id, lineId).includes(t.task_id))
+      : role
+        ? []
+        : draft.tasks;
   return (
     <>
       {billedTo && <BilledTo label={billedTo} />}
@@ -109,6 +147,13 @@ export function SourceAndLine({
         <ChangeRow
           label="Funding source"
           value={source.code}
+          error={
+            sourceOff
+              ? `${source.code} doesn't take time on this date. ${
+                  sources.length ? 'Pick another funding source.' : 'Change the date.'
+                }`
+              : null
+          }
           onChange={() => {
             setPicking('source');
           }}
@@ -117,7 +162,7 @@ export function SourceAndLine({
       {!onlyLine && (
         <ChangeRow
           label="Budget line"
-          value={line?.name ?? null}
+          value={line ? lineName(line) : null}
           error={lineError ?? null}
           onChange={() => {
             setPicking('line');
@@ -135,6 +180,15 @@ export function SourceAndLine({
             setPicking(null);
             if (s.id === source.id) return;
             const lastLine = data.app.per_source[s.id]?.last_budget_line_id ?? null;
+            if (role) {
+              const lineId = roleDefaultLine(role, s, draft.budget_line_id ?? lastLine);
+              void actions.updateDraft({
+                source_id: s.id,
+                budget_line_id: lineId,
+                tasks: keepTasks(s, lineId),
+              });
+              return;
+            }
             const picks = carryPicks(s, draft.tasks, draft.budget_line_id ?? lastLine);
             void actions.updateDraft({ source_id: s.id, ...picks });
           }}
@@ -146,12 +200,12 @@ export function SourceAndLine({
       {picking === 'line' && (
         <ListPicker
           title="Budget line"
-          items={source.budget_lines}
+          items={lines}
           selected={draft.budget_line_id}
-          label={(l) => l.name}
+          label={lineName}
           onPick={(l) => {
             setPicking(null);
-            void actions.updateDraft({ budget_line_id: l.id });
+            void actions.updateDraft({ budget_line_id: l.id, tasks: keepTasks(source, l.id) });
           }}
           onClose={() => {
             setPicking(null);
@@ -172,15 +226,18 @@ export function useDraftQuarters(draft: EntryDraft | null): number {
 
 /** The task list ("Tasks"): recent tasks first, then the rest, as check boxes (decision 0024). */
 export function TaskList({ draft, error }: { draft: EntryDraft; error?: string | null }) {
-  const { data, actions } = useApp();
+  const { data, role, actions } = useApp();
   const total = useDraftQuarters(draft);
   const source = sourceById(draft.source_id);
-  const { recent, all } = sourceTaskChoices(
-    source,
-    data.app.per_source[source.id]?.recent_task_ids ?? [],
-  );
-  const recentIds = new Set(recent.map((t) => t.id));
-  const rest = all.filter((t) => !recentIds.has(t.id));
+  const recentIds = data.app.per_source[source.id]?.recent_task_ids ?? [];
+  if (role && !draft.budget_line_id) {
+    return <p class="hint">Pick a budget line to see its tasks.</p>;
+  }
+  const { recent, all } = role
+    ? taskChoices(role, source, draft.budget_line_id ?? '', recentIds)
+    : sourceTaskChoices(source, recentIds);
+  const shownRecent = new Set(recent.map((t) => t.id));
+  const rest = all.filter((t) => !shownRecent.has(t.id));
   const checked = new Set(draft.tasks.map((s) => s.task_id));
   const option = (t: (typeof all)[number]) => (
     <label key={t.id} class={checked.has(t.id) ? 'row row-on' : 'row'}>
@@ -273,66 +330,94 @@ export function CountsAndNotes({
   draft: EntryDraft;
   countError?: string | null;
 }) {
-  const { actions } = useApp();
+  const { role, actions } = useApp();
   const counts = draft.counts;
   const set = (next: Counts) => void actions.updateDraft({ counts: next });
+  // With a role, the checked tasks' counts (decision 0029); without one, the five CHW counts.
+  const shown = role
+    ? entryCountChoices(
+        COUNT_DEFS,
+        role,
+        sourceById(draft.source_id),
+        draft.budget_line_id,
+        draft.tasks.map((s) => s.task_id),
+        counts,
+      )
+    : null;
+  const fields = shown
+    ? shown.map((c) => ({ key: c.id, label: c.label, noun: c.label.toLowerCase(), unit: c.unit }))
+    : COUNT_FIELDS.map((f) => ({ ...f, unit: undefined }));
+  const repeats = (label: string) => (shown ? duplicateCountLabel(label, shown) : null);
   return (
     <>
       <div>
         <h2 class="step-title">Counts</h2>
-        <p class="hint">Optional. Leave at 0 if they don't apply.</p>
+        <p class="hint">
+          {fields.length
+            ? "Optional. Leave at 0 if they don't apply."
+            : 'These tasks have no counts. Add one below if you need it.'}
+        </p>
       </div>
-      <div class="card counts">
-        {COUNT_FIELDS.map((f) => (
-          <Stepper
-            key={f.key}
-            label={f.label}
-            noun={f.noun}
-            value={countValue(counts, f.key)}
-            onChange={(v) => {
-              set({ ...counts, values: { ...counts.values, [f.key]: v } });
-            }}
-          />
-        ))}
-        {counts.other.map((o, i) => (
-          <div class="cnt cnt-custom" key={i}>
-            <Field label={`Count ${String(i + 1)} name`}>
-              {(p) => (
-                <input
-                  {...p}
-                  class="inp"
-                  placeholder="Like Food boxes"
-                  value={o.label}
-                  onInput={(e) => {
-                    const other = counts.other.map((x, j) =>
-                      j === i ? { ...x, label: e.currentTarget.value } : x,
-                    );
+      {(fields.length > 0 || counts.other.length > 0) && (
+        <div class="card counts">
+          {fields.map((f) => (
+            <Stepper
+              key={f.key}
+              label={f.label}
+              noun={f.noun}
+              show={(v) => (f.unit ? `${String(v)} ${f.unit}` : String(v))}
+              value={countValue(counts, f.key)}
+              onChange={(v) => {
+                set({ ...counts, values: { ...counts.values, [f.key]: v } });
+              }}
+            />
+          ))}
+          {counts.other.map((o, i) => {
+            const same = repeats(o.label);
+            return (
+              <div class="cnt cnt-custom" key={i}>
+                <Field
+                  label={`Count ${String(i + 1)} name`}
+                  error={same ? `${same.label} is already a count above. Use that one.` : undefined}
+                >
+                  {(p) => (
+                    <input
+                      {...p}
+                      class="inp"
+                      placeholder="Like Food boxes"
+                      value={o.label}
+                      onInput={(e) => {
+                        const other = counts.other.map((x, j) =>
+                          j === i ? { ...x, label: e.currentTarget.value } : x,
+                        );
+                        set({ ...counts, other });
+                      }}
+                    />
+                  )}
+                </Field>
+                <Stepper
+                  label="Number"
+                  noun={o.label.trim() || `count ${String(i + 1)}`}
+                  value={o.value}
+                  onChange={(v) => {
+                    const other = counts.other.map((x, j) => (j === i ? { ...x, value: v } : x));
                     set({ ...counts, other });
                   }}
                 />
-              )}
-            </Field>
-            <Stepper
-              label="Number"
-              noun={o.label.trim() || `count ${String(i + 1)}`}
-              value={o.value}
-              onChange={(v) => {
-                const other = counts.other.map((x, j) => (j === i ? { ...x, value: v } : x));
-                set({ ...counts, other });
-              }}
-            />
-            <button
-              type="button"
-              class="txt txt-left"
-              onClick={() => {
-                set({ ...counts, other: counts.other.filter((_, j) => j !== i) });
-              }}
-            >
-              Remove this count
-            </button>
-          </div>
-        ))}
-      </div>
+                <button
+                  type="button"
+                  class="txt txt-left"
+                  onClick={() => {
+                    set({ ...counts, other: counts.other.filter((_, j) => j !== i) });
+                  }}
+                >
+                  Remove this count
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
       {countError && <ErrorText>{countError}</ErrorText>}
       <button
         type="button"
@@ -443,5 +528,8 @@ export const PROBLEM_TEXT = {
   split: 'Split all the hours between your tasks.',
   budget_line: 'Pick a budget line.',
   count_label: 'Give each extra count a name, or remove it.',
+  count_duplicate: 'One extra count repeats a count above. Use that one, or remove it.',
+  source_period: 'Pick a funding source that takes time on this date.',
+  no_funding: 'None of your funding takes time on this date. Ask the office.',
   times: 'Check the times.',
 } as const;

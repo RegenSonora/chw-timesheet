@@ -15,7 +15,9 @@ import {
   TimeCard,
   TimesFields,
   useDraftQuarters,
+  useEntrySources,
 } from './entry-parts';
+import { ErrorText } from '../components';
 
 function useEntryDraft(): EntryDraft | null {
   const { data } = useApp();
@@ -31,11 +33,19 @@ function stepCount(draft: EntryDraft, step: 'task' | 'split' | 'counts') {
 }
 
 export function EnterTimes() {
-  const { data, actions } = useApp();
+  const { data } = useApp();
   const draft = useEntryDraft();
   if (!draft) return null;
   const check = checkDraftTimes(draft, data.entries);
-  const ready = check.state === 'ok';
+  return <EnterTimesPage draft={draft} ready={check.state === 'ok'} />;
+}
+
+function EnterTimesPage({ draft, ready: timesOk }: { draft: EntryDraft; ready: boolean }) {
+  const { actions } = useApp();
+  // Decision 0033: with a role, some source must take time on the entry's date.
+  const sources = useEntrySources(draft);
+  const noFunding = timesOk && sources.length === 0;
+  const ready = timesOk && !noFunding;
   return (
     <Page
       title="Enter times"
@@ -54,16 +64,34 @@ export function EnterTimes() {
       }
     >
       <TimesFields draft={draft} />
+      {noFunding && <ErrorText>{PROBLEM_TEXT.no_funding}</ErrorText>}
     </Page>
   );
 }
 
 export function TaskStep() {
-  const { data, actions } = useApp();
+  const { data } = useApp();
   const draft = useEntryDraft();
   const [tried, setTried] = useState(false);
   if (!draft) return null;
   const check = checkDraftTimes(draft, data.entries);
+  return <TaskStepPage draft={draft} check={check} tried={tried} setTried={setTried} />;
+}
+
+function TaskStepPage({
+  draft,
+  check,
+  tried,
+  setTried,
+}: {
+  draft: EntryDraft;
+  check: ReturnType<typeof checkDraftTimes>;
+  tried: boolean;
+  setTried: (v: boolean) => void;
+}) {
+  const { actions } = useApp();
+  const sources = useEntrySources(draft);
+  const sourceOff = !sources.some((s) => s.id === draft.source_id);
   const missingTask = draft.tasks.length === 0;
   const missingLine = !draft.budget_line_id;
   return (
@@ -77,7 +105,7 @@ export function TaskStep() {
           class="btn"
           onClick={() => {
             setTried(true);
-            if (missingTask || missingLine) return;
+            if (sourceOff || missingTask || missingLine) return;
             actions.push(draft.tasks.length > 1 ? 'split' : 'counts');
           }}
         >
@@ -133,8 +161,15 @@ export function CountsStep() {
   const save = async () => {
     const result = await actions.saveDraft();
     if (result === 'count_label') setProblem(PROBLEM_TEXT.count_label);
-    else if (result === 'task' || result === 'split' || result === 'budget_line') actions.back();
-    else if (result === 'times') setProblem(PROBLEM_TEXT.times);
+    else if (result === 'count_duplicate') setProblem(PROBLEM_TEXT.count_duplicate);
+    else if (
+      result === 'task' ||
+      result === 'split' ||
+      result === 'budget_line' ||
+      result === 'source_period'
+    ) {
+      actions.back();
+    } else if (result === 'times') setProblem(PROBLEM_TEXT.times);
   };
   return (
     <Page

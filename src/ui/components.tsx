@@ -3,7 +3,7 @@ import type { ComponentChildren, JSX } from 'preact';
 import { useEffect, useId, useRef } from 'preact/hooks';
 import type { Entry, FundingSourceConfig } from '../core';
 import { checkEntryTimes } from '../core';
-import { dateLabel, hoursLabel, tasksLabel, timeRangeLabel } from './format';
+import { dateLabel, hoursLabel, lineName, tasksLabel, timeRangeLabel } from './format';
 import { sourceById, useApp } from './store';
 
 // --- Icons (stroke SVG, hidden from screen readers) -----------------------------------------
@@ -60,6 +60,8 @@ interface PageProps {
   title: string;
   /** Shows a Back button that leaves this screen. */
   back?: boolean;
+  /** What Back does instead of leaving, for steps inside one screen (setup). */
+  onBack?: () => void;
   /** Right side of the header: chip, settings, "Step 1 of 2". */
   aside?: ComponentChildren;
   footer?: ComponentChildren;
@@ -68,7 +70,7 @@ interface PageProps {
 }
 
 /** One screen: header with the screen's h1 (focused on arrival), scrolling main, footer. */
-export function Page({ title, back, aside, footer, children, mainClass }: PageProps) {
+export function Page({ title, back, onBack, aside, footer, children, mainClass }: PageProps) {
   const { actions } = useApp();
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
@@ -78,7 +80,7 @@ export function Page({ title, back, aside, footer, children, mainClass }: PagePr
     <div class="screen">
       <header class={back ? 'bar bar-back' : 'bar'}>
         {back && (
-          <button type="button" class="icon" aria-label="Back" onClick={actions.back}>
+          <button type="button" class="icon" aria-label="Back" onClick={onBack ?? actions.back}>
             <BackIcon />
           </button>
         )}
@@ -416,7 +418,10 @@ export function entryNames(
 ) {
   return {
     task: tasksLabel(source, entry.tasks),
-    line: source.budget_lines.find((l) => l.id === entry.budget_line_id)?.name ?? 'Budget line',
+    line: (() => {
+      const line = source.budget_lines.find((l) => l.id === entry.budget_line_id);
+      return line ? lineName(line) : 'Budget line';
+    })(),
   };
 }
 

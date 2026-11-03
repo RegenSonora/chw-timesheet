@@ -54,8 +54,11 @@ export interface SetupDraft {
   initials: string;
   mailing_address: string;
   next_number: string;
-  /** Per funding source id: picked or not, and the rate as typed. */
-  sources: Record<string, { picked: boolean; rate: string }>;
+  /** Setup's three steps: details, pick your role, review (decision 0027). */
+  step: 'details' | 'role' | 'review';
+  role_id: string | null;
+  /** Per funding source id: the rate as typed, prefilled when the role is picked (0030). */
+  sources: Record<string, { rate: string }>;
 }
 
 export interface SourcePicks {

@@ -5,11 +5,14 @@ import {
   checkEntryTimes,
   defaultBudgetLine,
   findOverlaps,
+  fundingChoices,
+  roleDefaultLine,
   type Entry,
   type FundingSourceConfig,
   type Invoice,
   type InvoiceCounter,
   type Profile,
+  type Role,
   type SourceSettings,
 } from '../core';
 import { findFundingSource, FUNDING_SOURCES } from '../funding-sources';
@@ -142,15 +145,9 @@ function initialSetupDraft(): SetupDraft {
     initials: '',
     mailing_address: '',
     next_number: '1',
-    sources: Object.fromEntries(
-      FUNDING_SOURCES.map((s, i) => [
-        s.id,
-        {
-          picked: i === 0,
-          rate: s.default_rate_cents === null ? '' : (s.default_rate_cents / 100).toFixed(2),
-        },
-      ]),
-    ),
+    step: 'details',
+    role_id: null,
+    sources: {},
   };
 }
 
@@ -316,6 +313,8 @@ function useStore(storage: Storage, initial: Data) {
   const actions = useMemo(() => {
     const d = () => dataRef.current;
 
+    const role = () => findRole(d().profile?.role_id ?? null);
+
     const selectedSourceId = (): string => {
       const { app, settings } = d();
       const id = app.selected_source_id;
@@ -325,11 +324,24 @@ function useStore(storage: Storage, initial: Data) {
       return first;
     };
 
-    const lastLine = (sourceId: string) =>
-      defaultBudgetLine(
-        sourceOf(sourceId),
-        d().app.per_source[sourceId]?.last_budget_line_id ?? null,
-      );
+    /** The source new time goes to: the selected one, unless the role's period for it ended (0033). */
+    const newEntrySourceId = (): string => {
+      const selected = selectedSourceId();
+      const r = role();
+      if (!r) return selected;
+      const open = fundingChoices(r, FUNDING_SOURCES, localDateTime(phoneNow()).date);
+      return open.some((c) => c.source.id === selected)
+        ? selected
+        : (open[0]?.source.id ?? selected);
+    };
+
+    const lastLine = (sourceId: string) => {
+      const last = d().app.per_source[sourceId]?.last_budget_line_id ?? null;
+      const r = role();
+      return r
+        ? roleDefaultLine(r, sourceOf(sourceId), last)
+        : defaultBudgetLine(sourceOf(sourceId), last);
+    };
 
     const entryWords = (e: Entry) => {
       const times = checkEntryTimes(e.start, e.stop);
@@ -349,7 +361,7 @@ function useStore(storage: Storage, initial: Data) {
         setToast(null);
         return saveApp({
           ...d().app,
-          running_timer: { start: phoneNow(), source_id: selectedSourceId() },
+          running_timer: { start: phoneNow(), source_id: newEntrySourceId() },
         });
       },
 
@@ -395,7 +407,7 @@ function useStore(storage: Storage, initial: Data) {
 
       async startHandEntry() {
         setToast(null);
-        const sourceId = selectedSourceId();
+        const sourceId = newEntrySourceId();
         const today = localDateTime(phoneNow()).date;
         await saveApp({
           ...d().app,
@@ -442,7 +454,8 @@ function useStore(storage: Storage, initial: Data) {
           existing,
           phoneNow(),
           () => crypto.randomUUID(),
-          d().profile?.role_id ?? null,
+          role(),
+          COUNT_DEFS,
         );
         if (!built.ok) return built.problem;
         const entry = built.entry;
@@ -520,7 +533,7 @@ function useStore(storage: Storage, initial: Data) {
           result = await serial(() =>
             storage.generateInvoice({
               source: sourceOf(sourceId),
-              role: findRole(d().profile?.role_id ?? null),
+              role: role(),
               count_defs: COUNT_DEFS,
               now,
               invoice_date: now.slice(0, 10),
@@ -628,6 +641,9 @@ function useStore(storage: Storage, initial: Data) {
     return id ? (findFundingSource(id) ?? null) : null;
   }, [data]);
 
+  /** The person's role; null on a phone set up before roles, which keeps working as it did. */
+  const role = useMemo((): Role | null => findRole(data.profile?.role_id ?? null), [data.profile]);
+
   return {
     data,
     stack,
@@ -636,6 +652,7 @@ function useStore(storage: Storage, initial: Data) {
     asking,
     answerLeave,
     selectedSource,
+    role,
     viewing,
     actions,
   };

@@ -532,19 +532,37 @@ describe('v3 → v4: roles, counts by id, invoice kind (roles plan R3)', () => {
     expect(await verifyFingerprint(after)).toBe(true);
   });
 
-  it("converts an entry draft's counts and leaves setup drafts", () => {
+  it("converts an entry draft's counts and starts a setup draft over at its first step", () => {
     const base = { id: 's', created_at: NOW, updated_at: NOW, per_source: {}, running_timer: null };
     const entryDraft = { kind: 'entry', counts: v3Counts(counts({ contacts: 1 })), notes: 'x' };
     const after = v3ToV4({
       app_state: [
         { ...base, draft: entryDraft },
-        { ...base, id: 'u', draft: { kind: 'setup', name: 'C' } },
+        {
+          ...base,
+          id: 'u',
+          draft: {
+            kind: 'setup',
+            name: 'C',
+            sources: {
+              tisupp: { picked: true, rate: '20.00' },
+              regen: { picked: false, rate: '' },
+            },
+          },
+        },
         { ...base, id: 'v', draft: null },
       ] as unknown as StoredRecord[],
     });
     expect(after['app_state']?.map((r) => (r as unknown as { draft: unknown }).draft)).toEqual([
       { kind: 'entry', counts: counts({ contacts: 1 }), notes: 'x' },
-      { kind: 'setup', name: 'C' },
+      // Roles plan R4: setup now picks a role; typed rates are kept for the review step.
+      {
+        kind: 'setup',
+        name: 'C',
+        step: 'details',
+        role_id: null,
+        sources: { tisupp: { rate: '20.00' }, regen: { rate: '' } },
+      },
       null,
     ]);
   });

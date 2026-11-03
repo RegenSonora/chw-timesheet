@@ -1432,3 +1432,46 @@ p {
 .report-sum td {
   font-weight: 700;
 }
+
+/* Setup: pick your role and review it (decision 0027). */
+.role-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.role-row {
+  min-height: 64px;
+  padding: 10px 16px;
+}
+
+.review {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px 16px;
+}
+
+.review-source {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.review-line-name {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.review-tasks {
+  margin: 4px 0 0;
+  padding-left: 20px;
+  font-size: 15px;
+  color: var(--soft);
+}

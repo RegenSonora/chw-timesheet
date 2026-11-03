@@ -65,7 +65,7 @@ describe('yearsBefore', () => {
 
 describe('workHoursReport', () => {
   const sample = invoice();
-  const report = workHoursReport(form, [sample], 'tisupp', '2026-11-02');
+  const report = workHoursReport(form, [sample], ['tisupp'], '2026-11-02');
 
   it("sums each task share into its competency's row, in the form's order", () => {
     expect(report.rows.map((r) => [r.name, r.quarters])).toEqual([
@@ -114,24 +114,34 @@ describe('workHoursReport', () => {
       entries: [makeEntry('2023-11-01', '09:00:00', '10:00:00', 'outreach', 'chw-referrals')],
     });
     const other: Invoice = { ...priorInvoice(9, 2000, counts(), regen), entries: sample.entries };
-    const r = workHoursReport(form, [old, sample, other], 'tisupp', '2026-11-02');
+    const r = workHoursReport(form, [old, sample, other], ['tisupp'], '2026-11-02');
     expect(r.total_quarters).toBe(sample.total_quarters);
     expect(r.invoice_numbers).toEqual(['CC-2026-004']);
     // The day exactly three years back still counts.
-    expect(workHoursReport(form, [old], 'tisupp', '2026-11-01').total_quarters).toBe(4);
+    expect(workHoursReport(form, [old], ['tisupp'], '2026-11-01').total_quarters).toBe(4);
   });
 
   it('counts competencies the form does not list under Other', () => {
     const odd = structuredClone(sample);
     const share = must(must(odd.entries[0]).tasks[0]);
     share.core_competency = 'Something new';
-    const r = workHoursReport(form, [odd], 'tisupp', '2026-11-02');
+    const r = workHoursReport(form, [odd], ['tisupp'], '2026-11-02');
     expect(r.other).toEqual({ name: 'Other', quarters: share.quarters, dates: ['2026-10-20'] });
     expect(r.total_quarters).toBe(sample.total_quarters);
   });
 
+  it('combines every source it is given (decision 0032)', () => {
+    const other: Invoice = { ...priorInvoice(9, 2000, counts(), regen), entries: sample.entries };
+    const both = workHoursReport(form, [sample, other], ['tisupp', regen.id], '2026-11-02');
+    expect(both.total_quarters).toBe(sample.total_quarters * 2);
+    expect(both.invoice_numbers).toEqual([other.number, sample.number].sort());
+    expect(workHoursReport(form, [sample, other], [regen.id], '2026-11-02').total_quarters).toBe(
+      sample.total_quarters,
+    );
+  });
+
   it('with no invoices: every row at 0 and no dates', () => {
-    const r = workHoursReport(form, [], 'tisupp', '2026-11-02');
+    const r = workHoursReport(form, [], ['tisupp'], '2026-11-02');
     expect(r.rows.every((x) => x.quarters === 0 && x.dates.length === 0)).toBe(true);
     expect(r).toMatchObject({ total_quarters: 0, first_date: null, last_date: null });
   });

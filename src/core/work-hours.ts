@@ -47,10 +47,14 @@ export function yearsBefore(date: string, years: number): string {
   return `${String(year).padStart(4, '0')}${rest}`;
 }
 
+/**
+ * The report over invoices from any of `sourceIds`: the selected source on a phone with no role,
+ * every source of the person's role otherwise (decision 0032).
+ */
 export function workHoursReport(
   form: ReportForm,
   invoices: readonly Invoice[],
-  sourceId: string,
+  sourceIds: readonly string[],
   madeOn: string,
 ): WorkHoursReport {
   const windowStart = yearsBefore(madeOn, form.window_years);
@@ -65,7 +69,7 @@ export function workHoursReport(
   let last: string | null = null;
 
   for (const invoice of invoices) {
-    if (invoice.source.id !== sourceId) continue;
+    if (!sourceIds.includes(invoice.source.id)) continue;
     let used = false;
     for (const e of invoice.entries) {
       if (e.entry_date < windowStart || e.entry_date > madeOn) continue;

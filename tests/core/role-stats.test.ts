@@ -119,7 +119,7 @@ describe('myStats (decision 0032)', () => {
     expect(stats.certification).toBeNull();
   });
 
-  it("totals the role's counts in list order, then other counts", () => {
+  it("totals the role's counts above 0 in list order, leaving out extra counts", () => {
     const stats = myStats(
       file.counts,
       trainee,
@@ -130,36 +130,30 @@ describe('myStats (decision 0032)', () => {
       ],
       0,
     );
-    expect(stats.counts.map((c) => c.id)).toEqual([
-      'contacts',
-      'referrals_given',
-      'referral_followups',
-      'rides_provided',
-      'applications_completed',
-      'client_goals_achieved',
-      'quick_wins_provided',
-      'screenings_conducted',
-      'applications_approved',
+    expect(stats.counts).toEqual([
+      { id: 'contacts', label: 'Contacts', unit: null, total: 6 },
+      { id: 'rides_provided', label: 'Rides provided', unit: null, total: 1 },
     ]);
-    expect(stats.counts[0]).toEqual({ id: 'contacts', label: 'Contacts', unit: null, total: 6 });
-    expect(stats.counts[3]?.total).toBe(1);
-    expect(stats.counts[8]?.total).toBe(0);
-    expect(stats.other).toEqual([{ label: 'Flyers', value: 5 }]);
+    expect(stats).not.toHaveProperty('other');
   });
 
-  it("lists the Team Lead's counts with units", () => {
-    const stats = myStats(file.counts, lead, {}, [], 0);
-    expect(stats.counts.map((c) => c.id)).toEqual([
-      'trailer_loads_removed',
-      'assessments_completed',
-      'lehr_resets_completed',
-      'plants_propagated',
-      'trees_planted',
-      'trees_removed',
-      'water_capacity_added',
-      'grow_space_added',
-      'certifications_earned',
+  it("lists nothing before a count has a total, and keeps the Team Lead's units", () => {
+    expect(myStats(file.counts, lead, {}, [], 0).counts).toEqual([]);
+    const stats = myStats(
+      file.counts,
+      lead,
+      {},
+      [billed(1, 4, regen, counts({}, { grow_space_added: 40, trees_planted: 3 }))],
+      0,
+    );
+    expect(stats.counts).toEqual([
+      { id: 'trees_planted', label: 'Trees planted', unit: null, total: 3 },
+      { id: 'grow_space_added', label: 'Grow space added', unit: 'sq ft', total: 40 },
     ]);
-    expect(stats.counts.find((c) => c.id === 'grow_space_added')?.unit).toBe('sq ft');
+  });
+
+  it('leaves out a count the role does not use, even with a total', () => {
+    const stats = myStats(file.counts, lead, {}, [billed(1, 4, regen, counts({ contacts: 5 }))], 0);
+    expect(stats.counts).toEqual([]);
   });
 });

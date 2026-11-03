@@ -4,7 +4,7 @@ import { sumCounts } from './counts';
 import type { RateStepReminder } from './rate-change';
 import type { CertificationStat, PayStat } from './stats';
 import { invoicedQuarters } from './stats';
-import type { CountDef, Invoice, OtherCount, Role, RoleFunding } from './types';
+import type { CountDef, Invoice, Role, RoleFunding } from './types';
 
 /**
  * A reminder once this source's billed plus waiting hours reach the funding entry's rate step,
@@ -60,10 +60,11 @@ export interface RoleStats {
   pay: PayStat | null;
   /** Null when the role has no certification step. */
   certification: CertificationStat | null;
-  /** All-time totals of the counts the role's tasks show, in the shared list's order. */
+  /**
+   * All-time totals above 0 of the counts the role's tasks show, in the shared list's order.
+   * "Add another count" totals are left out (Chris, Nov 3).
+   */
   counts: CountTotal[];
-  /** All-time "Add another count" totals. */
-  other: OtherCount[];
 }
 
 /**
@@ -103,7 +104,7 @@ export function myStats(
     role.funding.flatMap((f) => f.budget_lines.flatMap((l) => l.tasks.flatMap((t) => t.count_ids))),
   );
   const counts = countDefs
-    .filter((c) => shown.has(c.id))
+    .filter((c) => shown.has(c.id) && (all.values[c.id] ?? 0) > 0)
     .map((c) => ({ id: c.id, label: c.label, unit: c.unit ?? null, total: all.values[c.id] ?? 0 }));
 
   return {
@@ -112,6 +113,5 @@ export function myStats(
     pay,
     certification: certificationStatus(role, invoiced),
     counts,
-    other: all.other,
   };
 }

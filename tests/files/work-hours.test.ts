@@ -25,7 +25,7 @@ const details: ReportDetails = {
 
 async function sample() {
   const invoice = await invoiceFrom({ entries: splitSampleEntries });
-  return workHoursReport(form, [invoice], 'tisupp', '2026-11-02');
+  return workHoursReport(form, [invoice], ['tisupp'], '2026-11-02');
 }
 
 /** Minimal RFC 4180 reader for the checks below. */
@@ -123,7 +123,7 @@ describe('Work Hours Report files', () => {
       return makeEntry(date, '09:00:00', '10:00:00', 'outreach', 'chw-referrals');
     });
     const invoice = await invoiceFrom({ entries });
-    const report = workHoursReport(form, [invoice], 'tisupp', '2026-11-02');
+    const report = workHoursReport(form, [invoice], ['tisupp'], '2026-11-02');
     const [pdf] = buildWorkHoursFiles(form, report, details);
     const pages = await readPdf(pdf?.bytes ?? new Uint8Array());
     expect(pages.length).toBeGreaterThan(1);

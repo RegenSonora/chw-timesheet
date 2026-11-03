@@ -5,6 +5,8 @@ import type { InvoiceInput } from '../../src/core/invoice';
 import { verifyFingerprint } from '../../src/core/fingerprint';
 import {
   counts,
+  countDefs,
+  findTestRole,
   makeEntry,
   must,
   priorInvoice,
@@ -304,7 +306,13 @@ describe('invoice number', () => {
         settings: { source_id: 'regen-general-operating', rate_cents: 2000, nte_cents: null },
         entries: [regenEntry],
         counter: { next: 5, locked: true },
-        profile: { name: 'Carmen Cruz', initials: 'CM', mailing_address: '', logo: null },
+        profile: {
+          name: 'Carmen Cruz',
+          initials: 'CM',
+          mailing_address: '',
+          logo: null,
+          role_id: null,
+        },
       }),
     );
     expect(invoice.number).toBe('CM-2026-005');
@@ -358,7 +366,7 @@ describe('NTE tracker (SPEC §6)', () => {
       remaining_cents: 481_500,
       over: false,
     });
-    expect(invoice.counts_all_time.contacts).toBe(6);
+    expect(invoice.counts_all_time.values['contacts']).toBe(6);
   });
 
   it('uses the NTE as it is now (edits are allowed)', () => {
@@ -393,6 +401,68 @@ describe('custom counts', () => {
         counts({ other: [{ label: ' food Boxes ', value: 3 }] }),
       ]).other,
     ).toEqual([{ label: 'Food boxes', value: 5 }]);
+  });
+});
+
+describe('kind, role and count labels (roles plan R3)', () => {
+  it('is an invoice with no role before a role is picked', () => {
+    const { invoice } = draft(sampleInput());
+    expect(invoice.kind).toBe('invoice');
+    expect(invoice.role).toBeNull();
+  });
+
+  it('freezes a contractor role and stays an invoice', () => {
+    const { invoice } = draft(sampleInput({ role: findTestRole('chw-tc01') }));
+    expect(invoice.kind).toBe('invoice');
+    expect(invoice.role).toEqual({
+      id: 'chw-tc01',
+      code: 'CHW-TC01',
+      name: 'CHW Trainee (Contractor)',
+      employment: 'contractor',
+      chw: true,
+    });
+  });
+
+  it('is a timesheet for an employee role', () => {
+    const { invoice } = draft(sampleInput({ role: findTestRole('chw-te01') }));
+    expect(invoice.kind).toBe('timesheet');
+    expect(invoice.role?.employment).toBe('employee');
+    expect(invoice.total_cents).toBe(18_500);
+  });
+
+  it('freezes the labels and units of counts with a value, in list order', () => {
+    const entries = sampleEntries.map((e, i) =>
+      i === 0 ? { ...e, counts: counts({ contacts: 1 }, { water_capacity_added: 50 }) } : e,
+    );
+    const { invoice } = draft(sampleInput({ entries }));
+    expect(invoice.count_defs).toEqual([
+      { id: 'contacts', label: 'Contacts' },
+      { id: 'referrals_given', label: 'Referrals given' },
+      { id: 'referral_followups', label: 'Referral follow-ups' },
+      { id: 'rides_provided', label: 'Rides provided' },
+      { id: 'applications_completed', label: 'Applications completed' },
+      { id: 'water_capacity_added', label: 'Water capacity added', unit: 'gal' },
+    ]);
+    expect(invoice.counts_period.values['water_capacity_added']).toBe(50);
+  });
+
+  it('leaves out counts that are 0 in the period and all time', () => {
+    const entries = sampleEntries.map((e) => ({ ...e, counts: counts() }));
+    const { invoice } = draft(sampleInput({ entries, prior_invoices: [] }));
+    expect(invoice.count_defs).toEqual([]);
+    expect(countDefs.length).toBeGreaterThan(5);
+  });
+});
+
+describe('sumCounts over counts by id', () => {
+  it('adds ids only some entries have', () => {
+    expect(
+      sumCounts([
+        { values: { trees_planted: 2 }, other: [] },
+        { values: { trees_planted: 3, trees_removed: 1 }, other: [] },
+        { values: {}, other: [] },
+      ]),
+    ).toEqual({ values: { trees_planted: 5, trees_removed: 1 }, other: [] });
   });
 });
 

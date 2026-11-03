@@ -129,6 +129,8 @@ export interface Profile {
   mailing_address: string;
   /** Empty slot so a logo can be added later without redesign (SPEC §2). */
   logo: null;
+  /** The role picked at setup (decision 0027); null until one is picked. */
+  role_id: string | null;
 }
 
 /** Per funding source the CHW works under (SPEC §4). */
@@ -144,13 +146,10 @@ export interface OtherCount {
   value: number;
 }
 
-/** Counts on an entry, or summed over many entries (SPEC §5). */
+/** Counts on an entry, or summed over many entries (SPEC §5, decision 0029). */
 export interface Counts {
-  contacts: number;
-  referrals_given: number;
-  referral_followups: number;
-  rides_provided: number;
-  applications_completed: number;
+  /** By count id from the shared list in src/roles/roles.json. */
+  values: CountValues;
   /** "Add another count": label + number. */
   other: OtherCount[];
 }
@@ -159,6 +158,8 @@ export interface Counts {
 export interface Entry {
   id: string;
   source_id: string;
+  /** The person's role when the entry was saved (decision 0027); null before a role is picked. */
+  role_id: string | null;
   /** Raw start, ISO 8601 with offset, whole seconds. */
   start: string;
   /** Raw stop, ISO 8601 with offset, whole seconds. */
@@ -228,13 +229,20 @@ export type NteStatus =
       over: boolean;
     };
 
-/** An invoice. Never edited after creation (CLAUDE.md rule 5). */
+/** The role an invoice or timesheet was made under, as it was then (decision 0027). */
+export type InvoiceRole = Pick<Role, 'id' | 'code' | 'name' | 'employment' | 'chw'>;
+
+/** An invoice or timesheet. Never edited after creation (CLAUDE.md rule 5). */
 export interface Invoice {
   id: string;
   /** e.g. CC-2026-004 */
   number: string;
   /** The counter value used, e.g. 4. */
   sequence: number;
+  /** Employees submit timesheets; everyone else invoices (decision 0031). */
+  kind: 'invoice' | 'timesheet';
+  /** Null for invoices made before a role was picked. */
+  role: InvoiceRole | null;
   source: {
     id: string;
     code: string;
@@ -257,6 +265,8 @@ export interface Invoice {
   counts_period: Counts;
   /** This source on this phone, including this invoice. */
   counts_all_time: Counts;
+  /** Labels and units of the counts with a value in either, in list order (decision 0029). */
+  count_defs: CountDef[];
   nte: NteStatus;
   canonical_version: number;
   /** SHA-256 of the canonical form, 64 lower-case hex characters. */

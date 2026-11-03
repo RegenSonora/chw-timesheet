@@ -4,12 +4,14 @@ import { useState } from 'preact/hooks';
 import {
   buildInvoiceDraft,
   COUNT_FIELDS,
+  countValue,
   formatDollars,
   formatQuarters,
   paginateTimesheet,
   type NteStatus,
 } from '../../core';
 import { dateRange, longDate } from '../../files/text';
+import { COUNT_DEFS, findRole } from '../../roles';
 import { phoneNow } from '../../storage';
 import { ErrorText, Page, Warning } from '../components';
 import { plural, shortDateLabel } from '../format';
@@ -89,6 +91,8 @@ export function InvoicePreview() {
         source,
         settings,
         profile,
+        role: findRole(profile.role_id),
+        count_defs: COUNT_DEFS,
         counter: data.counter,
         entries: data.entries,
         prior_invoices: data.invoices,
@@ -113,7 +117,10 @@ export function InvoicePreview() {
   const pages = paginateTimesheet(invoice, source).length;
   const count = invoice.entries.length;
   const counts = [
-    ...COUNT_FIELDS.map((f) => ({ label: f.label, value: invoice.counts_period[f.key] })),
+    ...COUNT_FIELDS.map((f) => ({
+      label: f.label,
+      value: countValue(invoice.counts_period, f.key),
+    })),
     ...invoice.counts_period.other,
   ];
 

@@ -1,12 +1,14 @@
 // The Storage interface screens use, and the small transaction interface both adapters implement.
 import type { InvoiceResult } from '../core/invoice';
 import type {
+  CountDef,
   Counts,
   Entry,
   FundingSourceConfig,
   Invoice,
   InvoiceCounter,
   Profile,
+  Role,
   SourceSettings,
   TaskShare,
 } from '../core/types';
@@ -72,6 +74,10 @@ export type SetNextNumberResult =
 
 export interface GenerateInvoiceRequest {
   source: FundingSourceConfig;
+  /** The person's role, resolved from the profile; null before one is picked. */
+  role: Role | null;
+  /** The shared count list (src/roles/roles.json). */
+  count_defs: readonly CountDef[];
   /** Creation time, ISO 8601 with offset. */
   now: string;
   /** YYYY-MM-DD, the day it is generated. */

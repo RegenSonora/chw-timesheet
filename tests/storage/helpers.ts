@@ -48,6 +48,7 @@ export const profile = {
   initials: 'CC',
   mailing_address: '',
   logo: null,
+  role_id: null,
 } as const;
 
 /** The wireframe sample: profile, TISUPP at $20.00, next number 4, 8 entries. */

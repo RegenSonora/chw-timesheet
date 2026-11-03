@@ -3,6 +3,7 @@ import { useState } from 'preact/hooks';
 import {
   carryPicks,
   checkTask,
+  countValue,
   splitStatus,
   sourceTaskChoices,
   uncheckTask,
@@ -287,9 +288,9 @@ export function CountsAndNotes({
             key={f.key}
             label={f.label}
             noun={f.noun}
-            value={counts[f.key]}
+            value={countValue(counts, f.key)}
             onChange={(v) => {
-              set({ ...counts, [f.key]: v });
+              set({ ...counts, values: { ...counts.values, [f.key]: v } });
             }}
           />
         ))}

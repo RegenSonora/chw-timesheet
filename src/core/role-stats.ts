@@ -1,7 +1,6 @@
 // Raise reminder, CHW certification and My stats by role (decisions 0030, 0032). Goals count
 // invoiced or submitted hours only, as the office's records do.
 import { sumCounts } from './counts';
-import { legacyCountValues } from './roles';
 import type { RateStepReminder } from './rate-change';
 import type { CertificationStat, PayStat } from './stats';
 import { invoicedQuarters } from './stats';
@@ -99,15 +98,13 @@ export function myStats(
     }
   }
 
-  // Invoices hold data v3 counts until roles plan R3.
   const all = sumCounts(invoices.map((i) => i.counts_period));
-  const values = legacyCountValues(all);
   const shown = new Set(
     role.funding.flatMap((f) => f.budget_lines.flatMap((l) => l.tasks.flatMap((t) => t.count_ids))),
   );
   const counts = countDefs
     .filter((c) => shown.has(c.id))
-    .map((c) => ({ id: c.id, label: c.label, unit: c.unit ?? null, total: values[c.id] ?? 0 }));
+    .map((c) => ({ id: c.id, label: c.label, unit: c.unit ?? null, total: all.values[c.id] ?? 0 }));
 
   return {
     invoiced_quarters: invoiced,

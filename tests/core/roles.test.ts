@@ -6,7 +6,6 @@ import {
   duplicateCountLabel,
   fundingChoices,
   invoiceCounts,
-  legacyCountValues,
   prefillRate,
   resolveRole,
   roleChoices,
@@ -15,7 +14,7 @@ import {
 import { RECENT_TASKS_SHOWN } from '../../src/core/picks';
 import type { FundingSourceConfig, Role, RoleFunding, RolesFile } from '../../src/core/types';
 import shipped from '../../src/roles/roles.json';
-import { counts, must, regen, tisupp } from './fixtures/wireframe-sample';
+import { must, regen, tisupp } from './fixtures/wireframe-sample';
 
 const file = shipped as RolesFile;
 const sources = [tisupp, regen];
@@ -319,28 +318,5 @@ describe('invoiceCounts (decision 0029)', () => {
         },
       ),
     ).toEqual([{ id: null, label: 'Flyers', unit: null, period: 20, all_time: 50 }]);
-  });
-});
-
-describe('legacyCountValues', () => {
-  it('moves the five fixed counts under the same ids', () => {
-    expect(
-      legacyCountValues(
-        counts({
-          contacts: 1,
-          referrals_given: 2,
-          referral_followups: 3,
-          rides_provided: 4,
-          applications_completed: 5,
-          other: [{ label: 'Flyers', value: 9 }],
-        }),
-      ),
-    ).toEqual({
-      contacts: 1,
-      referrals_given: 2,
-      referral_followups: 3,
-      rides_provided: 4,
-      applications_completed: 5,
-    });
   });
 });

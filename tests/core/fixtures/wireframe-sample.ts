@@ -4,7 +4,8 @@
 import { emptyCounts } from '../../../src/core/counts';
 import { checkEntryTimes } from '../../../src/core/time';
 import type { InvoiceInput } from '../../../src/core/invoice';
-import type { Counts, Entry, Invoice } from '../../../src/core/types';
+import type { Counts, Entry, Invoice, OtherCount, RolesFile } from '../../../src/core/types';
+import shippedRoles from '../../../src/roles/roles.json';
 import { findFundingSource } from '../../../src/funding-sources';
 
 export const tisupp = (() => {
@@ -31,8 +32,43 @@ export function uuid(n: number): string {
   return `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 }
 
-export function counts(partial: Partial<Counts> = {}): Counts {
-  return { ...emptyCounts(), ...partial };
+/** The shipped roles file and its count list. */
+export const rolesFile = shippedRoles as RolesFile;
+export const countDefs = rolesFile.counts;
+
+export function findTestRole(id: string) {
+  return must(rolesFile.roles.find((r) => r.id === id));
+}
+
+/** The five CHW counts data v3 had, which the sample uses. */
+export interface LegacyCounts {
+  contacts: number;
+  referrals_given: number;
+  referral_followups: number;
+  rides_provided: number;
+  applications_completed: number;
+  other: OtherCount[];
+}
+
+/** Counts with the five CHW counts set (0 unless given), plus any other values by id. */
+export function counts(
+  partial: Partial<LegacyCounts> = {},
+  values: Record<string, number> = {},
+): Counts {
+  const { other = [], ...fixed } = partial;
+  return {
+    ...emptyCounts(),
+    values: {
+      contacts: 0,
+      referrals_given: 0,
+      referral_followups: 0,
+      rides_provided: 0,
+      applications_completed: 0,
+      ...fixed,
+      ...values,
+    },
+    other,
+  };
 }
 
 let nextId = 1000;
@@ -56,6 +92,7 @@ export function makeEntry(
   return {
     id: uuid(nextId++),
     source_id: 'tisupp',
+    role_id: null,
     start: startIso,
     stop: stopIso,
     entry_date: date,
@@ -79,7 +116,7 @@ const entry = (
   task_id: string,
   budget_line_id: string,
   notes: string,
-  c: Partial<Counts> = {},
+  c: Partial<LegacyCounts> = {},
 ): Entry => ({
   ...makeEntry(date, start, stop, task_id, budget_line_id),
   id: uuid(n),
@@ -160,6 +197,8 @@ export function priorInvoice(
     id: uuid(100 + sequence),
     number: `CC-2026-${String(sequence).padStart(3, '0')}`,
     sequence,
+    kind: 'invoice',
+    role: null,
     source: {
       id: source.id,
       code: source.code,
@@ -178,6 +217,7 @@ export function priorInvoice(
     total_cents,
     counts_period: period,
     counts_all_time: period,
+    count_defs: [],
     nte: { state: 'none' },
     canonical_version: 1,
     fingerprint: '0'.repeat(64),
@@ -230,7 +270,15 @@ export function sampleInput(overrides: Partial<InvoiceInput> = {}): InvoiceInput
     invoice_date: '2026-10-31',
     source: tisupp,
     settings: { source_id: 'tisupp', rate_cents: 2000, nte_cents: 500_000 },
-    profile: { name: 'Carmen Cruz', initials: 'CC', mailing_address: '', logo: null },
+    profile: {
+      name: 'Carmen Cruz',
+      initials: 'CC',
+      mailing_address: '',
+      logo: null,
+      role_id: null,
+    },
+    role: null,
+    count_defs: countDefs,
     counter: { next: 4, locked: true },
     entries: sampleEntries,
     prior_invoices: samplePriorInvoices,

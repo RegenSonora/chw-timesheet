@@ -1,5 +1,6 @@
 // Entry log CSV (SPEC §7, decisions 0001 and 0024): one header row and one row per task share of
 // each entry, the same columns for every invoice so files combine. No per-entry dollar amount.
+import { countValue } from '../../core/counts';
 import { formatCentsPlain, formatQuarters } from '../../core/money';
 import { rawSeconds } from '../../core/time';
 import type { Invoice } from '../../core/types';
@@ -64,11 +65,11 @@ export function entriesCsv(invoice: Invoice): Uint8Array<ArrayBuffer> {
         t.core_competency ?? '',
         e.budget_line_name,
         rate,
-        count(e.counts.contacts),
-        count(e.counts.referrals_given),
-        count(e.counts.referral_followups),
-        count(e.counts.rides_provided),
-        count(e.counts.applications_completed),
+        count(countValue(e.counts, 'contacts')),
+        count(countValue(e.counts, 'referrals_given')),
+        count(countValue(e.counts, 'referral_followups')),
+        count(countValue(e.counts, 'rides_provided')),
+        count(countValue(e.counts, 'applications_completed')),
         first ? e.counts.other.map((o) => `${o.label}=${String(o.value)}`).join('; ') : '',
         first ? e.notes : '',
         e.created_at,

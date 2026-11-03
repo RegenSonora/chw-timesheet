@@ -66,6 +66,8 @@ export async function generateInvoice(
     source: request.source,
     settings: unwrap(before.settings),
     profile: unwrap(before.profile),
+    role: request.role,
+    count_defs: request.count_defs,
     counter: before.counter ? unwrap(before.counter) : newCounter(),
     entries: before.entries,
     prior_invoices: before.invoices,

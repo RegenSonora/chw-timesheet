@@ -6,10 +6,12 @@ import type { StoreName, StoredRecord, Tx } from './types';
 /**
  * v1: first release. v2: app state gains `draft` (the half-entered record, SPEC §10).
  * v3: an entry's `task_id` becomes `tasks`, a list of task shares (decision 0024).
+ * v4: profiles and entries gain `role_id`, counts are kept by count id, invoices gain `kind`,
+ * `role` and `count_defs` (roles plan R3).
  */
-export const DATA_VERSION = 3;
+export const DATA_VERSION = 4;
 
-/** The stores of v1. v2 and v3 keep the same stores. */
+/** The stores of v1. Later versions keep the same stores. */
 export const STORES_V1: readonly StoreName[] = [
   'meta',
   'profile',

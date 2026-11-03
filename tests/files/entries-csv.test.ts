@@ -81,7 +81,7 @@ describe('entry log CSV (SPEC §7, decisions 0001 and 0024)', () => {
     const sum = (c: (typeof ENTRY_LOG_COLUMNS)[number]) =>
       rows.reduce((total, r) => total + Number(r[col(c)] || 0), 0);
     expect(sum('billed_hours')).toBe(9.25);
-    expect(sum('contacts')).toBe(invoice.counts_period.contacts);
+    expect(sum('contacts')).toBe(invoice.counts_period.values['contacts']);
   });
 
   it('writes raw duration as h:mm:ss', () => {

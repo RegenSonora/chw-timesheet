@@ -9,13 +9,15 @@ export const CANONICAL_VERSION = 2;
 /** The fields an invoice is fingerprinted over: header, entries, lines, totals and rate. */
 export type FingerprintedInvoice = Omit<Invoice, 'fingerprint'>;
 
+/** Forms v1 and v2 hold the five CHW counts data v3 had, read from the map (data v4). */
 function countsForm(counts: Counts) {
+  const value = (id: string) => counts.values[id] ?? 0;
   return {
-    contacts: counts.contacts,
-    referrals_given: counts.referrals_given,
-    referral_followups: counts.referral_followups,
-    rides_provided: counts.rides_provided,
-    applications_completed: counts.applications_completed,
+    contacts: value('contacts'),
+    referrals_given: value('referrals_given'),
+    referral_followups: value('referral_followups'),
+    rides_provided: value('rides_provided'),
+    applications_completed: value('applications_completed'),
     other: counts.other.map((o) => ({ label: o.label, value: o.value })),
   };
 }

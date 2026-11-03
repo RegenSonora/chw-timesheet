@@ -127,6 +127,8 @@ export function buildEntry(
   existing: Entry | null,
   now: string,
   newId: () => string,
+  /** The person's role; an edited entry keeps the role it was saved under. */
+  roleId: string | null,
 ): { ok: true; entry: Entry } | { ok: false; problem: DraftProblem } {
   const times = checkDraftTimes(draft, entries);
   if (times.state !== 'ok' || !draft.start || !draft.stop) return { ok: false, problem: 'times' };
@@ -147,6 +149,7 @@ export function buildEntry(
     entry: {
       id: existing?.id ?? newId(),
       source_id: source.id,
+      role_id: existing ? existing.role_id : roleId,
       start: draft.start,
       stop: draft.stop,
       entry_date: entryDateOf(draft.start),

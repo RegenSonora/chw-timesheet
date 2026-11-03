@@ -98,6 +98,8 @@ export function Setup() {
         initials,
         mailing_address: form.mailing_address.trim(),
         logo: null,
+        // The role picker comes with roles plan R4.
+        role_id: null,
       },
       next_number: next,
       settings,

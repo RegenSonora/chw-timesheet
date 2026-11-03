@@ -13,6 +13,7 @@ import {
   type SourceSettings,
 } from '../core';
 import { findFundingSource, FUNDING_SOURCES } from '../funding-sources';
+import { COUNT_DEFS, findRole } from '../roles';
 import {
   emptyAppState,
   persistenceStatus,
@@ -434,8 +435,14 @@ function useStore(storage: Storage, initial: Data) {
           ? (d().entries.find((e) => e.id === draft.entry_id) ?? null)
           : null;
         const source = sourceOf(draft.source_id);
-        const built = buildEntry(draft, source, d().entries, existing, phoneNow(), () =>
-          crypto.randomUUID(),
+        const built = buildEntry(
+          draft,
+          source,
+          d().entries,
+          existing,
+          phoneNow(),
+          () => crypto.randomUUID(),
+          d().profile?.role_id ?? null,
         );
         if (!built.ok) return built.problem;
         const entry = built.entry;
@@ -513,6 +520,8 @@ function useStore(storage: Storage, initial: Data) {
           result = await serial(() =>
             storage.generateInvoice({
               source: sourceOf(sourceId),
+              role: findRole(d().profile?.role_id ?? null),
+              count_defs: COUNT_DEFS,
               now,
               invoice_date: now.slice(0, 10),
             }),

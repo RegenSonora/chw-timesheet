@@ -6,6 +6,8 @@ import type { Entry } from '../../src/core/types';
 import { emptyAppState, rememberPicks } from '../../src/storage/storage';
 import { RECENT_TASKS_MAX, type AppState, type Storage } from '../../src/storage/types';
 import {
+  countDefs,
+  findTestRole,
   makeEntry,
   must,
   regen,
@@ -16,7 +18,13 @@ import {
 import { adapters, NOW, profile, seedSample } from './helpers';
 
 const generate = (storage: Storage) =>
-  storage.generateInvoice({ source: tisupp, now: NOW, invoice_date: '2026-10-31' });
+  storage.generateInvoice({
+    source: tisupp,
+    role: null,
+    count_defs: countDefs,
+    now: NOW,
+    invoice_date: '2026-10-31',
+  });
 
 async function generated(storage: Storage) {
   const result = await generate(storage);
@@ -143,7 +151,11 @@ describe.each(adapters)('$name adapter', (adapter) => {
             { task_id: 'outreach', quarters: 2 },
           ],
           budget_line_id: 'chw-referrals',
-          counts: { ...emptyCounts(), contacts: 1, other: [{ label: 'Food boxes', value: 2 }] },
+          counts: {
+            ...emptyCounts(),
+            values: { contacts: 1 },
+            other: [{ label: 'Food boxes', value: 2 }],
+          },
           notes: 'Library',
         },
       };
@@ -179,6 +191,37 @@ describe.each(adapters)('$name adapter', (adapter) => {
       expect(
         await verifyFingerprint(must((await storage.getInvoice(invoice.id)) ?? undefined)),
       ).toBe(true);
+      storage.close();
+    });
+
+    it('keeps roles on profile and entries, and freezes the role and kind (roles plan R3)', async () => {
+      const storage = await adapter.make();
+      await seedSample(storage);
+      await storage.saveProfile({ ...profile, role_id: 'chw-te01' });
+      const entry = { ...must(sampleEntries[0]), role_id: 'chw-te01' };
+      await storage.saveEntry(entry);
+      expect(await storage.getProfile()).toEqual({ ...profile, role_id: 'chw-te01' });
+      expect(await storage.getEntry(entry.id)).toEqual(entry);
+
+      const result = await storage.generateInvoice({
+        source: tisupp,
+        role: findTestRole('chw-te01'),
+        count_defs: countDefs,
+        now: NOW,
+        invoice_date: '2026-10-31',
+      });
+      if (!result.ok) throw new Error(result.reason);
+      const stored = must((await storage.getInvoice(result.invoice.id)) ?? undefined);
+      expect(stored.kind).toBe('timesheet');
+      expect(stored.role?.code).toBe('CHW-TE01');
+      expect(stored.count_defs.map((c) => c.id)).toEqual([
+        'contacts',
+        'referrals_given',
+        'referral_followups',
+        'rides_provided',
+        'applications_completed',
+      ]);
+      expect(await verifyFingerprint(stored)).toBe(true);
       storage.close();
     });
 
@@ -225,6 +268,8 @@ describe.each(adapters)('$name adapter', (adapter) => {
 
       const second = await storage.generateInvoice({
         source: regen,
+        role: null,
+        count_defs: countDefs,
         now: NOW,
         invoice_date: '2026-10-31',
       });

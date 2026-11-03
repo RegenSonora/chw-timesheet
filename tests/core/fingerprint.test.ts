@@ -12,7 +12,7 @@ import {
 } from '../../src/core/fingerprint';
 import type { Invoice } from '../../src/core/types';
 import type { StoredRecord } from '../../src/storage/types';
-import { v2ToV3 } from '../../src/storage/upgrades';
+import { v2ToV3, v3ToV4 } from '../../src/storage/upgrades';
 import { must } from './fixtures/wireframe-sample';
 import goldenV1 from './golden/fingerprint-v1.json';
 import goldenV2 from './golden/fingerprint-v2.json';
@@ -26,15 +26,22 @@ interface Golden {
   fingerprint: string;
 }
 
-/** v1 golden invoices were stored with one task per entry; data v3 stores a single share. */
-const storedV1 = goldenV1 as unknown as (Omit<Golden, 'invoice'> & { invoice: StoredRecord })[];
+type StoredGolden = Omit<Golden, 'invoice'> & { invoice: StoredRecord };
 
-const cases: Golden[] = storedV1.map((c) => ({
-  ...c,
-  invoice: must(v2ToV3({ invoices: [c.invoice] })['invoices']?.[0]) as unknown as Invoice,
-}));
+/** v1 golden invoices were stored as data v2: one task per entry, five fixed counts. */
+const storedV1 = goldenV1 as unknown as StoredGolden[];
+/** v2 golden invoices were stored as data v3: five fixed counts. */
+const storedV2 = goldenV2 as unknown as StoredGolden[];
 
-const casesV2 = goldenV2 as unknown as Golden[];
+/** The golden invoice as this release stores it, after every data upgrade. */
+const upgrade = (c: StoredGolden, from: 2 | 3): Golden => {
+  let snapshot = { invoices: [c.invoice] };
+  if (from === 2) snapshot = { invoices: v2ToV3(snapshot)['invoices'] ?? [] };
+  return { ...c, invoice: must(v3ToV4(snapshot)['invoices']?.[0]) as unknown as Invoice };
+};
+
+const cases: Golden[] = storedV1.map((c) => upgrade(c, 2));
+const casesV2: Golden[] = storedV2.map((c) => upgrade(c, 3));
 
 describe('canonicalJson', () => {
   it('sorts keys at every level and drops whitespace', () => {
@@ -164,7 +171,10 @@ describe('what the fingerprint covers', () => {
       (i) => (must(i.lines[0]).quarters += 1),
       (i) => (must(i.entries[0]).stop = '2026-10-20T10:31:13-07:00'),
       (i) => (must(i.entries[0]).notes = 'Library table.'),
-      (i) => (must(i.entries[0]).counts.contacts += 1),
+      (i) => {
+        const values = must(i.entries[0]).counts.values;
+        values['contacts'] = (values['contacts'] ?? 0) + 1;
+      },
       (i) => must(i.entries[0]).counts.other.push({ label: 'Food boxes', value: 1 }),
       (i) => i.entries.reverse(),
       (i) => (i.source.version = 2),
@@ -175,7 +185,7 @@ describe('what the fingerprint covers', () => {
   it('does not change with the NTE, all-time counts, certification text or timestamps', async () => {
     const edits: ((i: Invoice) => void)[] = [
       (i) => (i.nte = { state: 'not_entered' }),
-      (i) => (i.counts_all_time.contacts += 1),
+      (i) => (i.counts_all_time.values['contacts'] = 99),
       (i) => (i.source.certification_text = 'x'),
       (i) => (i.updated_at = '2030-01-01T00:00:00-07:00'),
     ];

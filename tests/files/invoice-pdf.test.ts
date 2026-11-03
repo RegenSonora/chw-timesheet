@@ -164,6 +164,7 @@ describe('long invoices still fit', () => {
       settings: { source_id: regen.id, rate_cents: 2237, nte_cents: null },
       profile: {
         name: 'Maria Guadalupe Hernández-Villalobos',
+        role_id: null,
         initials: 'CC',
         mailing_address:
           '12345 West Very Long Street Name Road\nApartment 678\nSuperior, AZ 85173\nUSA',

@@ -5,7 +5,6 @@ import type {
   BudgetLine,
   CountDef,
   Counts,
-  CountValues,
   FundingSourceConfig,
   OtherCount,
   Role,
@@ -124,12 +123,6 @@ export function duplicateCountLabel(label: string, counts: readonly CountDef[]):
   return counts.find((c) => labelKey(c.label) === key) ?? null;
 }
 
-/** Count values by id plus "Add another count" values (the v4 entry counts, roles plan R3). */
-export interface CountTotals {
-  values: CountValues;
-  other: OtherCount[];
-}
-
 export interface InvoiceCount {
   /** Null for an "Add another count" label. */
   id: string | null;
@@ -158,8 +151,8 @@ function otherByLabel(other: readonly OtherCount[]): Map<string, OtherCount> {
  */
 export function invoiceCounts(
   countDefs: readonly CountDef[],
-  period: CountTotals,
-  allTime: CountTotals,
+  period: Counts,
+  allTime: Counts,
 ): InvoiceCount[] {
   const listed: InvoiceCount[] = countDefs
     .filter((c) => (period.values[c.id] ?? 0) !== 0)
@@ -182,15 +175,4 @@ export function invoiceCounts(
     });
   }
   return listed;
-}
-
-/** The five fixed counts (data v3) under the same ids in the shared count list. */
-export function legacyCountValues(counts: Counts): CountValues {
-  return {
-    contacts: counts.contacts,
-    referrals_given: counts.referrals_given,
-    referral_followups: counts.referral_followups,
-    rides_provided: counts.rides_provided,
-    applications_completed: counts.applications_completed,
-  };
 }

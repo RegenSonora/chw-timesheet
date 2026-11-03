@@ -6,6 +6,7 @@ import { lineAmountCents, sumCents } from './money';
 import { sharesMatch } from './task-split';
 import { checkEntryTimes, entryDateOf, parseIso } from './time';
 import type {
+  CountDef,
   Entry,
   FundingSourceConfig,
   Invoice,
@@ -14,6 +15,7 @@ import type {
   InvoiceLine,
   NteStatus,
   Profile,
+  Role,
   SourceSettings,
 } from './types';
 
@@ -27,6 +29,10 @@ export interface InvoiceInput {
   source: FundingSourceConfig;
   settings: SourceSettings;
   profile: Profile;
+  /** The person's role; null before one is picked. Employees get a timesheet (decision 0031). */
+  role: Role | null;
+  /** The shared count list, for the labels the invoice freezes (decision 0029). */
+  count_defs: readonly CountDef[];
   counter: InvoiceCounter;
   /** All entries on the phone; only this source's uninvoiced ones are used. */
   entries: readonly Entry[];
@@ -141,6 +147,9 @@ export function buildInvoiceDraft(input: InvoiceInput): InvoiceDraftResult {
   const nte = nteStatus(source, settings, earlier, totalCents);
   const countsPeriod = sumCounts(frozen.map((e) => e.counts));
   const countsAllTime = sumCounts([...earlier.map((i) => i.counts_period), countsPeriod]);
+  const hasValue = (id: string) =>
+    (countsPeriod.values[id] ?? 0) !== 0 || (countsAllTime.values[id] ?? 0) !== 0;
+  const role = input.role;
 
   const dates = frozen.map((e) => e.entry_date).sort();
   const { sequence, counter } = takeNumber(input.counter);
@@ -154,6 +163,16 @@ export function buildInvoiceDraft(input: InvoiceInput): InvoiceDraftResult {
       id: input.id,
       number: formatInvoiceNumber(profile.initials, year, sequence),
       sequence,
+      kind: role?.employment === 'employee' ? 'timesheet' : 'invoice',
+      role: role
+        ? {
+            id: role.id,
+            code: role.code,
+            name: role.name,
+            employment: role.employment,
+            chw: role.chw,
+          }
+        : null,
       source: {
         id: source.id,
         code: source.code,
@@ -176,6 +195,7 @@ export function buildInvoiceDraft(input: InvoiceInput): InvoiceDraftResult {
       total_cents: totalCents,
       counts_period: countsPeriod,
       counts_all_time: countsAllTime,
+      count_defs: input.count_defs.filter((c) => hasValue(c.id)).map((c) => structuredClone(c)),
       nte,
       canonical_version: CANONICAL_VERSION,
       created_at: input.now,

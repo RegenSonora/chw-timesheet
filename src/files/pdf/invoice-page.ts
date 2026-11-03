@@ -1,6 +1,6 @@
 // PDF page 1, the invoice (SPEC §7 "PDF page 1", wireframe PdfInvoice). Laid out top to bottom
 // at a scale; when a long invoice doesn't fit, it is drawn again smaller.
-import { COUNT_FIELDS } from '../../core/counts';
+import { COUNT_FIELDS, countValue } from '../../core/counts';
 import { shortFingerprint } from '../../core/fingerprint';
 import { formatDollars, formatQuarters } from '../../core/money';
 import type { Counts, Invoice } from '../../core/types';
@@ -163,8 +163,8 @@ function layout(c: Ctx, invoice: Invoice, pageCount: number, footerTop: number):
   );
   const rows = COUNT_FIELDS.map((f) => ({
     label: f.label,
-    period: invoice.counts_period[f.key],
-    all: invoice.counts_all_time[f.key],
+    period: countValue(invoice.counts_period, f.key),
+    all: countValue(invoice.counts_all_time, f.key),
   }));
   const others = otherCounts(invoice.counts_period, invoice.counts_all_time);
   rows.push(...others.slice(0, OTHER_COUNTS_SHOWN));

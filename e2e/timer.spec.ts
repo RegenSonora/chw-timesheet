@@ -4,8 +4,14 @@ import { addEntry, heading, setUp, ZONE } from './helpers.js';
 
 test.use({ timezoneId: ZONE });
 
-test('survives a reload with the chip locked', async ({ page }) => {
+test('one funding source shows as a label, not a chip (decision 0028)', async ({ page }) => {
   await setUp(page);
+  await expect(page.getByText('Billed to: TISUPP', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Funding source/ })).toHaveCount(0);
+});
+
+test('survives a reload with the chip locked', async ({ page }) => {
+  await setUp(page, { regen: true });
   await page.getByRole('button', { name: 'Start timer' }).click();
   await expect(page.getByRole('timer')).toBeVisible();
   await page.waitForTimeout(300);

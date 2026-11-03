@@ -310,6 +310,17 @@ p {
   cursor: pointer;
 }
 
+.billed-to {
+  margin: 0;
+  color: var(--soft);
+  font-size: 16px;
+}
+
+.billed-to strong {
+  color: var(--fg);
+  font-weight: 650;
+}
+
 .chip-locked {
   border-color: var(--border);
   color: var(--soft);

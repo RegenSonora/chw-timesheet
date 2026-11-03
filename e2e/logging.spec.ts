@@ -40,6 +40,9 @@ test('timer → task → counts → save, then undo', async ({ page }) => {
   // Next without picks: errors next to the fields.
   await page.getByRole('button', { name: 'Next' }).click();
   await expect(page.getByText('Check what you did.')).toBeVisible();
+  // One funding source: shown as a label, not a picker (decision 0028).
+  await expect(page.getByText('Billed to: TISUPP', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^TISUPP (Choose|Change)$/ })).toHaveCount(0);
   await expect(page.getByText('Pick a budget line.')).toBeVisible();
 
   await pickTaskAndLine(page, 'Client check in', 'CHW referrals');

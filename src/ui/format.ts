@@ -14,6 +14,12 @@ export function hoursLabel(quarters: number): string {
   return `${formatQuarters(quarters).replace(/\.?0+$/, '')} ${hrs(quarters / 4)}`;
 }
 
+/** "TISUPP · CHW experience hours": the steps with one option, shown as a label (decision 0028). */
+export function billedToLabel(source: string | null, line: string | null): string | null {
+  const parts = [source, line].filter((p): p is string => p !== null);
+  return parts.length ? parts.join(' · ') : null;
+}
+
 /** "Outreach", or "Outreach + 2 more" for a split entry (decision 0024). */
 export function tasksLabel(
   source: Pick<FundingSourceConfig, 'tasks'>,

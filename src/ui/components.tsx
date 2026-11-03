@@ -228,8 +228,9 @@ export function ListPicker<T extends { id: string }>({
 
 export function SourceChip({ onOpen }: { onOpen: () => void }) {
   const { selectedSource, data } = useApp();
-  // Nothing to switch to with one source (decision 0023).
-  if (!selectedSource || data.settings.length < 2) return null;
+  if (!selectedSource) return null;
+  // Nothing to switch to with one source: a label, not a control (decisions 0023, 0028).
+  if (data.settings.length < 2) return <BilledTo label={selectedSource.code} />;
   if (data.app.running_timer) {
     return (
       <button
@@ -251,6 +252,15 @@ export function SourceChip({ onOpen }: { onOpen: () => void }) {
     >
       {selectedSource.code} <ChevronIcon />
     </button>
+  );
+}
+
+/** A step with one option, picked for the CHW: "Billed to: TISUPP" (decision 0028). */
+export function BilledTo({ label }: { label: string }) {
+  return (
+    <p class="billed-to">
+      Billed to: <strong>{label}</strong>
+    </p>
   );
 }
 

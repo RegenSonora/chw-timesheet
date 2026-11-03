@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  billedToLabel,
   clockLabel,
   dateLabel,
   durationLabel,
@@ -80,5 +81,17 @@ describe('version label (decision 0016)', () => {
 
   it('shows a dev build as is', () => {
     expect(versionLabel('dev')).toBe('dev');
+  });
+});
+
+describe('billedToLabel (decision 0028)', () => {
+  it('joins the one-option picks with a middle dot', () => {
+    expect(billedToLabel('TISUPP', 'CHW experience hours')).toBe('TISUPP · CHW experience hours');
+    expect(billedToLabel('TISUPP', null)).toBe('TISUPP');
+    expect(billedToLabel(null, 'CHW experience hours')).toBe('CHW experience hours');
+  });
+
+  it('is null when every step has a choice', () => {
+    expect(billedToLabel(null, null)).toBeNull();
   });
 });

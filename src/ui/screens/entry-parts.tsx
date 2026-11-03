@@ -12,6 +12,7 @@ import {
 } from '../../core';
 import type { EntryDraft } from '../../storage';
 import {
+  BilledTo,
   COUNT_FIELDS,
   ErrorText,
   Field,
@@ -21,7 +22,14 @@ import {
   entryNames,
 } from '../components';
 import { checkDraftTimes, type TimesCheck } from '../draft';
-import { dateLabel, durationLabel, hoursLabel, shortDateLabel, timeRangeLabel } from '../format';
+import {
+  billedToLabel,
+  dateLabel,
+  durationLabel,
+  hoursLabel,
+  shortDateLabel,
+  timeRangeLabel,
+} from '../format';
 import { sourceById, useApp } from '../store';
 
 /** "Fri, Oct 30 · 9:12–10:37 AM", "Rounded from 1 hr 25 min", "1.5 hrs". */
@@ -75,7 +83,8 @@ export function ChangeRow({
 
 /**
  * Funding source and budget line rows with their pickers. A row with only one choice, already
- * picked, is hidden (decision 0023); it shows again if the draft holds something else.
+ * picked, shows as a "Billed to" label instead (decisions 0023, 0028); it shows again as a row if
+ * the draft holds something else.
  */
 export function SourceAndLine({
   draft,
@@ -91,8 +100,10 @@ export function SourceAndLine({
   const line = source.budget_lines.find((l) => l.id === draft.budget_line_id);
   const onlySource = sources.length === 1 && sources[0]?.id === source.id;
   const onlyLine = source.budget_lines.length === 1 && line !== undefined;
+  const billedTo = billedToLabel(onlySource ? source.code : null, onlyLine ? line.name : null);
   return (
     <>
+      {billedTo && <BilledTo label={billedTo} />}
       {!onlySource && (
         <ChangeRow
           label="Funding source"

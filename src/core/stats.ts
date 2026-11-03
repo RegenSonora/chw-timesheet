@@ -31,7 +31,8 @@ export interface MyStats {
   certification: CertificationStat | null;
 }
 
-export function myStats(
+/** One source's stats. Replaced by the role-based myStats in role-stats.ts (roles plan R6). */
+export function sourceMyStats(
   source: FundingSourceConfig,
   rateCents: number | null,
   invoices: readonly Invoice[],

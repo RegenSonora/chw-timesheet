@@ -1,6 +1,6 @@
 // My stats on Home (decision 0026).
 import { describe, expect, it } from 'vitest';
-import { invoicedQuarters, myStats } from '../../src/core/stats';
+import { invoicedQuarters, sourceMyStats } from '../../src/core/stats';
 import type { FundingSourceConfig } from '../../src/core/types';
 import { counts, priorInvoice, regen, tisupp } from './fixtures/wireframe-sample';
 
@@ -23,9 +23,9 @@ describe('invoicedQuarters', () => {
   });
 });
 
-describe('myStats', () => {
+describe('sourceMyStats', () => {
   it('with no invoices: 0 invoiced, the full 240 and 480 hours to go', () => {
-    expect(myStats(source, 2000, [], 0)).toEqual({
+    expect(sourceMyStats(source, 2000, [], 0)).toEqual({
       invoiced_quarters: 0,
       waiting_quarters: 0,
       pay: { state: 'counting', left_quarters: 960, after_quarters: 960, rate_cents: 2300 },
@@ -39,7 +39,7 @@ describe('myStats', () => {
   });
 
   it('waiting hours are shown but do not move the goals', () => {
-    const stats = myStats(source, 2000, [billed(1, 152.5)], 18);
+    const stats = sourceMyStats(source, 2000, [billed(1, 152.5)], 18);
     expect(stats.invoiced_quarters).toBe(610);
     expect(stats.waiting_quarters).toBe(18);
     expect(stats.pay).toMatchObject({ state: 'counting', left_quarters: 350 });
@@ -47,7 +47,7 @@ describe('myStats', () => {
   });
 
   it('at exactly 240 hours with the rate still lower, the raise is reached', () => {
-    expect(myStats(source, 2000, [billed(1, 240)], 0).pay).toEqual({
+    expect(sourceMyStats(source, 2000, [billed(1, 240)], 0).pay).toEqual({
       state: 'reached',
       after_quarters: 960,
       rate_cents: 2300,
@@ -55,24 +55,24 @@ describe('myStats', () => {
   });
 
   it('the pay row goes once 240 hours are invoiced and the rate is at least the new rate', () => {
-    expect(myStats(source, 2300, [billed(1, 240)], 0).pay).toBeNull();
-    expect(myStats(source, 2500, [billed(1, 300)], 0).pay).toBeNull();
+    expect(sourceMyStats(source, 2300, [billed(1, 240)], 0).pay).toBeNull();
+    expect(sourceMyStats(source, 2500, [billed(1, 300)], 0).pay).toBeNull();
   });
 
   it('a rate raised early keeps the countdown until 240 hours', () => {
-    expect(myStats(source, 2300, [billed(1, 100)], 0).pay).toMatchObject({
+    expect(sourceMyStats(source, 2300, [billed(1, 100)], 0).pay).toMatchObject({
       state: 'counting',
       left_quarters: 560,
     });
   });
 
   it('with no rate yet, the pay row still counts down', () => {
-    expect(myStats(source, null, [], 0).pay).toMatchObject({ state: 'counting' });
+    expect(sourceMyStats(source, null, [], 0).pay).toMatchObject({ state: 'counting' });
   });
 
   it('at and past 480 hours the CHW is eligible for certification', () => {
     for (const hours of [480, 486.5]) {
-      expect(myStats(source, 2300, [billed(1, hours)], 0).certification).toEqual({
+      expect(sourceMyStats(source, 2300, [billed(1, hours)], 0).certification).toEqual({
         state: 'eligible',
         after_quarters: 1920,
         name: 'CHW Cert',
@@ -84,7 +84,7 @@ describe('myStats', () => {
     const plain: FundingSourceConfig = { ...tisupp };
     delete plain.rate_step;
     delete plain.certification_step;
-    expect(myStats(plain, 2000, [billed(1, 10, plain)], 4)).toEqual({
+    expect(sourceMyStats(plain, 2000, [billed(1, 10, plain)], 4)).toEqual({
       invoiced_quarters: 40,
       waiting_quarters: 4,
       pay: null,

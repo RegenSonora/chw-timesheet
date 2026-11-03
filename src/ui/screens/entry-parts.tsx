@@ -4,7 +4,7 @@ import {
   carryPicks,
   checkTask,
   splitStatus,
-  taskChoices,
+  sourceTaskChoices,
   uncheckTask,
   type Counts,
   type Entry,
@@ -174,7 +174,7 @@ export function TaskList({ draft, error }: { draft: EntryDraft; error?: string |
   const { data, actions } = useApp();
   const total = useDraftQuarters(draft);
   const source = sourceById(draft.source_id);
-  const { recent, all } = taskChoices(
+  const { recent, all } = sourceTaskChoices(
     source,
     data.app.per_source[source.id]?.recent_task_ids ?? [],
   );

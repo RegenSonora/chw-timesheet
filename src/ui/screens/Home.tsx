@@ -3,7 +3,7 @@
 import { useState } from 'preact/hooks';
 import {
   formatDollars,
-  myStats,
+  sourceMyStats,
   rateStepReminder,
   uninvoicedEntries,
   uninvoicedSummary,
@@ -58,7 +58,7 @@ export function MyStats({
   waitingQuarters: number;
 }) {
   const { data, actions } = useApp();
-  const stats = myStats(source, rateCents, data.invoices, waitingQuarters);
+  const stats = sourceMyStats(source, rateCents, data.invoices, waitingQuarters);
   const { pay, certification } = stats;
   return (
     <section class="stats-sec" aria-labelledby="stats-head">

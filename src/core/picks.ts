@@ -4,8 +4,11 @@ import type { FundingSourceConfig, Task, TaskShare } from './types';
 /** How many recent tasks the "Recent" group shows. */
 export const RECENT_TASKS_SHOWN = 3;
 
-/** "Recent" (most recent first, only tasks this source has) above every task in source order. */
-export function taskChoices(
+/**
+ * "Recent" (most recent first, only tasks this source has) above every task in source order.
+ * Replaced by the role-based taskChoices in roles.ts once the entry screen uses roles (roles plan R4).
+ */
+export function sourceTaskChoices(
   source: FundingSourceConfig,
   recentIds: readonly string[],
 ): { recent: Task[]; all: Task[] } {

@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { readJson } from '../../scripts/lib/json.mjs';
-import { makeRolesValidator } from '../../scripts/lib/roles.mjs';
+import { checkRoles, checkRolesData, makeRolesValidator } from '../../scripts/lib/roles.mjs';
 
 interface RoleTask {
   id: string;
@@ -45,7 +45,12 @@ interface RolesFile {
 
 const root = join(import.meta.dirname, '..', '..');
 const rolesFile = readJson(join(root, 'src', 'roles', 'roles.json')) as RolesFile;
-const validate = makeRolesValidator(readJson(join(root, 'schemas', 'roles.schema.json')));
+const rolesSchema = readJson(join(root, 'schemas', 'roles.schema.json'));
+const validate = makeRolesValidator(rolesSchema);
+type SourceFile = Record<string, unknown> & { id: string; code: string };
+const sources = ['tisupp', 'regen-general-operating'].map(
+  (id) => readJson(join(root, 'src', 'funding-sources', `${id}.json`)) as SourceFile,
+);
 
 function role(code: string): Role {
   const found = rolesFile.roles.find((r) => r.code === code);
@@ -318,5 +323,187 @@ describe('roles schema', () => {
     expect(changed((f) => ((f.counts[0] as Count).label = ' Contacts'))).not.toEqual([]);
     expect(changed((f) => ((first(f).funding[0] as Funding).ends = 'June 30'))).not.toEqual([]);
     expect(changed((f) => ((first(f).funding[0] as Funding).ends = '2027-06-30'))).toEqual([]);
+  });
+});
+
+describe('build checks against the source files (roles plan R1)', () => {
+  /** Problems after one change to copies of the shipped roles and sources. */
+  function broken(change: (f: RolesFile, s: SourceFile[]) => void): string[] {
+    const copy = structuredClone(rolesFile);
+    const sourceCopies = structuredClone(sources);
+    change(copy, sourceCopies);
+    return checkRolesData(copy, sourceCopies, rolesSchema);
+  }
+  const tc = (f: RolesFile) => f.roles[0] as Role;
+  const te = (f: RolesFile) => f.roles[1] as Role;
+  const tl = (f: RolesFile) => f.roles[2] as Role;
+  const funding = (r: Role) => r.funding[0] as Funding;
+  const line = (r: Role) => funding(r).budget_lines[0] as RoleLine;
+  const task = (r: Role) => line(r).tasks[0] as RoleTask;
+  const source = (s: SourceFile[], id: string) => s.find((x) => x.id === id) as SourceFile;
+  /** Drop a count from every task of every role. */
+  const unuse = (f: RolesFile, id: string) => {
+    for (const r of f.roles)
+      for (const fu of r.funding)
+        for (const l of fu.budget_lines)
+          for (const t of l.tasks) t.count_ids = t.count_ids.filter((c) => c !== id);
+  };
+  /** A retired copy of R-TL01, for replacement tests. */
+  const retiredLead = (f: RolesFile, id: string, replacedBy?: string) => {
+    const old: Role = { ...structuredClone(tl(f)), id, code: id.toUpperCase(), retired: true };
+    if (replacedBy) old.replaced_by = replacedBy;
+    f.roles.push(old);
+  };
+
+  it('passes the shipped files', () => {
+    expect(checkRoles(root)).toEqual([]);
+  });
+
+  it('rejects a duplicate role id or code; a retired role keeps its id', () => {
+    expect(broken((f) => (te(f).id = 'chw-tc01'))).toContain(
+      'role CHW-TE01: id "chw-tc01" is already used by role CHW-TC01',
+    );
+    expect(broken((f) => (te(f).code = 'CHW-TC01'))).toContain(
+      'role CHW-TC01: code is used by more than one role',
+    );
+    expect(
+      broken((f) => {
+        retiredLead(f, 'r-tl00');
+        te(f).id = 'r-tl00';
+      }),
+    ).toContain('role R-TL00: id "r-tl00" is already used by role CHW-TE01');
+  });
+
+  it('rejects a reused count id, or a label matching another count, retired ones included', () => {
+    expect(broken((f) => f.counts.push({ id: 'contacts', label: 'People reached' }))).toContain(
+      'count "contacts": id is used more than once',
+    );
+    expect(
+      broken((f) => f.counts.push({ id: 'trees_planted_2', label: 'trees  Planted' })),
+    ).toContain('count "trees_planted_2": label "trees  Planted" matches count "trees_planted"');
+    expect(
+      broken((f) => {
+        (f.counts[3] as Count).retired = true;
+        unuse(f, 'rides_provided');
+        f.counts.push({ id: 'rides_given', label: 'Rides provided' });
+      }),
+    ).toContain('count "rides_given": label "Rides provided" matches count "rides_provided"');
+  });
+
+  it('rejects a source, line, task or count listed twice in one role', () => {
+    expect(broken((f) => tl(f).funding.push(structuredClone(funding(tl(f)))))).toContain(
+      'role R-TL01: funding "regen-general-operating" is listed twice',
+    );
+    expect(broken((f) => funding(tl(f)).budget_lines.push(structuredClone(line(tl(f)))))).toContain(
+      'role R-TL01, funding regen-general-operating: budget line "fire-risk-reduction-work" is listed twice',
+    );
+    expect(broken((f) => line(tc(f)).tasks.push(structuredClone(task(tc(f)))))).toContain(
+      'role CHW-TC01, funding tisupp, budget line chw-experience-hours: task "outreach" is listed twice',
+    );
+    expect(broken((f) => task(tc(f)).count_ids.push('contacts'))).toContain(
+      'role CHW-TC01, funding tisupp, budget line chw-experience-hours, task outreach: count "contacts" is listed twice',
+    );
+  });
+
+  it('rejects a source, budget line, task or count that does not exist', () => {
+    expect(broken((f) => (funding(tc(f)).source_id = 'tisup'))).toContain(
+      `role CHW-TC01: funding source "tisup" doesn't exist`,
+    );
+    expect(broken((f) => (line(tc(f)).id = 'chw-hours'))).toContain(
+      `role CHW-TC01, funding tisupp: budget line "chw-hours" isn't in TISUPP`,
+    );
+    expect(broken((f) => (task(tc(f)).id = 'outreech'))).toContain(
+      `role CHW-TC01, funding tisupp, budget line chw-experience-hours: task "outreech" isn't in TISUPP`,
+    );
+    expect(broken((f) => (task(tc(f)).count_ids = ['contact']))).toContain(
+      `role CHW-TC01, funding tisupp, budget line chw-experience-hours, task outreach: count "contact" isn't in the count list`,
+    );
+  });
+
+  it('rejects an active role using a retired count', () => {
+    expect(broken((f) => ((f.counts[0] as Count).retired = true))).toContain(
+      'role CHW-TC01, funding tisupp, budget line chw-experience-hours, task outreach: count "contacts" is retired',
+    );
+  });
+
+  it('names the role when a list is empty', () => {
+    expect(broken((f) => (tl(f).funding = []))).toContain('role R-TL01: funding is empty');
+    expect(broken((f) => (funding(tl(f)).budget_lines = []))).toContain(
+      'role R-TL01: funding 1 budget_lines is empty',
+    );
+    expect(broken((f) => (line(tl(f)).tasks = []))).toContain(
+      'role R-TL01: funding 1 budget_lines 1 tasks is empty',
+    );
+  });
+
+  it('checks replaced_by: only on retired roles, to an active role, with no loop', () => {
+    expect(broken((f) => (tl(f).replaced_by = 'chw-tc01'))).toContain(
+      `role R-TL01: replaced_by is set but the role isn't retired`,
+    );
+    expect(
+      broken((f) => {
+        retiredLead(f, 'r-tl00', 'r-tl02');
+      }),
+    ).toContain(`role R-TL00: replaced_by "r-tl02" doesn't exist`);
+    expect(
+      broken((f) => {
+        retiredLead(f, 'r-tl00', 'r-tlx');
+        retiredLead(f, 'r-tlx', 'r-tl01');
+      }),
+    ).toContain('role R-TL00: replaced_by "r-tlx" is retired');
+    expect(
+      broken((f) => {
+        retiredLead(f, 'r-tla', 'r-tlb');
+        retiredLead(f, 'r-tlb', 'r-tla');
+      }),
+    ).toContain('role R-TLA: replaced_by forms a loop: r-tla → r-tlb → r-tla');
+  });
+
+  it('rejects money that is not whole cents, and an NTE on a source without one', () => {
+    expect(broken((f) => (funding(tl(f)).rate_cents = 22.5))).toContain(
+      'role R-TL01: funding 1 rate_cents must be integer',
+    );
+    expect(broken((f) => (funding(tl(f)).nte_cents = 500000))).toContain(
+      'role R-TL01, funding regen-general-operating: nte_cents is set but REGEN-GO has no NTE',
+    );
+  });
+
+  it('rejects an end date outside the source period, or not a real date (decision 0033)', () => {
+    const period = `outside TISUPP's period (2026-10-01 to 2027-09-30)`;
+    expect(broken((f) => (funding(tc(f)).ends = '2027-12-31'))).toContain(
+      `role CHW-TC01, funding tisupp: ends 2027-12-31 is ${period}`,
+    );
+    expect(broken((f) => (funding(tc(f)).ends = '2026-09-30'))).toContain(
+      `role CHW-TC01, funding tisupp: ends 2026-09-30 is ${period}`,
+    );
+    expect(broken((f) => (funding(tc(f)).ends = '2027-02-30'))).toContain(
+      `role CHW-TC01, funding tisupp: ends 2027-02-30 isn't a real date`,
+    );
+    expect(broken((f) => (funding(tc(f)).ends = '2027-06-30'))).toEqual([]);
+    expect(broken((f) => (funding(tl(f)).ends = '2030-01-01'))).toEqual([]);
+  });
+
+  it('rejects a certification step on a non-CHW role (decision 0032)', () => {
+    expect(
+      broken((f) => (tl(f).certification_step = { after_quarters: 1920, name: 'CHW Cert' })),
+    ).toContain('role R-TL01: certification_step is only for CHW roles (chw: true)');
+  });
+
+  it('rejects an employee role on a source with no employee certification (decision 0031)', () => {
+    const missing = `has no employee_certification_text and the role doesn't set one`;
+    expect(broken((f) => (tl(f).employment = 'employee'))).toContain(
+      `role R-TL01, funding regen-general-operating: employee role, but REGEN-GO ${missing}`,
+    );
+    expect(
+      broken((f) => {
+        tl(f).employment = 'employee';
+        (tl(f) as unknown as Record<string, unknown>)['employee_certification_text'] = 'I certify.';
+      }),
+    ).toEqual([]);
+    expect(
+      broken((_f, s) => {
+        delete source(s, 'tisupp')['employee_certification_text'];
+      }),
+    ).toContain(`role CHW-TE01, funding tisupp: employee role, but TISUPP ${missing}`);
   });
 });

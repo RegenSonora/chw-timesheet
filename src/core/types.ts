@@ -11,9 +11,19 @@ export interface FundingSourceConfig {
   version: number;
   has_nte: boolean;
   default_rate_cents: number | null;
+  /** NTE prefilled at setup (decision 0023). */
+  default_nte_cents?: number;
+  /** A raise after some billed hours; the app only reminds (decision 0023). */
+  rate_step?: RateStep;
   certification_text: string;
   tasks: Task[];
   budget_lines: BudgetLine[];
+}
+
+export interface RateStep {
+  /** Quarter-hours billed before the raise, e.g. 960 for 240 hours. */
+  after_quarters: number;
+  rate_cents: number;
 }
 
 export interface Task {

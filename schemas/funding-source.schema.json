@@ -48,6 +48,29 @@
       "description": "Hourly rate prefilled at setup, in cents, or null for none.",
       "oneOf": [{ "type": "integer", "minimum": 1 }, { "type": "null" }]
     },
+    "default_nte_cents": {
+      "description": "Not-to-exceed amount prefilled at setup, in cents. Optional; only for sources with an NTE (decision 0023).",
+      "type": "integer",
+      "minimum": 1
+    },
+    "rate_step": {
+      "description": "A raise after a number of billed hours. The app reminds the CHW to change the rate; it never changes it (decision 0023).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["after_quarters", "rate_cents"],
+      "properties": {
+        "after_quarters": {
+          "description": "Quarter-hours billed before the raise, e.g. 960 for 240 hours.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "rate_cents": {
+          "description": "Hourly rate after the raise, in cents.",
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
     "certification_text": {
       "description": "Certification printed above the CHW signature.",
       "$ref": "#/$defs/text"

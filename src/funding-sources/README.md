@@ -4,4 +4,4 @@ One JSON file per funding source (CLAUDE.md rule 6), validated against `schemas/
 
 Task lists and certification text here are licensed CC BY 4.0 (see `NOTICE`).
 
-Files: `tisupp.json` (code `TISUPP`) and `regen-general-operating.json` (code `REGEN-GO`, decision 0006). A file is named `<id>.json`; ids never change once released. Bump `version` when tasks, budget lines or text change.
+Files: `tisupp.json` (code `TISUPP`) and `regen-general-operating.json` (code `REGEN-GO`, decision 0006). TISUPP carries the CHW experience hours line and a rate step at 240 hours from the Gila port; both move to roles in a later release (roles plan R1, R2). A file is named `<id>.json`; ids never change once released. Bump `version` when tasks, budget lines or text change.

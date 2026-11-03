@@ -124,7 +124,7 @@ describe('wireframe sample invoice (SPEC §6)', () => {
       id: 'tisupp',
       code: 'TISUPP',
       name: 'Trauma-Informed Substance Use Prevention Program',
-      version: 2,
+      version: tisupp.version,
       certification_text: tisupp.certification_text,
     });
     expect(invoice.chw).toEqual({ name: 'Carmen Cruz', initials: 'CC', mailing_address: '' });

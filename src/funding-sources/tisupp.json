@@ -3,9 +3,13 @@
   "id": "tisupp",
   "code": "TISUPP",
   "name": "Trauma-Informed Substance Use Prevention Program",
-  "version": 2,
+  "version": 3,
   "has_nte": true,
   "default_rate_cents": 2000,
+  "rate_step": {
+    "after_quarters": 960,
+    "rate_cents": 2300
+  },
   "certification_text": "I certify that the services listed were performed on the dates shown on the attached timesheet pages for the TISUPP grant, the hours are accurate, no participant names are included, and these hours have not been billed to Regenerating Sonora under any other funding source or to any other funder.",
   "tasks": [
     {
@@ -162,6 +166,10 @@
     {
       "id": "quarterly-partnership-meetings",
       "name": "Quarterly partnership meetings"
+    },
+    {
+      "id": "chw-experience-hours",
+      "name": "CHW experience hours"
     }
   ]
 }

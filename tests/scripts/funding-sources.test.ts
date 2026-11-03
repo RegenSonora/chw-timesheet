@@ -32,9 +32,8 @@ describe('funding source files', () => {
     expect(checkFundingSources(root)).toEqual([]);
   });
 
-  it('rename the survey task, keeping its id, at version 2 (decision 0019)', () => {
+  it('rename the survey task, keeping its id (decision 0019)', () => {
     for (const source of [tisupp, readSource('regen-general-operating')]) {
-      expect(source['version']).toBe(2);
       expect(source.tasks.find((t) => t['id'] === 'planning-and-conducting-surveys')).toMatchObject(
         {
           name: 'Individual and community assessment',
@@ -44,12 +43,21 @@ describe('funding source files', () => {
     }
   });
 
-  it('TISUPP has 21 tasks, 12 budget lines, an NTE and a $20.00 default rate (SPEC §3, §4)', () => {
+  it('TISUPP has 21 tasks, 13 budget lines, an NTE and a $20.00 default rate (SPEC §3, §4)', () => {
     expect(tisupp['code']).toBe('TISUPP');
+    expect(tisupp['version']).toBe(3);
     expect(tisupp.tasks).toHaveLength(21);
-    expect(tisupp.budget_lines).toHaveLength(12);
+    expect(tisupp.budget_lines).toHaveLength(13);
     expect(tisupp['has_nte']).toBe(true);
     expect(tisupp['default_rate_cents']).toBe(2000);
+  });
+
+  it('TISUPP adds the CHW experience hours line and a raise to $23.00 after 240 hours (roles plan P1)', () => {
+    expect(tisupp.budget_lines[12]).toEqual({
+      id: 'chw-experience-hours',
+      name: 'CHW experience hours',
+    });
+    expect(tisupp['rate_step']).toEqual({ after_quarters: 960, rate_cents: 2300 });
   });
 
   it('Regen General Operating adds Domestic support with no competency and has no NTE (SPEC §3)', () => {
@@ -59,7 +67,7 @@ describe('funding source files', () => {
     expect(regen.tasks).toHaveLength(22);
     expect(regen.budget_lines).toHaveLength(13);
     expect(regen.tasks.slice(0, 21)).toEqual(tisupp.tasks);
-    expect(regen.budget_lines.slice(0, 12)).toEqual(tisupp.budget_lines);
+    expect(regen.budget_lines.slice(0, 12)).toEqual(tisupp.budget_lines.slice(0, 12));
     expect(regen.tasks[21]).toEqual({
       id: 'domestic-support',
       name: 'Domestic support',
@@ -87,6 +95,18 @@ describe('funding source schema', () => {
     expect(changed((s) => (s['default_rate_cents'] = 20.5))).not.toEqual([]);
     expect(changed((s) => (s['default_rate_cents'] = 0))).not.toEqual([]);
     expect(changed((s) => (s['default_rate_cents'] = null))).toEqual([]);
+  });
+
+  it('accepts an optional rate step and NTE, and rejects bad ones', () => {
+    expect(changed((s) => (s['default_nte_cents'] = 1032000))).toEqual([]);
+    expect(changed((s) => (s['default_nte_cents'] = 0))).not.toEqual([]);
+    expect(changed((s) => (s['rate_step'] = { after_quarters: 960, rate_cents: 2300 }))).toEqual(
+      [],
+    );
+    expect(changed((s) => (s['rate_step'] = { after_quarters: 960 }))).not.toEqual([]);
+    expect(
+      changed((s) => (s['rate_step'] = { after_quarters: 9.5, rate_cents: 2300 })),
+    ).not.toEqual([]);
   });
 
   it('rejects a bad core competency or untrimmed text', () => {

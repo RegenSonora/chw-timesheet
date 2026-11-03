@@ -108,6 +108,7 @@ describe('Work Hours Report files', () => {
       '10/20/2026, 10/26/2026, 10/28/2026, 10/30/2026',
       'Total',
       'Page 1 of 1',
+      'Made by Regen Time Tracking on',
     ]) {
       expect(text, s).toContain(s);
     }

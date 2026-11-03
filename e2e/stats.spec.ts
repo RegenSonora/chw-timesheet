@@ -26,7 +26,7 @@ const stat = (page: Page, label: string | RegExp) =>
 async function seedInvoice(page: Page, quarters: number) {
   await page.evaluate(async (q) => {
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
-      const req = indexedDB.open('chw-gila-river-contractors');
+      const req = indexedDB.open('regen-time-tracking');
       req.onsuccess = () => {
         resolve(req.result);
       };
@@ -102,7 +102,7 @@ async function seedInvoice(page: Page, quarters: number) {
     db.close();
   }, quarters);
   await page.reload();
-  await expect(heading(page, 'CHW Gila River Contractors')).toBeVisible();
+  await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
 }
 
 test('My stats counts invoiced hours; Generate sits under Past invoices', async ({ page }) => {
@@ -148,7 +148,7 @@ test('at 240 hours the raise is reached until the rate changes', async ({ page }
   await page.getByLabel('Hourly rate for TISUPP').fill('23.00');
   // No entries are waiting, so the new rate saves without asking (SPEC §4).
   await page.getByRole('button', { name: 'Save changes' }).click();
-  await expect(heading(page, 'CHW Gila River Contractors')).toBeVisible();
+  await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
   await expect(stat(page, /pay increase/i)).toHaveCount(0);
   await expect(stat(page, 'Hrs needed for CHW Cert eligibility')).toContainText('240 hrs');
 });

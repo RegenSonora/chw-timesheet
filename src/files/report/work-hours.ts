@@ -197,7 +197,7 @@ function footer(page: PdfPage, made: string, n: number, count: number) {
   page.text(
     LEFT,
     BOTTOM + 20,
-    `Made by CHW Gila River Contractors on ${usDate(made)} from invoices on this phone.`,
+    `Made by Regen Time Tracking on ${usDate(made)} from invoices on this phone.`,
     { size: 7.5, gray: MUTED },
   );
   page.text(RIGHT, BOTTOM + 20, `Page ${String(n)} of ${String(count)}`, {

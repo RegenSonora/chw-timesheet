@@ -90,3 +90,29 @@ describe('buildEntry with a role', () => {
     expect(result.ok && result.entry.role_id).toBeNull();
   });
 });
+
+describe('after the office edits a role (roles plan R7)', () => {
+  // Dump runs taken off the fire line; the entry was logged with it.
+  const edited = {
+    ...lead,
+    funding: lead.funding.map((f) => ({
+      ...f,
+      budget_lines: f.budget_lines.map((l) => ({
+        ...l,
+        tasks: l.tasks.filter((t) => t.id !== 'dump-runs'),
+      })),
+    })),
+  };
+
+  it('editing an entry with a removed task asks for a new pick', () => {
+    expect(build(draft(), edited)).toEqual({ ok: false, problem: 'task' });
+    const picked = draft({ tasks: [{ task_id: 'municipal-fuel-reduction', quarters: 4 }] });
+    expect(build(picked, edited).ok).toBe(true);
+  });
+
+  it("keeps a count's value when the count was taken off the task", () => {
+    const counts = { values: { trees_planted: 2 }, other: [] };
+    const result = build(draft({ counts }), lead);
+    expect(result.ok && result.entry.counts.values).toEqual({ trees_planted: 2 });
+  });
+});

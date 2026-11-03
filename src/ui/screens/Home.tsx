@@ -30,7 +30,7 @@ import {
   Warning,
 } from '../components';
 import { hoursLabel, localDateTime, plural, roleRaiseText } from '../format';
-import { sourceById, useApp } from '../store';
+import { invoiceRoleFor, sourceById, useApp } from '../store';
 import { isMidEntry, useUpdate } from '../update';
 
 /** How many entries Home lists before "Show all". */
@@ -226,6 +226,34 @@ export function rateStepText(reminder: RateStepReminder, code: string): string {
 }
 
 export const NO_FUNDING = 'No active funding for your role. Ask the office.';
+export const ROLE_INACTIVE = 'Your role is no longer active. Ask the office.';
+
+/** Shown once after the office moved the person to a new role (decision 0027, roles plan R7). */
+function RoleNotice() {
+  const { data, actions } = useApp();
+  const notice = data.app.role_notice;
+  if (!notice) return null;
+  return (
+    <div class="card role-notice" role="status">
+      <p>
+        Your role was updated by the office:{' '}
+        <strong>
+          {notice.to_code} · {notice.to_name}
+        </strong>
+        .
+      </p>
+      {notice.rate_notes.map((n) => (
+        <p key={n.source_id} class="hint">
+          Suggested rate for {sourceById(n.source_id).code} is now {formatDollars(n.rate_cents)}.
+          Change it in Settings if your agreement changed.
+        </p>
+      ))}
+      <button type="button" class="btn2 btn-small" onClick={() => void actions.dismissRoleNotice()}>
+        OK
+      </button>
+    </div>
+  );
+}
 
 export function HomeHeaderAside({ onChip }: { onChip: () => void }) {
   const { actions } = useApp();
@@ -248,10 +276,12 @@ export function HomeHeaderAside({ onChip }: { onChip: () => void }) {
 }
 
 export function Home() {
-  const { data, selectedSource, role, actions } = useApp();
+  const { data, selectedSource, role, roleInactive, actions } = useApp();
   const [picking, setPicking] = useState(false);
   const update = useUpdate();
   if (!selectedSource) return null;
+  // The next invoice or timesheet goes under the role its hours were logged with (R7).
+  const nextRole = invoiceRoleFor(data, selectedSource.id).role;
 
   const rate = data.settings.find((s) => s.source_id === selectedSource.id)?.rate_cents ?? null;
   const open = uninvoicedEntries(data.entries, selectedSource.id).reverse();
@@ -272,6 +302,8 @@ export function Home() {
   const noFunding =
     role !== null &&
     fundingChoices(role, FUNDING_SOURCES, localDateTime(phoneNow()).date).length === 0;
+  // Roles plan R7: a role retired with no replacement takes no new time at all.
+  const newTime = !roleInactive;
 
   return (
     <Page
@@ -291,22 +323,29 @@ export function Home() {
               Updated, tap to reload
             </button>
           )}
-          {!noFunding && (
+          {newTime && !noFunding && (
             <button type="button" class="btn btn-start" onClick={() => void actions.startTimer()}>
               Start timer
             </button>
           )}
-          <button
-            type="button"
-            class="btn btn-start btn-green"
-            onClick={() => void actions.startHandEntry()}
-          >
-            Record time
-          </button>
+          {newTime && (
+            <button
+              type="button"
+              class="btn btn-start btn-green"
+              onClick={() => void actions.startHandEntry()}
+            >
+              Record time
+            </button>
+          )}
         </>
       }
     >
-      {noFunding && <Warning>{NO_FUNDING}</Warning>}
+      <RoleNotice />
+      {roleInactive ? (
+        <Warning>{ROLE_INACTIVE}</Warning>
+      ) : (
+        noFunding && <Warning>{NO_FUNDING}</Warning>
+      )}
       {reminderText && <Warning>{reminderText}</Warning>}
       <div class="list-head">
         <h2>{employee ? 'Not yet submitted' : 'Not yet invoiced'}</h2>
@@ -319,9 +358,11 @@ export function Home() {
       </div>
       {summary.count === 0 ? (
         <p class="empty">
-          {noFunding
-            ? 'Record time for dates your funding covered.'
-            : 'Start timer and start working or record time.'}
+          {roleInactive
+            ? 'Nothing waiting.'
+            : noFunding
+              ? 'Record time for dates your funding covered.'
+              : 'Start timer and start working or record time.'}
         </p>
       ) : (
         <ul class="entries">
@@ -380,7 +421,7 @@ export function Home() {
           class="card nav-row home-generate"
           onClick={() => void actions.openInvoicePreview(selectedSource.id)}
         >
-          {employee ? 'Submit timesheet' : 'Generate Regen Invoice'}
+          {nextRole?.employment === 'employee' ? 'Submit timesheet' : 'Generate Regen Invoice'}
         </button>
       )}
       <ToastBar />

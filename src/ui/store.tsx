@@ -6,7 +6,9 @@ import {
   defaultBudgetLine,
   findOverlaps,
   fundingChoices,
+  invoiceRoleId,
   roleDefaultLine,
+  roleUpdate,
   type Entry,
   type FundingSourceConfig,
   type Invoice,
@@ -16,7 +18,7 @@ import {
   type SourceSettings,
 } from '../core';
 import { findFundingSource, FUNDING_SOURCES } from '../funding-sources';
-import { COUNT_DEFS, findRole } from '../roles';
+import { COUNT_DEFS, findRole, ROLES } from '../roles';
 import {
   emptyAppState,
   persistenceStatus,
@@ -161,7 +163,52 @@ export async function loadData(storage: Storage): Promise<Data> {
     storage.getAppState(),
     persistenceStatus(),
   ]);
-  return { profile, settings, entries, invoices, counter, app, persistence };
+  const data = { profile, settings, entries, invoices, counter, app, persistence };
+  return applyRoleUpdate(storage, data);
+}
+
+/**
+ * After an update retired the person's role in favor of another (decision 0027, roles plan R7):
+ * move the profile to the new role, add settings for any new source, and leave a notice for
+ * Home. The profile is written last, so an interrupted switch runs again on the next open.
+ */
+export async function applyRoleUpdate(
+  storage: Storage,
+  data: Data,
+  roles: readonly Role[] = ROLES,
+): Promise<Data> {
+  const update = roleUpdate(roles, data.profile?.role_id ?? null, data.settings, FUNDING_SOURCES);
+  if (update.state !== 'replaced' || !data.profile) return data;
+  for (const s of update.add_settings) await storage.saveSourceSettings(s);
+  const app: AppState = {
+    ...data.app,
+    role_notice: {
+      from_code: update.from.code,
+      from_name: update.from.name,
+      to_code: update.role.code,
+      to_name: update.role.name,
+      rate_notes: update.rate_notes,
+    },
+  };
+  await storage.saveAppState(app);
+  const profile = { ...data.profile, role_id: update.role.id };
+  await storage.saveProfile(profile);
+  return { ...data, profile, app, settings: await storage.listSourceSettings() };
+}
+
+/**
+ * The role the next invoice or timesheet at a source is made under, and the role id of the
+ * hours it bills: hours keep the role they were logged with, oldest first (roles plan R7).
+ */
+export function invoiceRoleFor(
+  data: Pick<Data, 'entries' | 'profile'>,
+  sourceId: string,
+): { role: Role | null; entry_role_id: string | null | undefined } {
+  const current = findRole(data.profile?.role_id ?? null);
+  const id = invoiceRoleId(data.entries, sourceId);
+  if (id === undefined) return { role: current, entry_role_id: undefined };
+  if (id === null) return { role: current, entry_role_id: null };
+  return { role: ROLES.find((r) => r.id === id) ?? current, entry_role_id: id };
 }
 
 function useStore(storage: Storage, initial: Data) {
@@ -514,6 +561,11 @@ function useStore(storage: Storage, initial: Data) {
         setToast(null);
       },
 
+      /** "OK" on the role-change notice: it shows once (roles plan R7). */
+      dismissRoleNotice() {
+        return saveApp({ ...d().app, role_notice: null });
+      },
+
       /** Invoice preview for a funding source (SPEC §6), replacing Settings when it asks first. */
       async openInvoicePreview(sourceId: string, from: 'push' | 'replace' = 'push') {
         setToast(null);
@@ -530,10 +582,12 @@ function useStore(storage: Storage, initial: Data) {
         const now = phoneNow();
         let result;
         try {
+          const next = invoiceRoleFor(d(), sourceId);
           result = await serial(() =>
             storage.generateInvoice({
               source: sourceOf(sourceId),
-              role: role(),
+              role: next.role,
+              ...(next.entry_role_id === undefined ? {} : { entry_role_id: next.entry_role_id }),
               count_defs: COUNT_DEFS,
               now,
               invoice_date: now.slice(0, 10),
@@ -644,6 +698,14 @@ function useStore(storage: Storage, initial: Data) {
   /** The person's role; null on a phone set up before roles, which keeps working as it did. */
   const role = useMemo((): Role | null => findRole(data.profile?.role_id ?? null), [data.profile]);
 
+  /** True when the role was retired with no replacement or left the roles file (roles plan R7). */
+  const roleInactive = useMemo(
+    () =>
+      roleUpdate(ROLES, data.profile?.role_id ?? null, data.settings, FUNDING_SOURCES).state ===
+      'inactive',
+    [data.profile, data.settings],
+  );
+
   return {
     data,
     stack,
@@ -653,6 +715,7 @@ function useStore(storage: Storage, initial: Data) {
     answerLeave,
     selectedSource,
     role,
+    roleInactive,
     viewing,
     actions,
   };

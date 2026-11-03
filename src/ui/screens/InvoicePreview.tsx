@@ -8,14 +8,15 @@ import {
   formatQuarters,
   invoiceCounts,
   paginateTimesheet,
+  uninvoicedEntries,
   type NteStatus,
 } from '../../core';
 import { dateRange, longDate } from '../../files/text';
-import { COUNT_DEFS, findRole } from '../../roles';
+import { COUNT_DEFS } from '../../roles';
 import { phoneNow } from '../../storage';
 import { ErrorText, Page, Warning } from '../components';
 import { plural, shortDateLabel } from '../format';
-import { useApp } from '../store';
+import { invoiceRoleFor, useApp } from '../store';
 
 function ContractLimit({ nte }: { nte: NteStatus }) {
   const { actions } = useApp();
@@ -74,12 +75,15 @@ function ContractLimit({ nte }: { nte: NteStatus }) {
 }
 
 export function InvoicePreview() {
-  const { data, selectedSource, role, actions } = useApp();
+  const { data, selectedSource, actions } = useApp();
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const source = selectedSource;
   const profile = data.profile;
   if (!source || !profile) return null;
+  // The hours that go next keep the role they were logged with (roles plan R7).
+  const next = invoiceRoleFor(data, source.id);
+  const role = next.role;
   const employee = role?.employment === 'employee';
   const noun = employee ? 'timesheet' : 'invoice';
   const title = employee ? 'New timesheet' : 'New invoice';
@@ -94,7 +98,8 @@ export function InvoicePreview() {
         source,
         settings,
         profile,
-        role: findRole(profile.role_id),
+        role,
+        ...(next.entry_role_id === undefined ? {} : { entry_role_id: next.entry_role_id }),
         count_defs: COUNT_DEFS,
         counter: data.counter,
         entries: data.entries,
@@ -119,6 +124,7 @@ export function InvoicePreview() {
   const dates = new Set(invoice.entries.map((e) => e.entry_date)).size;
   const pages = paginateTimesheet(invoice, source).length;
   const count = invoice.entries.length;
+  const later = uninvoicedEntries(data.entries, source.id).length - count;
   // Only counts with a value this period, as page 1 lists them (decision 0029).
   const counts = invoiceCounts(
     invoice.count_defs,
@@ -155,6 +161,12 @@ export function InvoicePreview() {
             {busy ? 'Creating files…' : `Create ${noun} files`}
           </button>
           <p class="foot-note">These {plural(count, 'entry', 'entries')} will be locked.</p>
+          {later > 0 && (
+            <p class="foot-note">
+              {plural(later, 'more entry waits', 'more entries wait')} under your new role. Make{' '}
+              {later === 1 ? 'it' : 'them'} next.
+            </p>
+          )}
         </>
       }
     >

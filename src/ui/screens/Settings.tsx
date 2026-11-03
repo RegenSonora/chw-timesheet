@@ -36,7 +36,7 @@ interface RateQuestion {
 }
 
 export function Settings() {
-  const { data, role, actions } = useApp();
+  const { data, role, roleInactive, actions } = useApp();
   const profile = data.profile;
   const initialForm = (): Form => ({
     name: profile?.name ?? '',
@@ -211,7 +211,11 @@ export function Settings() {
           <p class="info-row">
             <strong>{roleLabel(role)}</strong>
           </p>
-          <p class="hint">Set at setup. Ask the office to change it.</p>
+          <p class="hint">
+            {roleInactive
+              ? 'No longer active. Ask the office.'
+              : 'Set at setup. Ask the office to change it.'}
+          </p>
         </>
       )}
       <h2 class="sec">Your details</h2>

@@ -44,7 +44,7 @@ describe('rateStepReminder (decision 0023)', () => {
     }));
 
   it('says nothing for a source without a rate step', () => {
-    expect(rateStepReminder(tisupp, 2000, billed([300], tisupp), 0)).toBeNull();
+    expect(rateStepReminder(regen, 2000, billed([300], regen), 0)).toBeNull();
   });
 
   it('says nothing under 240 hours', () => {

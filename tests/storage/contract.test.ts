@@ -225,6 +225,29 @@ describe.each(adapters)('$name adapter', (adapter) => {
       storage.close();
     });
 
+    it("locks only the hours logged under the invoice's role (roles plan R7)", async () => {
+      const storage = await adapter.make();
+      await seedSample(storage);
+      const [first, ...rest] = sampleEntries;
+      await storage.saveEntry({ ...must(first), role_id: 'chw-te01' });
+      for (const e of rest) await storage.saveEntry({ ...e, role_id: 'chw-tc01' });
+      const result = await storage.generateInvoice({
+        source: tisupp,
+        role: findTestRole('chw-te01'),
+        entry_role_id: 'chw-te01',
+        count_defs: countDefs,
+        now: NOW,
+        invoice_date: '2026-10-31',
+      });
+      if (!result.ok) throw new Error(result.reason);
+      expect(result.invoice.kind).toBe('timesheet');
+      const entries = await storage.listEntries();
+      expect(entries.filter((e) => e.invoice_id !== null).map((e) => e.id)).toEqual([
+        must(first).id,
+      ]);
+      storage.close();
+    });
+
     it('locked entries refuse edits and deletes at the storage layer', async () => {
       const storage = await adapter.make();
       await seedSample(storage);

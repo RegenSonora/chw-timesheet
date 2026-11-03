@@ -379,7 +379,11 @@ describe('v1 → v2: app state gains draft', () => {
 
     const opened = await open(factory);
     if (!opened.ok) throw new Error(opened.reason);
-    expect(await opened.storage.getAppState()).toEqual({ ...v1State, draft: null });
+    expect(await opened.storage.getAppState()).toEqual({
+      ...v1State,
+      draft: null,
+      role_notice: null,
+    });
     expect(await opened.storage.listEntries()).toEqual(byStart(sampleEntries));
     expect(await opened.storage.getProfile()).toEqual(profile);
     opened.storage.close();
@@ -565,6 +569,10 @@ describe('v3 → v4: roles, counts by id, invoice kind (roles plan R3)', () => {
       },
       null,
     ]);
+    // Roles plan R7: no role notice to show after the upgrade.
+    expect(
+      after['app_state']?.map((r) => (r as unknown as { role_notice: unknown }).role_notice),
+    ).toEqual([null, null, null]);
   });
 
   it('a phone with released v3 data opens with every record upgraded', async () => {

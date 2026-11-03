@@ -68,6 +68,7 @@ export async function generateInvoice(
     profile: unwrap(before.profile),
     role: request.role,
     count_defs: request.count_defs,
+    ...(request.entry_role_id === undefined ? {} : { entry_role_id: request.entry_role_id }),
     counter: before.counter ? unwrap(before.counter) : newCounter(),
     entries: before.entries,
     prior_invoices: before.invoices,

@@ -118,7 +118,8 @@ function setupDraftV4(draft: object) {
  * none is guessed), counts move under their count ids, and invoices become `kind: "invoice"`
  * with no role and the labels of the five counts they hold. Frozen invoices keep their canonical
  * version and still verify: forms v1 and v2 read the same five values from the map. A half-done
- * setup starts over at its details step, since setup now picks a role.
+ * setup starts over at its details step, since setup now picks a role. App state gains an empty
+ * `role_notice` (roles plan R7).
  */
 export const v3ToV4: UpgradeStep = (snapshot) => ({
   ...snapshot,
@@ -144,7 +145,10 @@ export const v3ToV4: UpgradeStep = (snapshot) => ({
     };
   }),
   app_state: (snapshot['app_state'] ?? []).map((record) => {
-    const state = record as StoredRecord & { draft: (WithCounts & { kind: string }) | null };
+    const state = {
+      ...(record as StoredRecord & { draft: (WithCounts & { kind: string }) | null }),
+      role_notice: null,
+    };
     const draft = state.draft;
     if (draft?.kind === 'setup') return { ...state, draft: setupDraftV4(draft) };
     if (draft?.kind !== 'entry') return state;

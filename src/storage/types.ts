@@ -1,5 +1,6 @@
 // The Storage interface screens use, and the small transaction interface both adapters implement.
 import type { InvoiceResult } from '../core/invoice';
+import type { RateNote } from '../core/roles';
 import type {
   CountDef,
   Counts,
@@ -23,6 +24,17 @@ export interface AppState {
   per_source: Record<string, SourcePicks>;
   /** The half-entered record, saved on every tap so an interruption never loses it (SPEC §10). */
   draft: Draft | null;
+  /** Shown once on Home after the office moved the person to a new role (roles plan R7). */
+  role_notice: RoleNotice | null;
+}
+
+/** "Your role was updated by the office", with any rates that differ from the new suggestion. */
+export interface RoleNotice {
+  from_code: string;
+  from_name: string;
+  to_code: string;
+  to_name: string;
+  rate_notes: RateNote[];
 }
 
 export type Draft = EntryDraft | SetupDraft;
@@ -81,6 +93,8 @@ export interface GenerateInvoiceRequest {
   role: Role | null;
   /** The shared count list (src/roles/roles.json). */
   count_defs: readonly CountDef[];
+  /** Bill only waiting entries logged under this role id (roles plan R7). */
+  entry_role_id?: string | null;
   /** Creation time, ISO 8601 with offset. */
   now: string;
   /** YYYY-MM-DD, the day it is generated. */

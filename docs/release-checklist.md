@@ -1,6 +1,6 @@
 # Release checklist (real phones)
 
-Run on **one iPhone** (Safari) and **one Android phone** (Chrome) before each release that CHWs will use (CLAUDE.md "Definition of done"; BUILD_PLAN M5, M6). The automated tests cover the rules and both browser engines; this list covers what only a real phone can show.
+Run on **one iPhone** (Safari) and **one Android phone** (Chrome) before each release that people will use (CLAUDE.md "Definition of done"; BUILD_PLAN M5, M6). The automated tests cover the rules and both browser engines; this list covers what only a real phone can show.
 
 Write down for the record: date, who ran it, phone model, OS version, browser version, and the app version from the bottom of Settings (for example `Version 0.9.0 (a1b2c3d)`).
 
@@ -21,7 +21,7 @@ Mark each step ✅ or ❌. Any ❌ blocks the release until fixed or accepted by
 | 1.2 | Share › **Add to Home Screen**. The icon shows the desert night scene (moon over the mesa, sun behind the purple mountain), and the name "Regen Time". | Menu › **Install app** (or **Add to Home screen**). Same icon; on the app drawer it is not cut off. |
 | 1.3 | Open the app from the Home Screen icon. It opens full screen (no Safari bars) and shows setup. | Open from the icon. It opens full screen and shows setup. |
 | 1.4 | Setup warns that removing the app from the Home Screen (iPhone) or clearing the site's data (Android) erases entries not yet invoiced. | Same warning. |
-| 1.5 | Finish setup. Home shows "Not yet invoiced". | Same. |
+| 1.5 | Finish setup with role **CHW-TC01**: details, **Pick your role**, review, **This is my role**. Home shows "Not yet invoiced". | Same. |
 
 ## 2. Storage status
 
@@ -63,10 +63,10 @@ Mark each step ✅ or ❌. Any ❌ blocks the release until fixed or accepted by
 
 | # | iPhone | Android |
 |---|---|---|
-| 6.1 | Open the PDF from Mail. Tap **Markup**, add a signature on the CHW line, tap **Done**. | Open the PDF in **Adobe Acrobat Reader**. **Fill & Sign**, add a signature on the CHW line, save. |
+| 6.1 | Open the PDF from Mail. Tap **Markup**, add a signature on the Contractor line, tap **Done**. | Open the PDF in **Adobe Acrobat Reader**. **Fill & Sign**, add a signature on the Contractor line, save. |
 | 6.2 | Forward the signed PDF and both CSVs to a second address. | Same. |
 | 6.3 | Open the signed PDF on a computer: the signature is there and the text is still selectable. | Same. |
-| 6.4 | Save the picture (PNG) to Photos, **Edit › Markup**, sign the CHW box, **Done**. | Open the picture in **Google Photos** (or the gallery app), **Edit › Markup**, sign the CHW box, save. |
+| 6.4 | Save the picture (PNG) to Photos, **Edit › Markup**, sign the Contractor box, **Done**. | Open the picture in **Google Photos** (or the gallery app), **Edit › Markup**, sign the Contractor box, save. |
 | 6.5 | Email the signed picture with both CSVs, **Actual Size**. On a computer, the signature is there and a phone camera still reads the QR code. | Same. |
 
 ## 7. Update flow
@@ -92,6 +92,18 @@ Safari may erase website data after 7 days without use; an app opened from the H
 - [ ] Outdoors in sunlight, the timer, Stop and Save are easy to read and tap.
 - [ ] Switch the phone to dark mode: every screen is readable.
 - [ ] Text size set to large in the phone's settings: nothing is cut off on Home, the entry steps or the invoice preview.
+
+## 10. Roles, counts and timesheets (0.11.0)
+
+Use a clean install for each role: remove the app between roles (this erases its test data).
+
+- [ ] **Setup with each role:** CHW-TC01, CHW-TE01 and R-TL01. Each review screen shows the role's sources, budget lines and tasks, and the rate filled in ($20.00, $20.00, $22.00). **Pick a different role** goes back to the list. Settings shows the role read-only.
+- [ ] **A split entry with counts** (R-TL01): budget line Resilient Home Services contracting, check Water harvesting and Tree planting, split the time, then the counts step shows Water capacity added (gal) and Trees planted, nothing else. Typing "trees planted" in **+ Add another count** says it is already a count above.
+- [ ] **A contractor invoice, signed** (CHW-TC01 or R-TL01): page 1 says **Contractor**; it lists only counts used this period; R-TL01's timesheet pages have no Core competency column.
+- [ ] **An employee timesheet, signed** (CHW-TE01): Home says "Not yet submitted" and **Submit timesheet**. Page 1 says **TIMESHEET**, shows Pay rate and hours with no other dollar amounts, and has the **Supervisor signature** box below the employee's. Sign it as the employee, then sign the same file as the supervisor (PDF on one phone, picture on the other). **Past timesheets** lists it with its hours.
+- [ ] **My stats** for a CHW Trainee: hours invoiced or submitted, the pay increase and CHW Cert rows, and count totals after the first invoice. For R-TL01: hours and count totals only, with units ("gal").
+- [ ] **Work Hours Report** (CHW Trainee): **Settings › Work Hours Report** shares the PDF, PNG and CSV. R-TL01's Settings has no Work Hours Report.
+- [ ] **A role edit reaches the phone:** after a deploy that changes a task's name or counts for the role, tap **Updated, tap to reload**; the entry steps show the change and existing entries are still there.
 
 ## After
 

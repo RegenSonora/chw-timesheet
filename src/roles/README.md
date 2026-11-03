@@ -6,4 +6,4 @@
 - **Roles:** each lists its funding sources, the budget lines it bills under each, the tasks under each line, and the counts each task shows (`count_ids`, in the shared list's order). Rates, NTE and the raise sit on the funding entry; certification on the role. A role never names a person.
 - Ids never change once released. Bump `version` when roles or counts change.
 
-Office instructions for editing roles come with the 0.11.0 README (roles plan R8).
+Office instructions: [Editing roles](../../README.md#editing-roles) in the README.

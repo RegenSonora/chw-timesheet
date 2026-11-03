@@ -14,7 +14,7 @@
    - The rate prints: "Pay rate" in the timesheet CSV header block and on the first PDF page. The entry log keeps its `rate` column.
    - QR code and fingerprint as for invoices.
 4. **Numbering:** the same counter and format as invoices, labeled "Timesheet CC-2026-004".
-5. **Certification statement:** the source file holds two, `certification_text` for contractors and `employee_certification_text` for employees. A role may override either; an employee falls back to the contractor text when neither has an employee text. TISUPP's employee text:
+5. **Certification statement:** the source file holds two, `certification_text` for contractors and `employee_certification_text` for employees. A role may override either. The build fails when an employee role has no employee text from its source or itself. TISUPP's employee text:
    > I certify that the hours shown on this timesheet were worked on the dates listed for the TISUPP grant, the hours are accurate, no participant names are included, and these hours have not been reported under any other funding source.
 6. **Supervisor approval** on the first page and its picture, below the employee's signature: "Supervisor signature" (a box), "Supervisor name" and "Date", all blank. The employee signs first, then sends it to their supervisor to sign the same page.
 7. **NTE:** kept on every role and source for annual budget numbers later. Employee roles leave it blank, Settings shows no NTE field for them, and timesheets print no NTE box.

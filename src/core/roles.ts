@@ -71,6 +71,23 @@ export function budgetLineChoices(role: Role, source: FundingSourceConfig): Budg
   return lines.flatMap((l) => source.budget_lines.filter((b) => b.id === l.id));
 }
 
+/** The line a new entry starts on: the role's only line, else the last one used if still billed. */
+export function roleDefaultLine(
+  role: Role,
+  source: FundingSourceConfig,
+  lastId: string | null,
+): string | null {
+  const lines = budgetLineChoices(role, source);
+  const [only, ...more] = lines;
+  if (only && more.length === 0) return only.id;
+  return lastId !== null && lines.some((l) => l.id === lastId) ? lastId : null;
+}
+
+/** The task ids the role lists under a line, in role order. */
+export function roleTaskIds(role: Role, sourceId: string, lineId: string): string[] {
+  return roleLine(role, sourceId, lineId)?.tasks.map((t) => t.id) ?? [];
+}
+
 /** "Recent" (most recent first, only this line's tasks) above the line's tasks in role order. */
 export function taskChoices(
   role: Role,
@@ -100,6 +117,46 @@ export function countChoices(
   const tasks = roleLine(role, source.id, lineId)?.tasks ?? [];
   const ids = new Set(tasks.filter((t) => taskIds.includes(t.id)).flatMap((t) => t.count_ids));
   return countDefs.filter((c) => ids.has(c.id));
+}
+
+/**
+ * The counts an entry shows: the checked tasks' counts plus any count that already holds a value,
+ * so nothing entered is hidden, in the shared list's order (decision 0029).
+ */
+export function entryCountChoices(
+  countDefs: readonly CountDef[],
+  role: Role,
+  source: FundingSourceConfig,
+  lineId: string | null,
+  taskIds: readonly string[],
+  counts: Counts,
+): CountDef[] {
+  const shown = new Set(
+    lineId === null ? [] : countChoices(countDefs, role, source, lineId, taskIds).map((c) => c.id),
+  );
+  return countDefs.filter((c) => shown.has(c.id) || (counts.values[c.id] ?? 0) !== 0);
+}
+
+export type RolePickProblem = 'source_period' | 'budget_line' | 'task';
+
+/**
+ * Does an entry fit the role: its source takes time on that date, the role bills its line, and
+ * every task is on that line (decisions 0028, 0033). Null when it does.
+ */
+export function checkRolePicks(
+  role: Role,
+  source: FundingSourceConfig,
+  date: string,
+  lineId: string | null,
+  taskIds: readonly string[],
+): RolePickProblem | null {
+  if (fundingChoices(role, [source], date).length === 0) return 'source_period';
+  if (lineId === null || !budgetLineChoices(role, source).some((l) => l.id === lineId)) {
+    return 'budget_line';
+  }
+  const onLine = new Set(roleTaskIds(role, source.id, lineId));
+  if (taskIds.length === 0 || taskIds.some((id) => !onLine.has(id))) return 'task';
+  return null;
 }
 
 /** Rate filled in at setup: funding entry, then role, then source (decision 0030). */

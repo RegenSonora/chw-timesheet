@@ -3,14 +3,18 @@ import { describe, expect, it } from 'vitest';
 import {
   budgetLineChoices,
   countChoices,
+  checkRolePicks,
   duplicateCountLabel,
+  entryCountChoices,
   fundingChoices,
   invoiceCounts,
   prefillRate,
   resolveRole,
   roleChoices,
+  roleDefaultLine,
   taskChoices,
 } from '../../src/core/roles';
+import { emptyCounts } from '../../src/core/counts';
 import { RECENT_TASKS_SHOWN } from '../../src/core/picks';
 import type { FundingSourceConfig, Role, RoleFunding, RolesFile } from '../../src/core/types';
 import shipped from '../../src/roles/roles.json';
@@ -318,5 +322,79 @@ describe('invoiceCounts (decision 0029)', () => {
         },
       ),
     ).toEqual([{ id: null, label: 'Flyers', unit: null, period: 20, all_time: 50 }]);
+  });
+});
+
+describe('roleDefaultLine (decision 0028)', () => {
+  it("picks the role's only line on the source", () => {
+    expect(roleDefaultLine(trainee, tisupp, null)).toBe('chw-experience-hours');
+    expect(roleDefaultLine(trainee, tisupp, 'outreach-line')).toBe('chw-experience-hours');
+  });
+
+  it('keeps the last line used when the role bills it, else none', () => {
+    expect(roleDefaultLine(lead, regen, 'maintenance-labor')).toBe('maintenance-labor');
+    expect(roleDefaultLine(lead, regen, null)).toBeNull();
+    const billed = new Set(funding(lead, regen.id).budget_lines.map((b) => b.id));
+    const other = must(regen.budget_lines.find((l) => !billed.has(l.id)));
+    expect(roleDefaultLine(lead, regen, other.id)).toBeNull();
+  });
+});
+
+describe('entryCountChoices (decision 0029)', () => {
+  it("shows the checked tasks' counts in list order", () => {
+    const shown = entryCountChoices(
+      file.counts,
+      lead,
+      regen,
+      'fire-risk-reduction-work',
+      ['firewise-assessing'],
+      emptyCounts(),
+    );
+    expect(shown.map((c) => c.id)).toEqual(['trailer_loads_removed', 'assessments_completed']);
+  });
+
+  it('keeps a count that already has a value, so nothing entered is hidden', () => {
+    const counts = { values: { trees_planted: 3, trees_removed: 0 }, other: [] };
+    const shown = entryCountChoices(file.counts, lead, regen, 'maintenance-labor', [], counts);
+    expect(shown.map((c) => c.id)).toEqual(['trees_planted']);
+  });
+
+  it('shows nothing before a line is picked', () => {
+    expect(entryCountChoices(file.counts, lead, regen, null, ['other'], emptyCounts())).toEqual([]);
+  });
+});
+
+describe('checkRolePicks (decisions 0028, 0033)', () => {
+  it('accepts a line and tasks the role bills, dated inside the period', () => {
+    expect(
+      checkRolePicks(lead, regen, '2026-11-02', 'fire-risk-reduction-work', ['dump-runs']),
+    ).toBeNull();
+    expect(
+      checkRolePicks(trainee, tisupp, '2026-10-01', 'chw-experience-hours', ['outreach']),
+    ).toBeNull();
+  });
+
+  it('rejects a date outside the source period', () => {
+    expect(
+      checkRolePicks(trainee, tisupp, '2027-10-01', 'chw-experience-hours', ['outreach']),
+    ).toBe('source_period');
+    expect(
+      checkRolePicks(trainee, tisupp, '2026-09-30', 'chw-experience-hours', ['outreach']),
+    ).toBe('source_period');
+  });
+
+  it('rejects a line the role does not bill, or none', () => {
+    const other = must(tisupp.budget_lines.find((l) => l.id !== 'chw-experience-hours'));
+    expect(checkRolePicks(trainee, tisupp, '2026-11-02', other.id, ['outreach'])).toBe(
+      'budget_line',
+    );
+    expect(checkRolePicks(trainee, tisupp, '2026-11-02', null, ['outreach'])).toBe('budget_line');
+  });
+
+  it('rejects no tasks, or a task not on the line', () => {
+    expect(checkRolePicks(lead, regen, '2026-11-02', 'maintenance-labor', [])).toBe('task');
+    expect(checkRolePicks(lead, regen, '2026-11-02', 'maintenance-labor', ['dump-runs'])).toBe(
+      'task',
+    );
   });
 });

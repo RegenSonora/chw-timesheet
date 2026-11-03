@@ -165,7 +165,7 @@ test('an employee submits timesheets', async ({ page }) => {
   await page.getByRole('button', { name: 'Settings' }).click();
   await expect(page.getByText('CHW-TE01 · CHW Trainee (Employee)')).toBeVisible();
   await expect(page.getByLabel(/Not-to-exceed/)).toHaveCount(0);
-  await expect(page.getByLabel(/Next timesheet number/)).toBeVisible();
+  await expect(page.getByLabel(/Next invoice number/)).toBeVisible();
   await expect(page.getByText('Work Hours Report')).toBeVisible();
 });
 

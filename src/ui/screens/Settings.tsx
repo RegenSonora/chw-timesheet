@@ -261,14 +261,12 @@ export function Settings() {
       </Field>
       {data.counter.locked ? (
         <p class="info-row">
-          <span class="hint">
-            Next {paper} #{allSources}
-          </span>
+          <span class="hint">Next invoice #{allSources}</span>
           <strong>{nextLabel}</strong>
         </p>
       ) : (
         <Field
-          label={`Next ${paper} number${allSources}`}
+          label={`Next invoice number${allSources}`}
           hint={`Your next ${paper} will be ${nextLabel}. This can't change after your first ${paper}.`}
           error={errors['next']}
         >

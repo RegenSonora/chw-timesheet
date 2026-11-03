@@ -163,7 +163,7 @@ export function Setup() {
         )}
       </Field>
       <Field
-        label="Next number"
+        label="Next invoice number"
         hint="Already sent paper invoices or timesheets? Enter the next number, like 4. Otherwise leave 1."
         error={errors['next']}
       >

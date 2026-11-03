@@ -1,6 +1,13 @@
 // WCAG 2.1 AA (axe) on every M3 screen, in light and dark (SPEC §10).
 import { expect, test } from '@playwright/test';
-import { addEntry, expectAccessible, heading, pickTaskAndLine, setUp, ZONE } from './helpers.js';
+import {
+  addEntry,
+  expectAccessible,
+  heading,
+  pickTaskAndLine,
+  setUpWithoutRole,
+  ZONE,
+} from './helpers.js';
 
 test.use({ timezoneId: ZONE });
 
@@ -15,7 +22,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expect(heading(page, 'Set up')).toBeVisible();
       await expectAccessible(page, 'setup');
 
-      await setUp(page, { regen: true });
+      await setUpWithoutRole(page, { regen: true });
       await expectAccessible(page, 'home, empty');
 
       await page.getByRole('button', { name: /Funding source TISUPP/ }).click();

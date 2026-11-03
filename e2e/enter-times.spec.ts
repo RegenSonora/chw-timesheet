@@ -1,11 +1,11 @@
 // Enter times (SPEC §5, decision 0004): overlap blocked, back-to-back allowed, next day.
 import { expect, test } from '@playwright/test';
-import { addEntry, heading, setUp, ZONE } from './helpers.js';
+import { addEntry, heading, setUpWithoutRole, ZONE } from './helpers.js';
 
 test.use({ timezoneId: ZONE });
 
 test.beforeEach(async ({ page }) => {
-  await setUp(page);
+  await setUpWithoutRole(page);
   await addEntry(page, {
     date: '2026-10-29',
     start: '13:15',

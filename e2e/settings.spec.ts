@@ -1,11 +1,11 @@
 // Settings (SPEC §4, decisions 0005, 0010): rate change check, adding a source, next number.
 import { expect, test } from '@playwright/test';
-import { addEntry, heading, setUp, ZONE } from './helpers.js';
+import { addEntry, heading, setUpWithoutRole, ZONE } from './helpers.js';
 
 test.use({ timezoneId: ZONE });
 
 test('changing the rate with entries waiting asks first', async ({ page }) => {
-  await setUp(page);
+  await setUpWithoutRole(page);
   await addEntry(page, { date: '2026-10-30', start: '09:12', end: '10:37' });
   await page.getByRole('button', { name: 'Settings' }).click();
   await expect(heading(page, 'Settings')).toBeVisible();
@@ -38,7 +38,7 @@ test('changing the rate with entries waiting asks first', async ({ page }) => {
 });
 
 test('a funding source can be added later', async ({ page }) => {
-  await setUp(page);
+  await setUpWithoutRole(page);
   await page.getByRole('button', { name: 'Settings' }).click();
   await page.getByRole('button', { name: 'Add REGEN-GO' }).click();
   await page.getByLabel('Hourly rate for REGEN-GO').fill('18.00');
@@ -55,7 +55,7 @@ test('a funding source can be added later', async ({ page }) => {
 });
 
 test('NTE and next invoice number are saved', async ({ page }) => {
-  await setUp(page);
+  await setUpWithoutRole(page);
   await page.getByRole('button', { name: 'Settings' }).click();
   await page.getByLabel('Not-to-exceed amount for TISUPP').fill('5,000');
   await page.getByLabel(/Next invoice number/).fill('4');

@@ -5,7 +5,7 @@ import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:f
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
-import { expectAccessible, heading, pickTaskAndLine, setUp, ZONE } from './helpers.js';
+import { expectAccessible, heading, pickTaskAndLine, setUpWithoutRole, ZONE } from './helpers.js';
 
 // A copy of dist/ on its own port per worker, so the test can publish a "new release" into it.
 const BASE_PORT = Number(process.env['E2E_PORT'] ?? 4173) + 1;
@@ -57,7 +57,7 @@ const cacheNames = (page: Page) => page.evaluate(() => caches.keys());
 
 test('a new release is offered between entries and loads on tap', async ({ page }) => {
   await page.clock.install({ time: new Date('2026-10-30T09:00:00-07:00') });
-  await setUp(page);
+  await setUpWithoutRole(page);
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
   const updateBar = page.getByRole('button', { name: 'Updated, tap to reload' });
   // The first install is not an update.

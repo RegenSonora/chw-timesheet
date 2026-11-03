@@ -7,7 +7,7 @@ import {
   heading,
   parseCsv,
   readPng,
-  setUp,
+  setUpWithoutRole,
   sharedFiles,
   stubShare,
   ZONE,
@@ -107,7 +107,7 @@ async function seedInvoice(page: Page, quarters: number) {
 
 test('My stats counts invoiced hours; Generate sits under Past invoices', async ({ page }) => {
   test.setTimeout(90_000);
-  await setUp(page);
+  await setUpWithoutRole(page);
   await expect(stat(page, 'Hours invoiced')).toContainText('0 hrs');
   await expect(stat(page, 'Hrs needed for pay increase')).toContainText('to $23.00/hr');
   await expect(stat(page, 'Hrs needed for pay increase')).toContainText('240 hrs');
@@ -139,7 +139,7 @@ test('My stats counts invoiced hours; Generate sits under Past invoices', async 
 });
 
 test('at 240 hours the raise is reached until the rate changes', async ({ page }) => {
-  await setUp(page);
+  await setUpWithoutRole(page);
   await seedInvoice(page, 960);
   await expect(stat(page, 'Pay increase')).toContainText(
     'Reached. Change your rate to $23.00 in Settings.',
@@ -158,7 +158,7 @@ test('at 480 hours, Eligible opens the Work Hours Report, which shares PDF, PNG 
 }) => {
   await page.clock.install({ time: new Date('2026-11-02T09:00:00-07:00') });
   await stubShare(page);
-  await setUp(page);
+  await setUpWithoutRole(page);
   await seedInvoice(page, 1946);
   await expect(stat(page, 'Hours invoiced')).toContainText('486.5 hrs');
   const cert = stat(page, 'CHW Cert eligibility');
@@ -191,7 +191,7 @@ test('at 480 hours, Eligible opens the Work Hours Report, which shares PDF, PNG 
 });
 
 test('the Work Hours Report runs from Settings at any time', async ({ page }) => {
-  await setUp(page);
+  await setUpWithoutRole(page);
   await page.getByRole('button', { name: 'Settings' }).click();
   await page.getByRole('button', { name: /Work Hours Report/ }).click();
   await expect(heading(page, 'Work Hours Report')).toBeVisible();

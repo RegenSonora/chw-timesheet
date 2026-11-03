@@ -1,17 +1,17 @@
 // Timer rules (SPEC §5, decision 0009): survives reload, chip locked, discard confirms, too short.
 import { expect, test } from '@playwright/test';
-import { addEntry, heading, setUp, ZONE } from './helpers.js';
+import { addEntry, heading, setUpWithoutRole, ZONE } from './helpers.js';
 
 test.use({ timezoneId: ZONE });
 
 test('one funding source shows as a label, not a chip (decision 0028)', async ({ page }) => {
-  await setUp(page);
+  await setUpWithoutRole(page);
   await expect(page.getByText('Billed to: TISUPP', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: /^Funding source/ })).toHaveCount(0);
 });
 
 test('survives a reload with the chip locked', async ({ page }) => {
-  await setUp(page, { regen: true });
+  await setUpWithoutRole(page, { regen: true });
   await page.getByRole('button', { name: 'Start timer' }).click();
   await expect(page.getByRole('timer')).toBeVisible();
   await page.waitForTimeout(300);
@@ -25,7 +25,7 @@ test('survives a reload with the chip locked', async ({ page }) => {
 });
 
 test('Discard timer asks first', async ({ page }) => {
-  await setUp(page);
+  await setUpWithoutRole(page);
   await page.getByRole('button', { name: 'Start timer' }).click();
   await page.getByRole('button', { name: 'Discard timer' }).click();
   const dialog = page.getByRole('dialog', { name: 'Discard this timer?' });
@@ -39,7 +39,7 @@ test('Discard timer asks first', async ({ page }) => {
 
 test('a timer under 7.5 minutes is too short: keep timing or discard', async ({ page }) => {
   await page.clock.install({ time: new Date('2026-10-30T09:00:00-07:00') });
-  await setUp(page);
+  await setUpWithoutRole(page);
   await page.getByRole('button', { name: 'Start timer' }).click();
   // 7:00 leaves room for real time passing; the 449/450-second edge is a unit test.
   await page.clock.fastForward('07:00');
@@ -65,7 +65,7 @@ test('a timer under 7.5 minutes is too short: keep timing or discard', async ({ 
 
 test('a timer that overlaps an entry goes to Enter times to fix it', async ({ page }) => {
   await page.clock.install({ time: new Date('2026-10-30T09:00:00-07:00') });
-  await setUp(page);
+  await setUpWithoutRole(page);
   // Typed in ahead of time, so a timer started now runs into it.
   await addEntry(page, { date: '2026-10-30', start: '10:15', end: '10:30' });
   await page.getByRole('button', { name: 'Start timer' }).click();

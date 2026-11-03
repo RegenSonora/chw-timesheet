@@ -24,17 +24,74 @@ export function heading(page: Page, name: string | RegExp) {
   return page.getByRole('heading', { level: 1, name });
 }
 
-/** Fill in setup with TISUPP at $20.00 (and REGEN-GO at $18.00 when asked). */
-export async function setUp(page: Page, options: { regen?: boolean } = {}): Promise<void> {
+/** Setup with a role (decision 0027): details, pick the role, review, "This is my role". */
+export async function setUp(page: Page, role = 'CHW-TC01'): Promise<void> {
   await page.goto('./');
   await expect(heading(page, 'Set up')).toBeVisible();
   await page.getByLabel('Your name').fill('Carmen Cruz');
   await page.getByLabel('Initials').fill('cc');
-  if (options.regen) {
-    await page.getByRole('checkbox', { name: /REGEN-GO/ }).check();
-    await page.getByLabel('Hourly rate for REGEN-GO').fill('18.00');
-  }
-  await page.getByRole('button', { name: 'Save and start' }).click();
+  await page.getByRole('button', { name: 'Next' }).click();
+  await expect(heading(page, 'Pick your role')).toBeVisible();
+  await page.getByRole('button', { name: new RegExp(`^${role}`) }).click();
+  await expect(heading(page, 'Your role')).toBeVisible();
+  await page.getByRole('button', { name: 'This is my role' }).click();
+  await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
+}
+
+/**
+ * A phone set up before roles (0.10.0): no role, TISUPP at $20.00 with no NTE, and REGEN-GO at
+ * $18.00 when asked. Such phones keep working as before (roles plan R4, Chris Nov 3).
+ */
+export async function setUpWithoutRole(
+  page: Page,
+  options: { regen?: boolean } = {},
+): Promise<void> {
+  await setUp(page);
+  await page.evaluate(async (regen) => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const req = indexedDB.open('regen-time-tracking');
+      req.onsuccess = () => {
+        resolve(req.result);
+      };
+      req.onerror = () => {
+        reject(req.error ?? new Error('open failed'));
+      };
+    });
+    const now = '2026-10-01T09:00:00-07:00';
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(['profile', 'source_settings'], 'readwrite');
+      const profiles = tx.objectStore('profile').getAll();
+      profiles.onsuccess = () => {
+        for (const p of profiles.result as object[]) {
+          tx.objectStore('profile').put({ ...p, role_id: null });
+        }
+      };
+      const settings = tx.objectStore('source_settings').getAll();
+      settings.onsuccess = () => {
+        for (const s of settings.result as object[]) {
+          tx.objectStore('source_settings').put({ ...s, nte_cents: null });
+        }
+      };
+      if (regen) {
+        tx.objectStore('source_settings').put({
+          id: 'seed-regen',
+          source_id: 'regen-general-operating',
+          rate_cents: 1800,
+          nte_cents: null,
+          created_at: now,
+          updated_at: now,
+        });
+      }
+      tx.oncomplete = () => {
+        resolve();
+      };
+      tx.onerror = () => {
+        reject(tx.error ?? new Error('write failed'));
+      };
+    });
+    db.close();
+  }, options.regen ?? false);
+  await page.reload();
   await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
 }
 

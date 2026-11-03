@@ -6,7 +6,7 @@ import {
   heading,
   noShare,
   readPng,
-  setUp,
+  setUpWithoutRole,
   sharedFiles,
   stubShare,
   ZONE,
@@ -28,7 +28,7 @@ const DATES = [
 test('create, share and re-share an invoice', async ({ page }) => {
   test.setTimeout(120_000);
   await stubShare(page);
-  await setUp(page);
+  await setUpWithoutRole(page);
   for (const date of DATES) await addEntry(page, { date, start: '09:00', end: '10:00' });
 
   await page.getByRole('button', { name: 'Generate Regen Invoice' }).click();
@@ -105,7 +105,7 @@ test('create, share and re-share an invoice', async ({ page }) => {
 
 test('without file sharing, the files download; leaving unshared asks first', async ({ page }) => {
   await noShare(page);
-  await setUp(page);
+  await setUpWithoutRole(page);
   await addEntry(page, { date: '2026-10-30', start: '09:12', end: '10:37' });
   await page.getByRole('button', { name: 'Generate Regen Invoice' }).click();
   await page.getByRole('button', { name: 'Create invoice files' }).click();
@@ -140,7 +140,7 @@ test('without file sharing, the files download; leaving unshared asks first', as
 
 test('Done anyway leaves an unshared invoice; it stays in Past invoices', async ({ page }) => {
   await stubShare(page);
-  await setUp(page);
+  await setUpWithoutRole(page);
   await addEntry(page, { date: '2026-10-30', start: '09:12', end: '10:37' });
   await page.getByRole('button', { name: 'Generate Regen Invoice' }).click();
   await page.getByRole('button', { name: 'Create invoice files' }).click();

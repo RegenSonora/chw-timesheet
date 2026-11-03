@@ -8,7 +8,7 @@ import {
   heading,
   parseCsv,
   pickLine,
-  setUp,
+  setUpWithoutRole,
   taskBox,
   readPng,
   sharedFiles,
@@ -72,7 +72,7 @@ test('setup → 9 dates of entries → invoice → files → re-share', async ({
   await page.goto('./');
   await expect(heading(page, 'Set up')).toBeVisible();
   await expectAccessible(page, 'setup');
-  await setUp(page, { regen: true });
+  await setUpWithoutRole(page, { regen: true });
   await expectAccessible(page, 'home, empty');
 
   // A timed entry with counts and notes: Oct 30, 9:00–10:30.

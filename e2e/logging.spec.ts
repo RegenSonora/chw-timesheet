@@ -1,13 +1,21 @@
 // Setup → timer → entry → edit → delete/undo (BUILD_PLAN M3, SPEC §5).
 import { expect, test } from '@playwright/test';
-import { addEntry, heading, pickLine, pickTaskAndLine, setUp, taskBox, ZONE } from './helpers.js';
+import {
+  addEntry,
+  heading,
+  pickLine,
+  pickTaskAndLine,
+  setUpWithoutRole,
+  taskBox,
+  ZONE,
+} from './helpers.js';
 
 test.use({ timezoneId: ZONE });
 
 test('setup checks the fields in plain words', async ({ page }) => {
   await page.goto('./');
   await page.getByLabel('Initials').fill('C3');
-  await page.getByRole('button', { name: 'Save and start' }).click();
+  await page.getByRole('button', { name: 'Next' }).click();
   await expect(page.getByText('Enter your name.')).toBeVisible();
   await expect(page.getByText('Use 1 to 4 letters, like CC.')).toBeVisible();
   await expect(page.getByLabel('Initials')).toHaveAttribute('aria-invalid', 'true');
@@ -24,7 +32,7 @@ test('a half-filled setup survives a reload', async ({ page }) => {
 
 test('timer → task → counts → save, then undo', async ({ page }) => {
   await page.clock.install({ time: new Date('2026-10-30T09:12:04-07:00') });
-  await setUp(page);
+  await setUpWithoutRole(page);
   await page.getByRole('button', { name: 'Start timer' }).click();
   await expect(page.getByRole('timer')).toHaveText(/^0:00:0\d$/);
   await expect(page.getByText('Started 9:12 AM, Fri, Oct 30')).toBeVisible();
@@ -68,7 +76,7 @@ test('timer → task → counts → save, then undo', async ({ page }) => {
 });
 
 test('the next entry starts on the last budget line with recent tasks first', async ({ page }) => {
-  await setUp(page);
+  await setUpWithoutRole(page);
   await addEntry(page, {
     date: '2026-10-29',
     start: '13:15',
@@ -86,7 +94,7 @@ test('the next entry starts on the last budget line with recent tasks first', as
 });
 
 test('split one entry between two tasks (decision 0024)', async ({ page }) => {
-  await setUp(page);
+  await setUpWithoutRole(page);
   await page.getByRole('button', { name: 'Record time' }).click();
   await page.getByLabel('Date').fill('2026-10-30');
   await page.getByLabel('Start').fill('09:12');
@@ -149,7 +157,7 @@ test('split one entry between two tasks (decision 0024)', async ({ page }) => {
 });
 
 test('edit an entry, move it to another source, delete and undo', async ({ page }) => {
-  await setUp(page, { regen: true });
+  await setUpWithoutRole(page, { regen: true });
   await addEntry(page, { date: '2026-10-30', start: '09:12', end: '10:37' });
 
   await page.getByRole('button', { name: /Client check in/ }).click();
@@ -185,7 +193,7 @@ test('edit an entry, move it to another source, delete and undo', async ({ page 
 });
 
 test('leaving an edit with changes asks first', async ({ page }) => {
-  await setUp(page);
+  await setUpWithoutRole(page);
   await addEntry(page, { date: '2026-10-30', start: '09:12', end: '10:37' });
   await page.getByRole('button', { name: /Client check in/ }).click();
   await page.getByLabel('Notes (optional)').fill('Changed');
@@ -200,7 +208,7 @@ test('leaving an edit with changes asks first', async ({ page }) => {
 });
 
 test('All entries lists every uninvoiced entry for the chip source', async ({ page }) => {
-  await setUp(page);
+  await setUpWithoutRole(page);
   for (const [date, start, end] of [
     ['2026-10-26', '09:00', '10:00'],
     ['2026-10-27', '09:00', '10:00'],

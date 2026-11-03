@@ -1,11 +1,11 @@
 // SPEC §2 "Offline": after the first load the app opens and saves with no signal.
 import { expect, test } from '@playwright/test';
-import { addEntry, heading, setUp, ZONE } from './helpers.js';
+import { addEntry, heading, setUpWithoutRole, ZONE } from './helpers.js';
 
 test.use({ timezoneId: ZONE });
 
 test('opens and saves entries with no signal after the first load', async ({ page, context }) => {
-  await setUp(page);
+  await setUpWithoutRole(page);
   await addEntry(page, { date: '2026-10-30', start: '09:00', end: '10:00' });
   // The worker has cached the shell once it controls the page.
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null);

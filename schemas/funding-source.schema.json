@@ -13,6 +13,8 @@
     "version",
     "has_nte",
     "default_rate_cents",
+    "period_start",
+    "period_end",
     "certification_text",
     "tasks",
     "budget_lines"
@@ -46,7 +48,37 @@
     },
     "default_rate_cents": {
       "description": "Hourly rate prefilled at setup, in cents, or null for none.",
-      "oneOf": [{ "type": "integer", "minimum": 1 }, { "type": "null" }]
+      "oneOf": [
+        {
+          "type": "integer",
+          "minimum": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "period_start": {
+      "description": "First day hours can be dated for this source, or null for no start (decision 0033).",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/date"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "period_end": {
+      "description": "Last day hours can be dated for this source, or null for no end. Hours dated inside the period can still be invoiced after it ends (decision 0033).",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/date"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "default_nte_cents": {
       "description": "Not-to-exceed amount prefilled at setup, in cents. Optional; only for sources with an NTE (decision 0023).",
@@ -96,6 +128,10 @@
       "description": "Certification printed above the CHW signature.",
       "$ref": "#/$defs/text"
     },
+    "employee_certification_text": {
+      "description": "Certification printed above an employee's signature on a timesheet. Optional; required for a source an employee role bills (decision 0031).",
+      "$ref": "#/$defs/text"
+    },
     "tasks": {
       "description": "Tasks in display and timesheet order.",
       "type": "array",
@@ -105,11 +141,22 @@
         "additionalProperties": false,
         "required": ["id", "name", "core_competency"],
         "properties": {
-          "id": { "$ref": "#/$defs/slug" },
-          "name": { "$ref": "#/$defs/text" },
+          "id": {
+            "$ref": "#/$defs/slug"
+          },
+          "name": {
+            "$ref": "#/$defs/text"
+          },
           "core_competency": {
             "description": "Core competency, or null when the task has none.",
-            "oneOf": [{ "$ref": "#/$defs/text" }, { "type": "null" }]
+            "oneOf": [
+              {
+                "$ref": "#/$defs/text"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       }
@@ -123,8 +170,16 @@
         "additionalProperties": false,
         "required": ["id", "name"],
         "properties": {
-          "id": { "$ref": "#/$defs/slug" },
-          "name": { "$ref": "#/$defs/text" }
+          "id": {
+            "$ref": "#/$defs/slug"
+          },
+          "name": {
+            "$ref": "#/$defs/text"
+          },
+          "display_name": {
+            "description": "Shorter name shown in the app; `name` prints on invoices, timesheets and CSVs (decision 0028).",
+            "$ref": "#/$defs/text"
+          }
         }
       }
     }
@@ -139,6 +194,11 @@
       "type": "string",
       "minLength": 1,
       "pattern": "^\\S(.*\\S)?$"
+    },
+    "date": {
+      "description": "A calendar date, YYYY-MM-DD.",
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
     }
   }
 }

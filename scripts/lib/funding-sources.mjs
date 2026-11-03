@@ -19,13 +19,40 @@ export function makeValidator(schema) {
         (error) => `${error.instancePath || '/'} ${error.message ?? 'is invalid'}`,
       );
     }
-    // Rules the schema can't express: ids and names unique within each list.
-    const source = /** @type {{ tasks: Named[], budget_lines: Named[] }} */ (data);
+    // Rules the schema can't express: ids and names unique within each list, real dates, and a
+    // period that doesn't end before it starts (decision 0033).
+    const source =
+      /** @type {{ tasks: Named[], budget_lines: Named[], period_start: string | null, period_end: string | null }} */ (
+        data
+      );
     return [
       ...duplicates('tasks', source.tasks),
       ...duplicates('budget_lines', source.budget_lines),
+      ...periodProblems(source.period_start, source.period_end),
     ];
   };
+}
+
+/** True for a real calendar date written YYYY-MM-DD. */
+export function isRealDate(/** @type {string} */ date) {
+  const parsed = new Date(`${date}T00:00:00Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date;
+}
+
+/**
+ * @param {string | null} start
+ * @param {string | null} end
+ */
+function periodProblems(start, end) {
+  /** @type {string[]} */
+  const problems = [];
+  if (start !== null && !isRealDate(start))
+    problems.push(`/period_start ${start} isn't a real date`);
+  if (end !== null && !isRealDate(end)) problems.push(`/period_end ${end} isn't a real date`);
+  if (start !== null && end !== null && end < start) {
+    problems.push(`/period_end ${end} comes before period_start ${start}`);
+  }
+  return problems;
 }
 
 /**

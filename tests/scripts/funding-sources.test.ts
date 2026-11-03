@@ -45,7 +45,7 @@ describe('funding source files', () => {
 
   it('TISUPP has 21 tasks, 13 budget lines, an NTE and a $20.00 default rate (SPEC §3, §4)', () => {
     expect(tisupp['code']).toBe('TISUPP');
-    expect(tisupp['version']).toBe(4);
+    expect(tisupp['version']).toBe(5);
     expect(tisupp.tasks).toHaveLength(21);
     expect(tisupp.budget_lines).toHaveLength(13);
     expect(tisupp['has_nte']).toBe(true);
@@ -64,8 +64,6 @@ describe('funding source files', () => {
     const regen = readSource('regen-general-operating');
     expect(regen['code']).toBe('REGEN-GO');
     expect(regen['has_nte']).toBe(false);
-    expect(regen.tasks).toHaveLength(22);
-    expect(regen.budget_lines).toHaveLength(13);
     expect(regen.tasks.slice(0, 21)).toEqual(tisupp.tasks);
     expect(regen.budget_lines.slice(0, 12)).toEqual(tisupp.budget_lines.slice(0, 12));
     expect(regen.tasks[21]).toEqual({
@@ -84,7 +82,80 @@ describe('funding source files', () => {
   });
 });
 
+describe('grant periods and the Resilience Team Lead (roles plan R1, decisions 0028, 0031, 0033)', () => {
+  const regen = readSource('regen-general-operating');
+
+  it('TISUPP runs October 1, 2026 to September 30, 2027 and has the employee certification', () => {
+    expect(tisupp['period_start']).toBe('2026-10-01');
+    expect(tisupp['period_end']).toBe('2027-09-30');
+    expect(tisupp['employee_certification_text']).toBe(
+      'I certify that the hours shown on this timesheet were worked on the dates listed for the TISUPP grant, the hours are accurate, no participant names are included, and these hours have not been reported under any other funding source.',
+    );
+  });
+
+  it('Regen General Operating has no start or end date, at version 3', () => {
+    expect(regen['version']).toBe(3);
+    expect(regen['period_start']).toBeNull();
+    expect(regen['period_end']).toBeNull();
+  });
+
+  it('Regen General Operating keeps its 22 tasks and 13 lines, then adds 15 tasks and 5 lines', () => {
+    expect(regen.tasks).toHaveLength(37);
+    expect(regen.budget_lines).toHaveLength(18);
+    expect(regen.tasks[21]).toMatchObject({ id: 'domestic-support' });
+    expect(regen.budget_lines[12]).toMatchObject({ id: 'domestic-support' });
+    expect(regen.tasks.slice(22)).toEqual(
+      [
+        ['firewise-assessing', 'Firewise assessing'],
+        ['residential-fuel-reduction', 'Residential fuel reduction'],
+        ['municipal-fuel-reduction', 'Municipal fuel reduction'],
+        ['dump-runs', 'Dump runs'],
+        ['lehr-maintenance', 'LEHR maintenance'],
+        ['pinal-garden-maintenance', 'Pinal garden maintenance'],
+        ['regen-lot-clean-and-maintenance', 'Regen lot clean and maintenance'],
+        ['transport-and-supply-runs', 'Transport and supply runs'],
+        ['plant-propagation', 'Plant propagation'],
+        ['tree-planting', 'Tree planting'],
+        ['tree-removal', 'Tree removal'],
+        ['water-harvesting', 'Water harvesting'],
+        ['garden-support', 'Garden support'],
+        ['paid-training', 'Paid training'],
+        ['other', 'Other'],
+      ].map(([id, name]) => ({ id, name, core_competency: null })),
+    );
+    expect(regen.budget_lines.slice(13)).toEqual([
+      { id: 'fire-risk-reduction-work', name: 'Fire risk reduction work' },
+      { id: 'maintenance-labor', name: 'Maintenance labor' },
+      { id: 'resilient-home-services-contracting', name: 'Resilient Home Services contracting' },
+      { id: 'team-development', name: 'Team development' },
+      { id: 'other-contractors', name: 'Other contractors', display_name: 'Other' },
+    ]);
+  });
+});
+
 describe('funding source schema', () => {
+  it('requires the grant period, as dates or null (decision 0033)', () => {
+    expect(changed((s) => delete s['period_start'])).not.toEqual([]);
+    expect(changed((s) => delete s['period_end'])).not.toEqual([]);
+    expect(changed((s) => (s['period_end'] = null))).toEqual([]);
+    expect(changed((s) => (s['period_start'] = '10/01/2026'))).not.toEqual([]);
+  });
+
+  it('rejects a period that ends before it starts (decision 0033)', () => {
+    expect(changed((s) => (s['period_end'] = '2026-09-30'))).toContain(
+      '/period_end 2026-09-30 comes before period_start 2026-10-01',
+    );
+    expect(changed((s) => (s['period_end'] = '2026-10-01'))).toEqual([]);
+  });
+
+  it('accepts an optional display name and employee certification, never blank (decisions 0028, 0031)', () => {
+    expect(changed((s) => (item(s.budget_lines, 0)['display_name'] = 'New CHWs'))).toEqual([]);
+    expect(changed((s) => (item(s.budget_lines, 0)['display_name'] = ''))).not.toEqual([]);
+    expect(changed((s) => (item(s.budget_lines, 0)['display_name'] = ' x'))).not.toEqual([]);
+    expect(changed((s) => delete s['employee_certification_text'])).toEqual([]);
+    expect(changed((s) => (s['employee_certification_text'] = ''))).not.toEqual([]);
+  });
+
   it('rejects a missing field', () => {
     expect(changed((s) => delete s['certification_text'])).not.toEqual([]);
   });

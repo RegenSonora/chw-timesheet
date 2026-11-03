@@ -177,7 +177,7 @@ describe('long invoices still fit', () => {
     expect(result.spare).toBeGreaterThanOrEqual(0);
     const text = (await pdfOf(invoice, regen))[0]?.text ?? '';
     for (const line of regen.budget_lines) expect(text).toContain(line.name);
-    expect(text).toContain('7 more in the entry log CSV');
+    expect(text).toContain('12 more in the entry log CSV');
   });
 
   it('keeps 7 dates on one sheet and cuts long notes, while the CSV keeps them (decision 0013)', async () => {

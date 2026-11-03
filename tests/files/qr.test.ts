@@ -52,8 +52,10 @@ describe('qrMatrix', () => {
     expect(decode(qrMatrix(payload))).toBe(payload);
   });
 
-  it('fits and decodes an invoice with every REGEN-GO budget line', async () => {
-    const entries = regen.budget_lines.map((line, i) =>
+  // An invoice bills one role's lines. The most any role bills is REGEN-GO's 13 CHW lines, kept
+  // for the certified CHW roles (roles plan Part 2), so that is the bound for a version 20 code.
+  it('fits and decodes an invoice with the 13 REGEN-GO CHW budget lines', async () => {
+    const entries = regen.budget_lines.slice(0, 13).map((line, i) =>
       makeEntry(
         `2026-10-${String(i + 1).padStart(2, '0')}`,
         '09:00:00',

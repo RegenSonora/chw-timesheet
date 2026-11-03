@@ -29,7 +29,7 @@ describe('taskChoices (SPEC §5 "recent tasks first")', () => {
 
   it('has no recent group the first time', () => {
     expect(taskChoices(regen, []).recent).toEqual([]);
-    expect(taskChoices(regen, []).all).toHaveLength(22);
+    expect(taskChoices(regen, []).all).toHaveLength(37);
   });
 });
 

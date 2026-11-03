@@ -2,6 +2,7 @@
 
 - **Status:** Accepted, November 2, 2026
 - **Spec:** SPEC §3 (TISUPP), §5 (Home), §6 (Generate button), §9 (screens), §10 (styling); changes decision 0025's Generate button
+- **Ported from chw-gila-river-contractors** (roles plan P1, November 3, 2026). In Regen, My stats and the Work Hours Report read TISUPP's `rate_step` and `certification_step` until roles carry them (decision 0032); Regen General Operating has neither.
 
 ## Decision
 

@@ -2,6 +2,7 @@
 
 - **Status:** Accepted, November 2, 2026
 - **Spec:** SPEC §5 (entry flow, editing), §7 (timesheet rows, entry log, fingerprint), §9 (screens); changes decision 0001 (entry log layout) for this app
+- **Ported from chw-gila-river-contractors** (roles plan P1, November 3, 2026). In Regen, all checked tasks belong to the one budget line picked for the entry.
 
 ## Decision
 

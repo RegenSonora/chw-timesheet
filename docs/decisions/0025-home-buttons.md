@@ -2,6 +2,7 @@
 
 - **Status:** Accepted, November 2, 2026
 - **Spec:** SPEC §5 (Home, entering times), §6 (Generate button), §10 (styling); changes decision 0006's button label for this app
+- **Ported from chw-gila-river-contractors** (roles plan P1, November 3, 2026). No changes for Regen.
 
 ## Decision
 

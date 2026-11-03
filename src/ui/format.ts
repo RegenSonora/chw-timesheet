@@ -6,9 +6,12 @@ type Zone = string | undefined;
 
 const zoned = (zone: Zone): { timeZone?: string } => (zone === undefined ? {} : { timeZone: zone });
 
-/** 6 → "1.5 h", 7 → "1.75 h", 8 → "2 h" (wireframes). */
+/** "hr" for exactly one hour, else "hrs" (decision 0026). */
+export const hrs = (hours: number): string => (hours === 1 ? 'hr' : 'hrs');
+
+/** 6 → "1.5 hrs", 4 → "1 hr", 8 → "2 hrs" (decision 0026). */
 export function hoursLabel(quarters: number): string {
-  return `${formatQuarters(quarters).replace(/\.?0+$/, '')} h`;
+  return `${formatQuarters(quarters).replace(/\.?0+$/, '')} ${hrs(quarters / 4)}`;
 }
 
 /** "Outreach", or "Outreach + 2 more" for a split entry (decision 0024). */
@@ -76,7 +79,7 @@ export function durationLabel(seconds: number): string {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   if (h === 0) return `${String(m)} min`;
-  return m === 0 ? `${String(h)} h` : `${String(h)} h ${String(m)} min`;
+  return m === 0 ? `${String(h)} ${hrs(h)}` : `${String(h)} ${hrs(h)} ${String(m)} min`;
 }
 
 /** Elapsed timer clock: 5047 s → "1:24:07". */

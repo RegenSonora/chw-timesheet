@@ -15,6 +15,10 @@ export interface FundingSourceConfig {
   default_nte_cents?: number;
   /** A raise after some billed hours; the app only reminds (decision 0023). */
   rate_step?: RateStep;
+  /** Invoiced hours for CHW certification eligibility (decision 0026). */
+  certification_step?: CertificationStep;
+  /** Who funds the work, for the Work Hours Report (decision 0026). */
+  report_funding_line?: string;
   certification_text: string;
   tasks: Task[];
   budget_lines: BudgetLine[];
@@ -24,6 +28,13 @@ export interface RateStep {
   /** Quarter-hours billed before the raise, e.g. 960 for 240 hours. */
   after_quarters: number;
   rate_cents: number;
+}
+
+export interface CertificationStep {
+  /** Quarter-hours invoiced, e.g. 1920 for 480 hours. */
+  after_quarters: number;
+  /** Short name on Home, e.g. "CHW Cert". */
+  name: string;
 }
 
 export interface Task {

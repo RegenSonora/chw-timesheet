@@ -46,7 +46,8 @@ export type Screen =
   | 'settings'
   | 'invoice'
   | 'invoice-ready'
-  | 'invoices';
+  | 'invoices'
+  | 'report';
 
 const ENTRY_SCREENS: readonly Screen[] = ['times', 'task', 'split', 'counts', 'edit'];
 

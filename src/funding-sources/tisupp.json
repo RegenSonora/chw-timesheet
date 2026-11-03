@@ -3,13 +3,18 @@
   "id": "tisupp",
   "code": "TISUPP",
   "name": "Trauma-Informed Substance Use Prevention Program",
-  "version": 3,
+  "version": 4,
   "has_nte": true,
   "default_rate_cents": 2000,
   "rate_step": {
     "after_quarters": 960,
     "rate_cents": 2300
   },
+  "certification_step": {
+    "after_quarters": 1920,
+    "name": "CHW Cert"
+  },
+  "report_funding_line": "Trauma-Informed Substance Use Prevention Program (TISUPP), funded by the Governor's Office of Youth, Faith and Family through Arizona State University. Contracted through Regenerating Sonora, Inc.",
   "certification_text": "I certify that the services listed were performed on the dates shown on the attached timesheet pages for the TISUPP grant, the hours are accurate, no participant names are included, and these hours have not been billed to Regenerating Sonora under any other funding source or to any other funder.",
   "tasks": [
     {

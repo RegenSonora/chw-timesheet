@@ -14,6 +14,7 @@ import { PastInvoices } from './screens/PastInvoices';
 import { Settings } from './screens/Settings';
 import { Setup } from './screens/Setup';
 import { TimerRunning } from './screens/TimerRunning';
+import { WorkHoursReport } from './screens/WorkHoursReport';
 import { Confirm } from './components';
 
 type Boot =
@@ -56,6 +57,9 @@ function Screens() {
       break;
     case 'invoices':
       view = <PastInvoices />;
+      break;
+    case 'report':
+      view = <WorkHoursReport />;
       break;
     default:
       view = data.app.running_timer ? <TimerRunning /> : <Home />;

@@ -45,3 +45,12 @@ export function invoicePageShapes(
 
 export type { Shape } from './pdf/writer';
 export { pdfName, pngName, timesheetCsvName, entriesCsvName } from './names';
+export {
+  buildWorkHoursFiles,
+  datesText,
+  reportBaseName,
+  splitName,
+  usDate,
+  workHoursPageShapes,
+  type ReportDetails,
+} from './report/work-hours';

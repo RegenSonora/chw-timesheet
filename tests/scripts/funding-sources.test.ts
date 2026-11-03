@@ -45,7 +45,7 @@ describe('funding source files', () => {
 
   it('TISUPP has 21 tasks, 13 budget lines, an NTE and a $20.00 default rate (SPEC §3, §4)', () => {
     expect(tisupp['code']).toBe('TISUPP');
-    expect(tisupp['version']).toBe(3);
+    expect(tisupp['version']).toBe(4);
     expect(tisupp.tasks).toHaveLength(21);
     expect(tisupp.budget_lines).toHaveLength(13);
     expect(tisupp['has_nte']).toBe(true);
@@ -74,6 +74,13 @@ describe('funding source files', () => {
       core_competency: null,
     });
     expect(regen.budget_lines[12]).toEqual({ id: 'domestic-support', name: 'Domestic support' });
+  });
+
+  it('TISUPP: CHW Cert eligibility at 480 hours and a report funding line (decision 0026)', () => {
+    expect(tisupp['certification_step']).toEqual({ after_quarters: 1920, name: 'CHW Cert' });
+    expect(tisupp['report_funding_line']).toBe(
+      "Trauma-Informed Substance Use Prevention Program (TISUPP), funded by the Governor's Office of Youth, Faith and Family through Arizona State University. Contracted through Regenerating Sonora, Inc.",
+    );
   });
 });
 
@@ -127,6 +134,24 @@ describe('funding source schema', () => {
     expect(
       changed((s) => (item(s.budget_lines, 1)['name'] = item(s.budget_lines, 0)['name'])),
     ).not.toEqual([]);
+  });
+
+  it('rejects a bad default NTE or rate step', () => {
+    expect(changed((s) => (s['default_nte_cents'] = 0))).not.toEqual([]);
+    expect(changed((s) => (s['default_nte_cents'] = 10.5))).not.toEqual([]);
+    expect(changed((s) => (s['rate_step'] = { after_quarters: 960 }))).not.toEqual([]);
+    expect(changed((s) => (s['rate_step'] = { after_quarters: 0, rate_cents: 2300 }))).not.toEqual(
+      [],
+    );
+    expect(changed((s) => delete s['rate_step'])).toEqual([]);
+    expect(changed((s) => (s['certification_step'] = { after_quarters: 1920 }))).not.toEqual([]);
+    expect(
+      changed((s) => (s['certification_step'] = { after_quarters: 0, name: 'X' })),
+    ).not.toEqual([]);
+    expect(changed((s) => (s['report_funding_line'] = ''))).not.toEqual([]);
+    expect(changed((s) => delete s['certification_step'])).toEqual([]);
+    expect(changed((s) => delete s['report_funding_line'])).toEqual([]);
+    expect(changed((s) => delete s['default_nte_cents'])).toEqual([]);
   });
 
   it('rejects empty lists', () => {

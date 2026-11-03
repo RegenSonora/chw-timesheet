@@ -354,6 +354,20 @@ export function Settings() {
         </>
       )}
 
+      {/* Decision 0026: run any time, for the ADHS CHW hours attestation form. */}
+      <h2 class="sec">Reports</h2>
+      <button
+        type="button"
+        class="card nav-row"
+        onClick={() => {
+          actions.push('report');
+        }}
+      >
+        <span>Work Hours Report</span>
+        <span class="nav-row-detail">Hours by core competency</span>
+      </button>
+      <p class="hint">For the ADHS CHW hours attestation form. Run it any time.</p>
+
       <h2 class="sec">This phone</h2>
       <StorageStatus status={data.persistence} />
       <p class="hint">Version {versionLabel(__APP_VERSION__)} · Open source (Apache 2.0)</p>

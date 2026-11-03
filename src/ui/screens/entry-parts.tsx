@@ -24,7 +24,7 @@ import { checkDraftTimes, type TimesCheck } from '../draft';
 import { dateLabel, durationLabel, hoursLabel, shortDateLabel, timeRangeLabel } from '../format';
 import { sourceById, useApp } from '../store';
 
-/** "Fri, Oct 30 · 9:12–10:37 AM", "Rounded from 1 h 25 min", "1.5 h". */
+/** "Fri, Oct 30 · 9:12–10:37 AM", "Rounded from 1 hr 25 min", "1.5 hrs". */
 export function TimeCard({ draft, check }: { draft: EntryDraft; check: TimesCheck }) {
   if (!draft.start || !draft.stop || check.state !== 'ok') return null;
   return (
@@ -205,7 +205,7 @@ export function TaskList({ draft, error }: { draft: EntryDraft; error?: string |
   );
 }
 
-/** "1.5 h logged · 0.5 h left", "0.25 h too many" or "All 1.5 h assigned". */
+/** "1.5 hrs logged · 0.5 hrs left", "0.25 hrs too many" or "All 1.5 hrs assigned". */
 export function splitText(total: number, assigned: number): string {
   const status = splitStatus(total, [{ task_id: '', quarters: assigned }]);
   if (status.state === 'ok') return `All ${hoursLabel(total)} assigned`;
@@ -248,7 +248,7 @@ export function SplitEditor({ draft, error }: { draft: EntryDraft; error?: strin
           );
         })}
       </div>
-      <p class="hint">Each tap is 0.25 h. A task left at 0 h is dropped.</p>
+      <p class="hint">Each tap is 0.25 hrs. A task left at 0 hrs is dropped.</p>
     </div>
   );
 }

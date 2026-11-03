@@ -169,7 +169,7 @@ export function InvoicePreview() {
         </div>
         <div class="kv-row">
           <dt>Rate</dt>
-          <dd>{formatDollars(invoice.rate_cents)} / h</dd>
+          <dd>{formatDollars(invoice.rate_cents)} / hr</dd>
         </div>
       </dl>
 
@@ -190,13 +190,13 @@ export function InvoicePreview() {
           {invoice.lines.map((l) => (
             <tr key={l.budget_line_id}>
               <th scope="row">{l.budget_line_name}</th>
-              <td class="lines-hours">{formatQuarters(l.quarters)} h</td>
+              <td class="lines-hours">{formatQuarters(l.quarters)} hrs</td>
               <td class="lines-amount">{formatDollars(l.amount_cents)}</td>
             </tr>
           ))}
           <tr class="lines-total">
             <th scope="row">Total</th>
-            <td class="lines-hours">{formatQuarters(invoice.total_quarters)} h</td>
+            <td class="lines-hours">{formatQuarters(invoice.total_quarters)} hrs</td>
             <td class="lines-amount">{formatDollars(invoice.total_cents)}</td>
           </tr>
         </tbody>

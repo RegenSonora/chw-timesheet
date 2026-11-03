@@ -30,6 +30,9 @@
   --green: #5fa845;
   --green-border: #4c8f37;
   --brown: #2e1a0b;
+  /* Decision 0026: Generate Regen Invoice, light green with dark gold text (5.4:1). */
+  --green-light: #dcefd0;
+  --gold: #7a5800;
   --tap-min: 44px;
   --button-min: 56px;
   font-family:
@@ -1258,7 +1261,70 @@ p {
 }
 
 .home-invoices {
-  margin-top: 24px;
+  margin-top: 4px;
+}
+
+.home-generate {
+  justify-content: center;
+  background: var(--green-light);
+  border: 2px solid var(--green-border);
+  color: var(--gold);
+  font-weight: 700;
+}
+
+/* My stats (decision 0026). */
+.stats-sec {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 20px;
+}
+
+.stats-head {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.stats {
+  margin: 0;
+  overflow: hidden;
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 16px;
+  border-top: 1px solid var(--rule);
+}
+
+.stat:first-child {
+  border-top: none;
+}
+
+.stat dt {
+  font-weight: 600;
+}
+
+.stat dd {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.stat-detail {
+  display: block;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.stat-done {
+  color: var(--accent-text);
 }
 
 .nav-row-detail {
@@ -1294,4 +1360,64 @@ p {
 .split-over {
   background: var(--err-bg);
   color: var(--err-fg);
+}
+
+/* Work Hours Report (decision 0026). */
+.report-head {
+  padding: 12px 16px;
+}
+
+.report-total {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+}
+
+.report-table th,
+.report-table td {
+  padding: 10px 16px;
+  border-top: 1px solid var(--rule);
+  text-align: left;
+  vertical-align: top;
+}
+
+.report-table thead th {
+  border-top: none;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.report-table tbody th {
+  font-weight: 600;
+}
+
+.report-table .report-hrs {
+  text-align: right;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.report-dates {
+  display: block;
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.report-none th,
+.report-none td {
+  color: var(--muted);
+}
+
+.report-sum th,
+.report-sum td {
+  font-weight: 700;
 }

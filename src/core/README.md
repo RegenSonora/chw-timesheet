@@ -20,6 +20,8 @@ Pure rules: money, time, rounding, overlap, page-splitting, invoice, counter and
 | `summary.ts`                     | Home's not-yet-invoiced count, hours and amount, rounded like the invoice                    | §5, §6                   |
 | `picks.ts`                       | Recent tasks first, default budget line, picks kept when an entry changes source             | §5, decision 0008        |
 | `task-split.ts`                  | Several tasks per entry: checking tasks, what is left to assign, shares that add up          | §5, decision 0024        |
+| `stats.ts`                       | My stats: invoiced hours, hrs needed for the raise and for CHW Cert eligibility              | §5, decision 0026        |
+| `work-hours.ts`                  | Work Hours Report: invoiced hours per form row with dates, past three years                  | decision 0026            |
 | `canonical.ts`, `fingerprint.ts` | Canonical JSON and SHA-256 fingerprint, versioned (v1, v2)                                   | §7, rule 8               |
 
 Tests live in `tests/core/`. `tests/core/golden/fingerprint-v1.json` and `fingerprint-v2.json` pin canonical forms v1 and v2: never edit them; add a new canonical version instead. v1 golden invoices are checked after the data v3 upgrade.

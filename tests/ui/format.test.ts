@@ -16,12 +16,14 @@ const AZ = 'America/Phoenix';
 
 describe('display formats (wireframes)', () => {
   it('hours', () => {
-    expect(hoursLabel(6)).toBe('1.5 h');
-    expect(hoursLabel(7)).toBe('1.75 h');
-    expect(hoursLabel(37)).toBe('9.25 h');
-    expect(hoursLabel(8)).toBe('2 h');
-    expect(hoursLabel(1)).toBe('0.25 h');
-    expect(hoursLabel(40)).toBe('10 h');
+    expect(hoursLabel(6)).toBe('1.5 hrs');
+    expect(hoursLabel(7)).toBe('1.75 hrs');
+    expect(hoursLabel(37)).toBe('9.25 hrs');
+    expect(hoursLabel(8)).toBe('2 hrs');
+    expect(hoursLabel(4)).toBe('1 hr');
+    expect(hoursLabel(1)).toBe('0.25 hrs');
+    expect(hoursLabel(0)).toBe('0 hrs');
+    expect(hoursLabel(40)).toBe('10 hrs');
   });
 
   it('dates', () => {
@@ -45,9 +47,9 @@ describe('display formats (wireframes)', () => {
   });
 
   it('durations and the running clock', () => {
-    expect(durationLabel(5106)).toBe('1 h 25 min');
+    expect(durationLabel(5106)).toBe('1 hr 25 min');
     expect(durationLabel(1500)).toBe('25 min');
-    expect(durationLabel(7200)).toBe('2 h');
+    expect(durationLabel(7200)).toBe('2 hrs');
     expect(durationLabel(59)).toBe('0 min');
     expect(clockLabel(5047)).toBe('1:24:07');
     expect(clockLabel(0)).toBe('0:00:00');

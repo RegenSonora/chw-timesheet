@@ -1,11 +1,13 @@
-// Home (SPEC §5, §6): source chip, "Not yet invoiced", Past invoices, Generate, Start, Enter
-// times, and the 240-hour raise reminder (decision 0023).
+// Home (SPEC §5, §6): source chip, "Not yet invoiced", My stats, Past invoices, Generate,
+// Start, Record time, and the 240-hour raise reminder (decisions 0023, 0025, 0026).
 import { useState } from 'preact/hooks';
 import {
   formatDollars,
+  myStats,
   rateStepReminder,
   uninvoicedEntries,
   uninvoicedSummary,
+  type FundingSourceConfig,
   type RateStepReminder,
 } from '../../core';
 import {
@@ -42,6 +44,93 @@ export function SourcePickerSheet({ onClose }: { onClose: () => void }) {
       onClose={onClose}
       note="New entries go to this funding source. Add another in Settings."
     />
+  );
+}
+
+/** My stats (decision 0026): invoiced hours, and the hours still needed for the raise and for certification. */
+export function MyStats({
+  source,
+  rateCents,
+  waitingQuarters,
+}: {
+  source: FundingSourceConfig;
+  rateCents: number | null;
+  waitingQuarters: number;
+}) {
+  const { data, actions } = useApp();
+  const stats = myStats(source, rateCents, data.invoices, waitingQuarters);
+  const { pay, certification } = stats;
+  return (
+    <section class="stats-sec" aria-labelledby="stats-head">
+      <h2 class="stats-head" id="stats-head">
+        My stats
+      </h2>
+      <dl class="card stats">
+        <div class="stat">
+          <dt>
+            Hours invoiced
+            {stats.waiting_quarters > 0 && (
+              <span class="stat-detail">
+                + {hoursLabel(stats.waiting_quarters)} not yet invoiced
+              </span>
+            )}
+          </dt>
+          <dd>{hoursLabel(stats.invoiced_quarters)}</dd>
+        </div>
+        {pay?.state === 'counting' && (
+          <div class="stat">
+            <dt>
+              Hrs needed for pay increase
+              <span class="stat-detail">
+                to {formatDollars(pay.rate_cents)}/hr at {hoursLabel(pay.after_quarters)}
+              </span>
+            </dt>
+            <dd>{hoursLabel(pay.left_quarters)}</dd>
+          </div>
+        )}
+        {pay?.state === 'reached' && (
+          <div class="stat">
+            <dt>
+              Pay increase
+              <span class="stat-detail">
+                Reached. Change your rate to {formatDollars(pay.rate_cents)} in Settings.
+              </span>
+            </dt>
+            <dd class="stat-done">Reached</dd>
+          </div>
+        )}
+        {certification?.state === 'counting' && (
+          <div class="stat">
+            <dt>
+              Hrs needed for {certification.name} eligibility
+              <span class="stat-detail">at {hoursLabel(certification.after_quarters)}</span>
+            </dt>
+            <dd>{hoursLabel(certification.left_quarters)}</dd>
+          </div>
+        )}
+        {certification?.state === 'eligible' && (
+          <div class="stat">
+            <dt>
+              {certification.name} eligibility
+              <span class="stat-detail">Press "Eligible" to generate your Work Hours Report</span>
+            </dt>
+            <dd>
+              <button
+                type="button"
+                class="btn btn-small"
+                onClick={() => {
+                  actions.dismissToast();
+                  actions.push('report');
+                }}
+              >
+                Eligible
+              </button>
+            </dd>
+          </div>
+        )}
+      </dl>
+      <p class="hint">Counts invoices made on this phone.</p>
+    </section>
   );
 }
 
@@ -103,16 +192,6 @@ export function Home() {
               Updated, tap to reload
             </button>
           )}
-          {summary.count > 0 && (
-            // Decision 0025: billed to Regenerating Sonora, as big as Start timer, green.
-            <button
-              type="button"
-              class="btn btn-start btn-green"
-              onClick={() => void actions.openInvoicePreview(selectedSource.id)}
-            >
-              Generate Regen Invoice
-            </button>
-          )}
           <button type="button" class="btn btn-start" onClick={() => void actions.startTimer()}>
             Start timer
           </button>
@@ -164,6 +243,7 @@ export function Home() {
           Show all {plural(open.length, 'entry', 'entries')}
         </button>
       )}
+      <MyStats source={selectedSource} rateCents={rate} waitingQuarters={summary.quarters} />
       {/* Decision 0019: Past invoices lives on Home, under the list. */}
       <button
         type="button"
@@ -180,6 +260,16 @@ export function Home() {
             : 'None yet'}
         </span>
       </button>
+      {/* Decision 0026: under Past invoices, the same size, light green with dark gold text. */}
+      {summary.count > 0 && (
+        <button
+          type="button"
+          class="card nav-row home-generate"
+          onClick={() => void actions.openInvoicePreview(selectedSource.id)}
+        >
+          Generate Regen Invoice
+        </button>
+      )}
       <ToastBar />
       {picking && (
         <SourcePickerSheet

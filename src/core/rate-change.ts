@@ -1,5 +1,6 @@
 // Rate change check (SPEC §4): what to do when the CHW edits a source's hourly rate.
 // Rate step reminder (decision 0023): when to tell the CHW a raise is due.
+import { invoicedQuarters } from './stats';
 import type { FundingSourceConfig, Invoice } from './types';
 
 export type RateChangeCheck =
@@ -50,9 +51,7 @@ export function rateStepReminder(
 ): RateStepReminder | null {
   const step = source.rate_step;
   if (!step || rateCents === null || rateCents >= step.rate_cents) return null;
-  const billed = priorInvoices
-    .filter((i) => i.source.id === source.id)
-    .reduce((sum, i) => sum + i.total_quarters, 0);
+  const billed = invoicedQuarters(source, priorInvoices);
   if (billed + openQuarters < step.after_quarters) return null;
   return {
     invoice_first: billed < step.after_quarters,

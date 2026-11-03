@@ -14,7 +14,7 @@ export interface TextStyle {
   font?: FontName;
   size: number;
   gray?: Gray;
-  align?: 'left' | 'right';
+  align?: 'left' | 'right' | 'center';
 }
 
 export interface StrokeStyle {
@@ -109,12 +109,12 @@ export class PdfPage {
     readonly height: number,
   ) {}
 
-  /** Text on one line with its baseline at y. Right-aligned text ends at x. */
+  /** Text on one line with its baseline at y. Right-aligned text ends at x; centred text is centred on x. */
   text(x: number, y: number, text: string, style: TextStyle): void {
     if (!text) return;
     const font = style.font ?? 'regular';
     const width = textWidth(text, font, style.size);
-    const left = style.align === 'right' ? x - width : x;
+    const left = style.align === 'right' ? x - width : style.align === 'center' ? x - width / 2 : x;
     const gray = style.gray ?? 0;
     this.shapes.push({ kind: 'text', x: left, y, text, font, size: style.size, gray, width });
     this.ops.push(

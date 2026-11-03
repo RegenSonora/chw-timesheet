@@ -71,6 +71,27 @@
         }
       }
     },
+    "certification_step": {
+      "description": "Invoiced hours after which the CHW is eligible for certification. Home counts down to it (decision 0026).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["after_quarters", "name"],
+      "properties": {
+        "after_quarters": {
+          "description": "Quarter-hours invoiced, e.g. 1920 for 480 hours.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "name": {
+          "description": "Short name on Home, e.g. CHW Cert.",
+          "$ref": "#/$defs/text"
+        }
+      }
+    },
+    "report_funding_line": {
+      "description": "Who funds the work, printed on the Work Hours Report (decision 0026).",
+      "$ref": "#/$defs/text"
+    },
     "certification_text": {
       "description": "Certification printed above the CHW signature.",
       "$ref": "#/$defs/text"

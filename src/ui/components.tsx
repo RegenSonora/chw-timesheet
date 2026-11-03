@@ -358,7 +358,7 @@ export function Stepper({
   noun: string;
   less?: string;
   more?: string;
-  /** How the value reads, e.g. "1.5 h". */
+  /** How the value reads, e.g. "1.5 hrs". */
   show?: (value: number) => string;
 }) {
   const id = useId();

@@ -9,6 +9,7 @@ import type {
   OtherCount,
   Role,
   RoleFunding,
+  SourceSettings,
   Task,
 } from './types';
 
@@ -232,4 +233,65 @@ export function invoiceCounts(
     });
   }
   return listed;
+}
+
+/** A source whose suggested rate differs from the rate in Settings after a role change (0030). */
+export interface RateNote {
+  source_id: string;
+  rate_cents: number;
+}
+
+/** What a stored role id means after an app update (decision 0027, roles plan R7). */
+export type RoleUpdate =
+  | { state: 'none' }
+  | { state: 'active'; role: Role }
+  | {
+      state: 'replaced';
+      /** The role the phone was set up with, or the last one it switched to. */
+      from: Role;
+      role: Role;
+      /** Rates for sources the new role bills that have no settings yet. */
+      add_settings: SourceSettings[];
+      rate_notes: RateNote[];
+    }
+  /** Retired with no replacement (role kept for its wording), or an id the file no longer has. */
+  | { state: 'inactive'; role: Role | null };
+
+/**
+ * The stored role id against the shipped roles file. A retired role with `replaced_by` moves the
+ * person to its replacement; rates are never changed, only noted (decisions 0027, 0030).
+ */
+export function roleUpdate(
+  roles: readonly Role[],
+  storedId: string | null,
+  settings: readonly SourceSettings[],
+  sources: readonly FundingSourceConfig[],
+): RoleUpdate {
+  if (storedId === null) return { state: 'none' };
+  const from = roles.find((r) => r.id === storedId);
+  const role = resolveRole(roles, storedId);
+  if (!from || !role) return { state: 'inactive', role: from ?? null };
+  if (role.retired) return { state: 'inactive', role };
+  if (role.id === from.id) return { state: 'active', role };
+
+  const add_settings: SourceSettings[] = [];
+  const rate_notes: RateNote[] = [];
+  for (const funding of role.funding) {
+    const source = sources.find((s) => s.id === funding.source_id);
+    if (!source) continue;
+    const suggested = prefillRate(role, funding, source);
+    const current = settings.find((s) => s.source_id === source.id);
+    if (!current) {
+      if (suggested !== null) {
+        add_settings.push({
+          source_id: source.id,
+          rate_cents: suggested,
+          nte_cents: funding.nte_cents ?? null,
+        });
+      }
+    } else if (suggested !== null && suggested !== current.rate_cents) {
+      rate_notes.push({ source_id: source.id, rate_cents: suggested });
+    }
+  }
+  return { state: 'replaced', from, role, add_settings, rate_notes };
 }

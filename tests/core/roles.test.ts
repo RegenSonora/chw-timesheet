@@ -12,6 +12,7 @@ import {
   resolveRole,
   roleChoices,
   roleDefaultLine,
+  roleUpdate,
   taskChoices,
 } from '../../src/core/roles';
 import { emptyCounts } from '../../src/core/counts';
@@ -396,5 +397,64 @@ describe('checkRolePicks (decisions 0028, 0033)', () => {
     expect(checkRolePicks(lead, regen, '2026-11-02', 'maintenance-labor', ['dump-runs'])).toBe(
       'task',
     );
+  });
+});
+
+describe('roleUpdate (decision 0027, roles plan R7)', () => {
+  const regenRate = { source_id: regen.id, rate_cents: 2200, nte_cents: null };
+  const old: Role = { ...lead, id: 'r-tl00', code: 'R-TL00', retired: true, replaced_by: 'r-tl01' };
+
+  it('is none without a role, active for a current role', () => {
+    expect(roleUpdate(file.roles, null, [], sources)).toEqual({ state: 'none' });
+    expect(roleUpdate(file.roles, 'r-tl01', [regenRate], sources)).toEqual({
+      state: 'active',
+      role: lead,
+    });
+  });
+
+  it('moves a retired role to its replacement, adding new sources and noting rate changes', () => {
+    const next: Role = {
+      ...lead,
+      funding: [...lead.funding, { ...funding(trainee, 'tisupp') }],
+    };
+    const roles = [old, next, trainee];
+    const update = roleUpdate(roles, 'r-tl00', [{ ...regenRate, rate_cents: 2000 }], sources);
+    expect(update).toEqual({
+      state: 'replaced',
+      from: old,
+      role: next,
+      add_settings: [{ source_id: 'tisupp', rate_cents: 2000, nte_cents: 1032000 }],
+      rate_notes: [{ source_id: regen.id, rate_cents: 2200 }],
+    });
+  });
+
+  it('follows a chain of replacements and notes nothing when rates match', () => {
+    const mid: Role = {
+      ...lead,
+      id: 'r-tl05',
+      code: 'R-TL05',
+      retired: true,
+      replaced_by: 'r-tl01',
+    };
+    const first: Role = { ...old, replaced_by: 'r-tl05' };
+    const update = roleUpdate([first, mid, lead], 'r-tl00', [regenRate], sources);
+    expect(update).toMatchObject({
+      state: 'replaced',
+      role: lead,
+      add_settings: [],
+      rate_notes: [],
+    });
+  });
+
+  it('is inactive for a retired role with no replacement, or an id the file lost', () => {
+    const gone: Role = { ...lead, id: 'r-tl09', retired: true };
+    expect(roleUpdate([gone, lead], 'r-tl09', [regenRate], sources)).toEqual({
+      state: 'inactive',
+      role: gone,
+    });
+    expect(roleUpdate(file.roles, 'nobody', [], sources)).toEqual({
+      state: 'inactive',
+      role: null,
+    });
   });
 });

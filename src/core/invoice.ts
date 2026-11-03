@@ -29,8 +29,17 @@ export interface InvoiceInput {
   source: FundingSourceConfig;
   settings: SourceSettings;
   profile: Profile;
-  /** The person's role; null before one is picked. Employees get a timesheet (decision 0031). */
+  /**
+   * The role this invoice is made under: that of the hours it bills, which after an office
+   * change may be an older role than the person's (roles plan R7). Null for no role. Employees
+   * get a timesheet (decision 0031).
+   */
   role: Role | null;
+  /**
+   * Bill only waiting entries logged under this role id (see invoiceRoleId); the rest wait for
+   * the next invoice. Undefined bills every waiting entry of the source.
+   */
+  entry_role_id?: string | null;
   /** The shared count list, for the labels the invoice freezes (decision 0029). */
   count_defs: readonly CountDef[];
   counter: InvoiceCounter;
@@ -64,6 +73,21 @@ export function uninvoicedEntries(entries: readonly Entry[], sourceId: string): 
 }
 
 /**
+ * The role the next invoice or timesheet at a source is made under: that of the oldest waiting
+ * entry. Hours keep the role they were logged with, so after a role change the old role's hours
+ * go first (roles plan R7). Undefined when nothing waits.
+ */
+export function invoiceRoleId(
+  entries: readonly Entry[],
+  sourceId: string,
+): string | null | undefined {
+  const waiting = uninvoicedEntries(entries, sourceId).sort((a, b) =>
+    a.start < b.start ? -1 : a.start > b.start ? 1 : 0,
+  );
+  return waiting[0]?.role_id;
+}
+
+/**
  * Everything the invoice preview shows, without the fingerprint. Pure and synchronous;
  * createInvoice adds the fingerprint.
  */
@@ -81,7 +105,9 @@ export function buildInvoiceDraft(input: InvoiceInput): InvoiceDraftResult {
   const tasks = new Map(source.tasks.map((t) => [t.id, t]));
   const taskIds = new Set(tasks.keys());
   const lines = new Map(source.budget_lines.map((l) => [l.id, l]));
-  const billed = uninvoicedEntries(input.entries, source.id);
+  const billed = uninvoicedEntries(input.entries, source.id).filter(
+    (e) => input.entry_role_id === undefined || e.role_id === input.entry_role_id,
+  );
   if (billed.length === 0) return { ok: false, reason: 'no_entries' };
 
   const frozen: InvoiceEntry[] = [];

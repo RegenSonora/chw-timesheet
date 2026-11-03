@@ -4,6 +4,7 @@ import {
   buildInvoiceDraft,
   certificationText,
   createInvoice,
+  invoiceRoleId,
   uninvoicedEntries,
 } from '../../src/core/invoice';
 import type { InvoiceInput } from '../../src/core/invoice';
@@ -523,5 +524,51 @@ describe('certification text by role (decision 0031)', () => {
     if (!result.ok) throw new Error(result.reason);
     expect(result.invoice.source.certification_text).toBe(tisupp.employee_certification_text);
     expect(result.invoice.canonical_version).toBe(3);
+  });
+});
+
+describe('hours keep the role they were logged under (roles plan R7)', () => {
+  // The two oldest entries were logged as an employee; the role then became a contractor one.
+  const entries = [...sampleEntries]
+    .sort((a, b) => (a.start < b.start ? -1 : 1))
+    .map((e, i) => ({ ...e, role_id: i < 2 ? 'chw-te01' : 'chw-tc01' }));
+
+  it('the next invoice takes the role of the oldest waiting entry', () => {
+    expect(invoiceRoleId(entries, 'tisupp')).toBe('chw-te01');
+    expect(invoiceRoleId(entries.slice(2), 'tisupp')).toBe('chw-tc01');
+    expect(invoiceRoleId([], 'tisupp')).toBeUndefined();
+  });
+
+  it("bills only that role's hours, as that role's kind; the rest wait", () => {
+    const first = buildInvoiceDraft(
+      sampleInput({ entries, role: findTestRole('chw-te01'), entry_role_id: 'chw-te01' }),
+    );
+    if (!first.ok) throw new Error(first.reason);
+    expect(first.invoice.kind).toBe('timesheet');
+    expect(first.entry_ids).toEqual([entries[0]?.id, entries[1]?.id]);
+
+    const second = buildInvoiceDraft(
+      sampleInput({ entries, role: findTestRole('chw-tc01'), entry_role_id: 'chw-tc01' }),
+    );
+    if (!second.ok) throw new Error(second.reason);
+    expect(second.invoice.kind).toBe('invoice');
+    expect(second.entry_ids).toHaveLength(entries.length - 2);
+  });
+
+  it('bills every waiting entry when no role id is given', () => {
+    const all = buildInvoiceDraft(sampleInput({ entries }));
+    expect(all.ok && all.entry_ids).toHaveLength(entries.length);
+  });
+});
+
+describe('an entry whose task the role no longer lists (roles plan R7)', () => {
+  it('is still invoiced from the source file', () => {
+    const entry = makeEntry('2026-10-20', '09:00:00', '10:00:00', 'outreach', 'chw-referrals', {
+      role_id: 'chw-tc01',
+    });
+    const draft = buildInvoiceDraft(
+      sampleInput({ entries: [entry], role: findTestRole('chw-tc01') }),
+    );
+    expect(draft.ok && draft.invoice.entries[0]?.tasks[0]?.task_name).toBe('Outreach');
   });
 });

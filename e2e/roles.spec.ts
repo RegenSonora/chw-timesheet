@@ -1,6 +1,18 @@
 // Roles on screen (roles plan R4; decisions 0027, 0028, 0029, 0031, 0032, 0033).
 import { expect, test, type Page } from '@playwright/test';
-import { expectAccessible, heading, setUp, taskBox, ZONE } from './helpers.js';
+import { readPdf } from '../tests/files/pdf-reader.js';
+import {
+  expectAccessible,
+  fillDetails,
+  heading,
+  parseCsv,
+  readPng,
+  setUp,
+  sharedFiles,
+  stubShare,
+  taskBox,
+  ZONE,
+} from './helpers.js';
 
 test.use({ timezoneId: ZONE });
 
@@ -22,8 +34,7 @@ test('setup picks a role, reviews it with the rate prefilled, and can pick again
 }) => {
   await page.clock.install({ time: new Date('2026-11-03T09:00:00-07:00') });
   await page.goto('./');
-  await page.getByLabel('Your name').fill('Carmen Cruz');
-  await page.getByLabel('Initials').fill('cc');
+  await fillDetails(page);
   await page.getByRole('button', { name: 'Next' }).click();
 
   await expect(heading(page, 'Pick your role')).toBeVisible();
@@ -191,4 +202,76 @@ test('after every source ends, only time dated inside a period can be recorded',
   await page.getByRole('button', { name: 'Save entry' }).click();
   await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Generate Regen Invoice' })).toBeVisible();
+});
+
+test('an employee submits a timesheet: summary page, no amounts, supervisor line', async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  await page.clock.install({ time: new Date('2026-11-03T09:00:00-07:00') });
+  await stubShare(page);
+  await setUp(page, 'CHW-TE01');
+  await recordTime(page, '2026-11-02', '09:00', '10:30');
+  await page.getByRole('button', { name: 'Next' }).click();
+  await taskBox(page, 'Outreach').check();
+  await page.getByRole('button', { name: 'Next' }).click();
+  await page.getByRole('button', { name: 'More contacts' }).click();
+  await page.getByRole('button', { name: 'Save entry' }).click();
+
+  await page.getByRole('button', { name: 'Submit timesheet' }).click();
+  await expect(heading(page, 'New timesheet')).toBeVisible();
+  await expect(page.getByText('Pay rate')).toBeVisible();
+  await expect(page.getByRole('row', { name: 'Total 1.50 hrs' })).toBeVisible();
+  await expect(page.getByText('Contract limit')).toHaveCount(0);
+  await expect(page.getByText('$30.00')).toHaveCount(0);
+  await expectAccessible(page, 'timesheet preview');
+
+  await page.getByRole('button', { name: 'Create timesheet files' }).click();
+  await expect(heading(page, 'Timesheet created')).toBeVisible();
+  await expect(page.getByText(/our supervisor/)).toHaveCount(2);
+  await page.getByRole('button', { name: 'Share files' }).click();
+  await expect(page.getByRole('status')).toHaveText('Files shared.');
+  const [files] = await sharedFiles(page);
+  expect(files?.map((f) => f.name)).toEqual([
+    'TISUPP_CC-2026-001_2026-11-02_to_2026-11-02.pdf',
+    'TISUPP_CC-2026-001_timesheet.png',
+    'TISUPP_CC-2026-001_timesheet.csv',
+    'TISUPP_CC-2026-001_entries.csv',
+  ]);
+
+  const pdf = await readPdf(new Uint8Array(files?.[0]?.bytes ?? []));
+  const page1 = pdf[0]?.text ?? '';
+  for (const expected of [
+    'TIMESHEET',
+    'Pay rate $20.00/hr',
+    'CHW experience hours 1.50',
+    'Total hours 1.50',
+    'Contacts 1 1',
+    'SUPERVISOR SIGNATURE',
+    'Supervisor name',
+  ]) {
+    expect(page1).toContain(expected);
+  }
+  expect(page1).not.toContain('$30.00');
+  expect(pdf[1]?.text).toContain('Employee initials');
+
+  const png = await readPng(page, files?.[1]?.bytes ?? []);
+  expect(png.qr).toContain('"n":"CC-2026-001"');
+
+  const sheet = parseCsv(files?.[2]?.bytes ?? []);
+  expect(sheet.slice(0, 5).map((r) => r[0])).toEqual([
+    'Timesheet #',
+    'Funding source',
+    'Employee',
+    'Service period',
+    'Pay rate',
+  ]);
+  const log = parseCsv(files?.[3]?.bytes ?? []);
+  const header = log[0] ?? [];
+  expect(log[1]?.[header.indexOf('contacts')]).toBe('1');
+  expect(log[1]?.[header.indexOf('trees_planted')]).toBe('');
+
+  await page.getByRole('button', { name: 'Done' }).click();
+  await page.getByRole('button', { name: /Past timesheets 1 timesheet/ }).click();
+  await expect(page.getByRole('button', { name: /CC-2026-001/ })).toContainText('1.5 hrs');
 });

@@ -24,12 +24,24 @@ export function heading(page: Page, name: string | RegExp) {
   return page.getByRole('heading', { level: 1, name });
 }
 
+/**
+ * Name and initials on setup's first step. In WebKit a fill right after the screen mounts
+ * sometimes fires no input event; fill until both values stick.
+ */
+export async function fillDetails(page: Page): Promise<void> {
+  await expect(async () => {
+    await page.getByLabel('Your name').fill('Carmen Cruz');
+    await page.getByLabel('Initials').fill('cc');
+    await expect(page.getByLabel('Your name')).toHaveValue('Carmen Cruz', { timeout: 500 });
+    await expect(page.getByLabel('Initials')).toHaveValue('cc', { timeout: 500 });
+  }).toPass();
+}
+
 /** Setup with a role (decision 0027): details, pick the role, review, "This is my role". */
 export async function setUp(page: Page, role = 'CHW-TC01'): Promise<void> {
   await page.goto('./');
   await expect(heading(page, 'Set up')).toBeVisible();
-  await page.getByLabel('Your name').fill('Carmen Cruz');
-  await page.getByLabel('Initials').fill('cc');
+  await fillDetails(page);
   await page.getByRole('button', { name: 'Next' }).click();
   await expect(heading(page, 'Pick your role')).toBeVisible();
   await page.getByRole('button', { name: new RegExp(`^${role}`) }).click();

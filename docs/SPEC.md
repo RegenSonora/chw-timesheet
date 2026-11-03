@@ -42,6 +42,9 @@ Each funding source is a JSON file in the repo, validated against a JSON Schema 
 ### TISUPP — Trauma-Informed Substance Use Prevention Program
 
 - **Not-to-exceed (NTE):** yes, entered by the CHW in Settings.
+- **Rate:** $20.00 for the first 240 hours, then $23.00 (`rate_step`). The app reminds the CHW at 240 hours; the CHW changes the rate (§4, decision 0023).
+- **CHW Certification:** eligible at 480 invoiced hours (`certification_step`); Home counts down to it and offers the Work Hours Report (decision 0026).
+- **Report funding line:** "Trauma-Informed Substance Use Prevention Program (TISUPP), funded by the Governor's Office of Youth, Faith and Family through Arizona State University. Contracted through Regenerating Sonora, Inc."
 - **Certification text:** "I certify that the services listed were performed on the dates shown on the attached timesheet pages for the TISUPP grant, the hours are accurate, no participant names are included, and these hours have not been billed to Regenerating Sonora under any other funding source or to any other funder."
 - **Tasks (21) and core competencies:**
 
@@ -69,7 +72,7 @@ Each funding source is a JSON file in the repo, validated against a JSON Schema 
 | 20 | Meetings | Professional Skills & Conduct |
 | 21 | Training / continuing education | Professional Skills & Conduct |
 
-- **Budget lines (12):** New CHWs: training, stipends, field hours · CHW referrals · Outreach and marketing · Listening sessions · Community Atlas · Family Tree · Family Resilience Workshops · Youth Leadership Academy · Green Thumb Warriors · Full Moon Garden Parties · Youth and family field trips · Quarterly partnership meetings
+- **Budget lines (13):** New CHWs: training, stipends, field hours · CHW referrals · Outreach and marketing · Listening sessions · Community Atlas · Family Tree · Family Resilience Workshops · Youth Leadership Academy · Green Thumb Warriors · Full Moon Garden Parties · Youth and family field trips · Quarterly partnership meetings · CHW experience hours (from the Gila port)
 
 (The source spreadsheet combines "CHW referrals, outreach, marketing" into one line; Chris split it.)
 
@@ -102,12 +105,13 @@ Each funding source is a JSON file in the repo, validated against a JSON Schema 
 - **Counts (all optional, default 0):** Contacts, Referrals given, Referral follow-ups, Rides provided, Applications completed, plus "Add another count" (label + number).
 - **Notes:** optional, with the warning "Don't include client names. Notes appear on the timesheet."
 - **Editing:** entries can be edited or deleted until invoiced, then are locked. Save and delete show Undo. If the billed hours change, a one-task entry follows them; a split entry must be split again before saving.
-- **Home:** "Not yet invoiced" list for the selected funding source with entry count, hours and amount. With nothing waiting it says "Start timer and start working or record time."
+- **Home:** "Not yet invoiced" list for the selected funding source with entry count, hours and amount. With nothing waiting it says "Start timer and start working or record time." Below it, **My stats** (hours invoiced, hrs needed for pay increase, hrs needed for CHW Cert eligibility), then Past invoices, then Generate Regen Invoice (decision 0026). Hour amounts read "hrs" ("4.5 hrs").
+- **Work Hours Report (decision 0026):** from Settings or the Eligible button in My stats. Invoiced hours of the past three years per core competency, in the order and wording of the ADHS CHW Hours Worked/Volunteered Attestation Form, with the dates completed; shared as PDF, PNG and CSV.
 
 ## 6. Invoices
 
 - **One invoice per funding source.** It includes every uninvoiced entry for that source.
-- **Generate button:** shown only when the selected source has at least one uninvoiced entry; labelled "Generate Regen Invoice" (decision 0025).
+- **Generate button:** shown only when the selected source has at least one uninvoiced entry; labelled "Generate Regen Invoice" (decision 0025); a row under Past invoices, the same size, light green with dark gold text (decision 0026).
 - **Invoice number:** `<INITIALS>-<YYYY>-<NNN>`, for example `CC-2026-004`. One counter shared by all funding sources. It keeps counting across years and is never reset by changing initials. YYYY is the invoice date's year.
 - **Invoice date:** the day it is generated. **Service period:** first entry date to last entry date.
 - **Lines:** one per budget line: hours, rate, amount. Line amount = quarter-hours × rate in cents ÷ 4, rounded half up to the cent. Invoice total = sum of line amounts.
@@ -221,7 +225,7 @@ Guardrails, written in a one-page procedure (`docs/signing-procedure.md`, CC BY 
 
 ## 9. Screens
 
-Install gate (iPhone) · Setup · Home · Timer running · What did you do? (tasks and budget line) · Split your time · Counts and notes · Enter times · Invoice preview · Invoice created (share) · Settings · Rate change check · plus edit entry and "show all entries" (not drawn). See the wireframes.
+Install gate (iPhone) · Setup · Home · Timer running · What did you do? (tasks and budget line) · Split your time · Counts and notes · Enter times · Invoice preview · Invoice created (share) · Settings · Rate change check · Work Hours Report · plus edit entry and "show all entries" (not drawn). See the wireframes.
 
 ## 10. Field usability and quality
 
@@ -232,7 +236,7 @@ Install gate (iPhone) · Setup · Home · Timer running · What did you do? (tas
 - Clear confirmation after Save; errors in plain words next to the field; Undo after Save and Delete.
 - Follows the phone's light or dark setting.
 - WCAG 2.1 AA.
-- Neutral styling: gray tones with one accent color (blue `#1f5fc8`). On Home, Generate Regen Invoice and Record time are as big as Start timer, green with dark brown text (decision 0025).
+- Neutral styling: gray tones with one accent color (blue `#1f5fc8`). On Home, Record time is as big as Start timer, green with dark brown text (decision 0025); Generate Regen Invoice is light green `#dcefd0` with dark gold `#7a5800` text (decision 0026).
 
 ## 11. Out of scope
 

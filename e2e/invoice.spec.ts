@@ -35,9 +35,9 @@ test('create, share and re-share an invoice', async ({ page }) => {
   await expect(heading(page, 'New invoice')).toBeVisible();
   await expect(page.getByText(/^CC-\d{4}-001$/)).toBeVisible();
   await expect(page.getByText('8 on 8 dates (2 timesheet pages)')).toBeVisible();
-  await expect(page.getByText('$20.00 / h')).toBeVisible();
-  await expect(page.getByRole('row', { name: 'CHW referrals 8.00 h $160.00' })).toBeVisible();
-  await expect(page.getByRole('row', { name: 'Total 8.00 h $160.00' })).toBeVisible();
+  await expect(page.getByText('$20.00 / hr')).toBeVisible();
+  await expect(page.getByRole('row', { name: 'CHW referrals 8.00 hrs $160.00' })).toBeVisible();
+  await expect(page.getByRole('row', { name: 'Total 8.00 hrs $160.00' })).toBeVisible();
   await expect(page.getByText('Enter your not-to-exceed amount in Settings.')).toBeVisible();
   await expect(page.getByText('These 8 entries will be locked.')).toBeVisible();
 

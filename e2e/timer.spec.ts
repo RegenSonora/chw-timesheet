@@ -46,7 +46,7 @@ test('a timer under 7.5 minutes is too short: keep timing or discard', async ({ 
   // Past 7.5 minutes it rounds up to 0.25 h.
   await page.clock.fastForward('01:00');
   await page.getByRole('button', { name: 'Stop' }).click();
-  await expect(page.getByText('0.25 h')).toBeVisible();
+  await expect(page.getByText('0.25 hrs')).toBeVisible();
   await page.goBack();
   await page.getByRole('dialog').getByRole('button', { name: 'Discard entry' }).click();
   await expect(page.getByRole('button', { name: 'Start timer' })).toBeVisible();

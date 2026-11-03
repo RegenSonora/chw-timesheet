@@ -92,5 +92,5 @@ test('a new release is offered between entries and loads on tap', async ({ page 
   await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
   await expect.poll(() => cacheNames(page)).toEqual([`regen-${NEW_VERSION}`]);
   await expect(updateBar).toHaveCount(0);
-  await expect(page.getByText('1 entry · 0.5 h · $10.00')).toBeVisible();
+  await expect(page.getByText('1 entry · 0.5 hrs · $10.00')).toBeVisible();
 });

@@ -34,8 +34,8 @@ test('timer → task → counts → save, then undo', async ({ page }) => {
   await page.getByRole('button', { name: 'Stop' }).click();
 
   await expect(page.getByText('Fri, Oct 30 · 9:12–10:37 AM')).toBeVisible();
-  await expect(page.getByText('Rounded from 1 h 25 min')).toBeVisible();
-  await expect(page.getByText('1.5 h')).toBeVisible();
+  await expect(page.getByText('Rounded from 1 hr 25 min')).toBeVisible();
+  await expect(page.getByText('1.5 hrs')).toBeVisible();
 
   // Next without picks: errors next to the fields.
   await page.getByRole('button', { name: 'Next' }).click();
@@ -55,8 +55,8 @@ test('timer → task → counts → save, then undo', async ({ page }) => {
   await page.getByRole('button', { name: 'Save entry' }).click();
 
   await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
-  await expect(page.getByText('1 entry · 1.5 h · $30.00')).toBeVisible();
-  await expect(page.getByRole('status')).toContainText('Saved: 1.5 h, Client check in');
+  await expect(page.getByText('1 entry · 1.5 hrs · $30.00')).toBeVisible();
+  await expect(page.getByRole('status')).toContainText('Saved: 1.5 hrs, Client check in');
   await expect(page.getByRole('button', { name: /Client check in/ })).toBeVisible();
 
   await page.getByRole('button', { name: 'Undo' }).click();
@@ -99,9 +99,9 @@ test('split one entry between two tasks (decision 0024)', async ({ page }) => {
   await expect(heading(page, 'Split your time')).toBeVisible();
   await expect(page.getByText('Step 2 of 3')).toBeVisible();
   // The first task checked starts with all the hours.
-  await expect(page.getByText('All 1.5 h assigned')).toBeVisible();
+  await expect(page.getByText('All 1.5 hrs assigned')).toBeVisible();
   await page.getByRole('button', { name: 'More time on Outreach' }).click();
-  await expect(page.getByText('0.25 h too many')).toBeVisible();
+  await expect(page.getByText('0.25 hrs too many')).toBeVisible();
   await page.getByRole('button', { name: 'Next' }).click();
   await expect(page.getByText('Split all the hours between your tasks.')).toBeVisible();
   await expect(heading(page, 'Split your time')).toBeVisible();
@@ -109,30 +109,30 @@ test('split one entry between two tasks (decision 0024)', async ({ page }) => {
     await page.getByRole('button', { name: 'Less time on Client check in' }).click();
   }
   // Client check in 0.75 h, Outreach 0.25 h.
-  await expect(page.getByText('1.5 h logged · 0.5 h left')).toBeVisible();
+  await expect(page.getByText('1.5 hrs logged · 0.5 hrs left')).toBeVisible();
   await page.getByRole('button', { name: 'More time on Outreach' }).click();
-  await expect(page.getByText('1.5 h logged · 0.25 h left')).toBeVisible();
+  await expect(page.getByText('1.5 hrs logged · 0.25 hrs left')).toBeVisible();
   await page.getByRole('button', { name: 'More time on Outreach' }).click();
-  await expect(page.getByText('All 1.5 h assigned')).toBeVisible();
+  await expect(page.getByText('All 1.5 hrs assigned')).toBeVisible();
   await page.getByRole('button', { name: 'Next' }).click();
 
   await expect(heading(page, 'Counts and notes')).toBeVisible();
   await expect(page.getByText('Step 3 of 3')).toBeVisible();
   await page.getByRole('button', { name: 'Save entry' }).click();
-  await expect(page.getByRole('status')).toContainText('Saved: 1.5 h, Client check in + 1 more');
-  await expect(page.getByText('1 entry · 1.5 h · $30.00')).toBeVisible();
+  await expect(page.getByRole('status')).toContainText('Saved: 1.5 hrs, Client check in + 1 more');
+  await expect(page.getByText('1 entry · 1.5 hrs · $30.00')).toBeVisible();
 
   // Edit: a new end time un-matches the split, so Save asks for it again.
   await page.getByRole('button', { name: /Client check in \+ 1 more/ }).click();
   await expect(heading(page, 'Edit entry')).toBeVisible();
-  await expect(page.getByText('All 1.5 h assigned')).toBeVisible();
+  await expect(page.getByText('All 1.5 hrs assigned')).toBeVisible();
   await page.getByLabel('End').fill('10:52');
-  await expect(page.getByText('1.75 h logged · 0.25 h left')).toBeVisible();
+  await expect(page.getByText('1.75 hrs logged · 0.25 hrs left')).toBeVisible();
   await page.getByRole('button', { name: 'Save changes' }).click();
   await expect(page.getByText('Split all the hours between your tasks.')).toBeVisible();
   await page.getByRole('button', { name: 'More time on Client check in' }).click();
   await page.getByRole('button', { name: 'Save changes' }).click();
-  await expect(page.getByRole('status')).toContainText('Saved: 1.75 h, Client check in + 1 more');
+  await expect(page.getByRole('status')).toContainText('Saved: 1.75 hrs, Client check in + 1 more');
 
   // Unchecking down to one task gives it all the hours.
   await page.getByRole('button', { name: /Client check in \+ 1 more/ }).click();
@@ -142,7 +142,7 @@ test('split one entry between two tasks (decision 0024)', async ({ page }) => {
   await page.getByRole('button', { name: 'Done with tasks' }).click();
   await expect(page.getByText(/assigned|h left|too many/)).toHaveCount(0);
   await page.getByRole('button', { name: 'Save changes' }).click();
-  await expect(page.getByRole('status')).toContainText('Saved: 1.75 h, Client check in');
+  await expect(page.getByRole('status')).toContainText('Saved: 1.75 hrs, Client check in');
 });
 
 test('edit an entry, move it to another source, delete and undo', async ({ page }) => {
@@ -154,7 +154,7 @@ test('edit an entry, move it to another source, delete and undo', async ({ page 
   await page.getByRole('button', { name: 'CHW referrals Change' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Outreach and marketing' }).click();
   await page.getByRole('button', { name: 'Save changes' }).click();
-  await expect(page.getByRole('status')).toContainText('Saved: 1.5 h, Client check in');
+  await expect(page.getByRole('status')).toContainText('Saved: 1.5 hrs, Client check in');
   await expect(page.getByText('9:12–10:37 AM · Outreach and marketing')).toBeVisible();
 
   // Decision 0008: move to Regen General Operating; picks it also has carry over.
@@ -167,18 +167,18 @@ test('edit an entry, move it to another source, delete and undo', async ({ page 
   await page.getByRole('button', { name: 'Save changes' }).click();
   await expect(page.getByRole('status')).toContainText('Moved to REGEN-GO');
   await expect(page.getByRole('button', { name: /Funding source REGEN-GO/ })).toBeVisible();
-  await expect(page.getByText('1 entry · 1.5 h · $27.00')).toBeVisible();
+  await expect(page.getByText('1 entry · 1.5 hrs · $27.00')).toBeVisible();
   await page.getByRole('button', { name: 'Undo' }).click();
   await expect(page.getByRole('button', { name: /Funding source TISUPP/ })).toBeVisible();
-  await expect(page.getByText('1 entry · 1.5 h · $30.00')).toBeVisible();
+  await expect(page.getByText('1 entry · 1.5 hrs · $30.00')).toBeVisible();
 
   await page.getByRole('button', { name: /Client check in/ }).click();
   await page.getByRole('button', { name: 'Delete entry' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Delete entry' }).click();
-  await expect(page.getByRole('status')).toContainText('Deleted: 1.5 h, Client check in');
+  await expect(page.getByRole('status')).toContainText('Deleted: 1.5 hrs, Client check in');
   await expect(page.getByText('Start timer and start working or record time.')).toBeVisible();
   await page.getByRole('button', { name: 'Undo' }).click();
-  await expect(page.getByText('1 entry · 1.5 h · $30.00')).toBeVisible();
+  await expect(page.getByText('1 entry · 1.5 hrs · $30.00')).toBeVisible();
 });
 
 test('leaving an edit with changes asks first', async ({ page }) => {
@@ -210,5 +210,5 @@ test('All entries lists every uninvoiced entry for the chip source', async ({ pa
   await page.getByRole('button', { name: 'Show all 4 entries' }).click();
   await expect(heading(page, 'TISUPP entries')).toBeVisible();
   await expect(page.getByRole('button', { name: /Client check in/ })).toHaveCount(4);
-  await expect(page.getByText('4 entries · 4 h · $80.00')).toBeVisible();
+  await expect(page.getByText('4 entries · 4 hrs · $80.00')).toBeVisible();
 });

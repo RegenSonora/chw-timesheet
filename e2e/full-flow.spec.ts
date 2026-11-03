@@ -93,7 +93,7 @@ test('setup → 9 dates of entries → invoice → files → re-share', async ({
   await expectAccessible(page, 'split step, hours left');
   await page.getByRole('button', { name: 'More time on Outreach' }).click();
   await page.getByRole('button', { name: 'More time on Outreach' }).click();
-  await expect(page.getByText('All 1.5 h assigned')).toBeVisible();
+  await expect(page.getByText('All 1.5 hrs assigned')).toBeVisible();
   await expectAccessible(page, 'split step');
   await page.getByRole('button', { name: 'Next' }).click();
   await expect(heading(page, 'Counts and notes')).toBeVisible();
@@ -106,7 +106,7 @@ test('setup → 9 dates of entries → invoice → files → re-share', async ({
   await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
 
   for (const entry of TYPED) await addEntry(page, entry);
-  await expect(page.getByText('9 entries · 12 h · $240.00')).toBeVisible();
+  await expect(page.getByText('9 entries · 12 hrs · $240.00')).toBeVisible();
 
   // One REGEN-GO entry stays off the TISUPP invoice.
   await pickSource(page, 'REGEN-GO');
@@ -117,7 +117,7 @@ test('setup → 9 dates of entries → invoice → files → re-share', async ({
     task: 'Outreach',
     line: 'Outreach and marketing',
   });
-  await expect(page.getByText('1 entry · 1 h · $18.00')).toBeVisible();
+  await expect(page.getByText('1 entry · 1 hr · $18.00')).toBeVisible();
   await pickSource(page, 'TISUPP');
   await expectAccessible(page, 'home with entries');
 
@@ -127,13 +127,13 @@ test('setup → 9 dates of entries → invoice → files → re-share', async ({
   await expect(page.getByText('CC-2026-001')).toBeVisible();
   await expect(page.getByText('9 on 9 dates (2 timesheet pages)')).toBeVisible();
   await expect(
-    page.getByRole('row', { name: 'New CHWs: training, stipends, field hours 2.00 h $40.00' }),
+    page.getByRole('row', { name: 'New CHWs: training, stipends, field hours 2.00 hrs $40.00' }),
   ).toBeVisible();
-  await expect(page.getByRole('row', { name: 'CHW referrals 7.00 h $140.00' })).toBeVisible();
+  await expect(page.getByRole('row', { name: 'CHW referrals 7.00 hrs $140.00' })).toBeVisible();
   await expect(
-    page.getByRole('row', { name: 'Outreach and marketing 3.00 h $60.00' }),
+    page.getByRole('row', { name: 'Outreach and marketing 3.00 hrs $60.00' }),
   ).toBeVisible();
-  await expect(page.getByRole('row', { name: 'Total 12.00 h $240.00' })).toBeVisible();
+  await expect(page.getByRole('row', { name: 'Total 12.00 hrs $240.00' })).toBeVisible();
   await expectAccessible(page, 'invoice preview');
 
   // Create and share.
@@ -198,7 +198,7 @@ test('setup → 9 dates of entries → invoice → files → re-share', async ({
   await page.getByRole('button', { name: 'Done' }).click();
   await expect(page.getByText('Start timer and start working or record time.')).toBeVisible();
   await pickSource(page, 'REGEN-GO');
-  await expect(page.getByText('1 entry · 1 h · $18.00')).toBeVisible();
+  await expect(page.getByText('1 entry · 1 hr · $18.00')).toBeVisible();
 
   // Settings, then re-share from Past invoices on Home: the same bytes (SPEC §6).
   await page.getByRole('button', { name: 'Settings' }).click();

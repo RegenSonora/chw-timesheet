@@ -55,6 +55,9 @@ Mark each step ✅ or ❌. Any ❌ blocks the release until fixed or accepted by
 - [ ] Open the picture (PNG) from the email: it looks like PDF page 1; text is sharp.
 - [ ] Open each CSV in a spreadsheet app: one header row, no broken columns.
 - [ ] On Home, **Past invoices** › tap the invoice › **Share files** again. The share sheet has the same four files.
+- [ ] **My stats** on Home: Hours invoiced equals the invoice's hours; hrs needed for pay increase and for CHW Cert eligibility are 240 and 480 minus that.
+- [ ] **Generate Regen Invoice** sits under Past invoices, the same height; its light green and gold text are readable outdoors.
+- [ ] **Settings › Work Hours Report** › **Share report**: the share sheet has the PDF, the picture (PNG) and the CSV. The PDF's rows match the ADHS form's 11 core competencies, with hours and dates.
 
 ## 6. Signing
 

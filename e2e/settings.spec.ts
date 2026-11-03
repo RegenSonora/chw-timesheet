@@ -23,10 +23,10 @@ test('changing the rate with entries waiting asks first', async ({ page }) => {
   // "Create invoice first" keeps the old rate and opens the invoice preview (SPEC §4).
   await page.getByRole('dialog').getByRole('button', { name: 'Create invoice first' }).click();
   await expect(heading(page, 'New invoice')).toBeVisible();
-  await expect(page.getByText('$20.00 / h')).toBeVisible();
+  await expect(page.getByText('$20.00 / hr')).toBeVisible();
   await page.getByRole('button', { name: 'Back' }).click();
   await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
-  await expect(page.getByText('1 entry · 1.5 h · $30.00')).toBeVisible();
+  await expect(page.getByText('1 entry · 1.5 hrs · $30.00')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Generate Regen Invoice' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Settings' }).click();
@@ -34,7 +34,7 @@ test('changing the rate with entries waiting asks first', async ({ page }) => {
   await page.getByRole('button', { name: 'Save changes' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Change rate now' }).click();
   await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
-  await expect(page.getByText('1 entry · 1.5 h · $33.00')).toBeVisible();
+  await expect(page.getByText('1 entry · 1.5 hrs · $33.00')).toBeVisible();
 });
 
 test('a funding source can be added later', async ({ page }) => {

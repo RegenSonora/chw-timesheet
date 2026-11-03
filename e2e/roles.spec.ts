@@ -305,3 +305,59 @@ test('an employee submits a timesheet: summary page, no amounts, supervisor line
   await page.getByRole('button', { name: /Past timesheets 1 timesheet/ }).click();
   await expect(page.getByRole('button', { name: /CC-2026-001/ })).toContainText('1.5 hrs');
 });
+
+/** Point the stored profile at another role id, as if the office's roles file changed. */
+async function setStoredRole(page: Page, roleId: string) {
+  await page.evaluate(async (id) => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const req = indexedDB.open('regen-time-tracking');
+      req.onsuccess = () => {
+        resolve(req.result);
+      };
+      req.onerror = () => {
+        reject(req.error ?? new Error('open failed'));
+      };
+    });
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(['profile'], 'readwrite');
+      const all = tx.objectStore('profile').getAll();
+      all.onsuccess = () => {
+        for (const p of all.result as object[])
+          tx.objectStore('profile').put({ ...p, role_id: id });
+      };
+      tx.oncomplete = () => {
+        resolve();
+      };
+      tx.onerror = () => {
+        reject(tx.error ?? new Error('write failed'));
+      };
+    });
+    db.close();
+  }, roleId);
+  await page.reload();
+  await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
+}
+
+test('a role no longer in the roles file takes no new time; waiting hours still go out', async ({
+  page,
+}) => {
+  await page.clock.install({ time: new Date('2026-11-03T09:00:00-07:00') });
+  await setUp(page);
+  await recordTime(page, '2026-11-02', '09:00', '10:00');
+  await page.getByRole('button', { name: 'Next' }).click();
+  await taskBox(page, 'Outreach').check();
+  await page.getByRole('button', { name: 'Next' }).click();
+  await page.getByRole('button', { name: 'Save entry' }).click();
+  await expect(heading(page, 'Regen Time Tracking')).toBeVisible();
+
+  await setStoredRole(page, 'gone-01');
+  await expect(page.getByText('Your role is no longer active. Ask the office.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Start timer' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Record time' })).toHaveCount(0);
+  await expectAccessible(page, 'inactive role');
+
+  // The waiting hour goes out under the role it was logged with.
+  await page.getByRole('button', { name: 'Generate Regen Invoice' }).click();
+  await page.getByRole('button', { name: 'Create invoice files' }).click();
+  await expect(heading(page, 'Invoice created')).toBeVisible();
+});

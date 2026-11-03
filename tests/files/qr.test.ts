@@ -2,6 +2,8 @@ import jsQR from 'jsqr';
 import { describe, expect, it } from 'vitest';
 import { qrMatrix } from '../../src/files/qr/matrix';
 import { QR_PAYLOAD_VERSION, qrPayloadV1 } from '../../src/files/qr/payload';
+import { findFundingSource } from '../../src/funding-sources';
+import roles from '../../src/roles/roles.json';
 import { makeEntry, regen } from '../core/fixtures/wireframe-sample';
 import { invoiceFrom, sampleInvoice } from './helpers';
 
@@ -79,6 +81,36 @@ describe('qrMatrix', () => {
     expect(matrix.length).toBeLessThanOrEqual(97); // version 20
     expect(decode(matrix)).toBe(payload);
   });
+
+  // An invoice bills one role's lines, so every role's full set must fit (roles plan R1).
+  it.each(roles.roles.flatMap((r) => r.funding.map((f) => [r.code, f] as const)))(
+    'fits and decodes an invoice with every budget line %s bills',
+    async (_code, funding) => {
+      const source = findFundingSource(funding.source_id);
+      if (!source) throw new Error(funding.source_id);
+      const entries = funding.budget_lines.map((line, i) =>
+        makeEntry(
+          `2026-10-${String(i + 1).padStart(2, '0')}`,
+          '09:00:00',
+          '17:00:00',
+          line.tasks[0]?.id ?? '',
+          line.id,
+          { source_id: source.id },
+        ),
+      );
+      const invoice = await invoiceFrom({
+        source,
+        settings: { source_id: source.id, rate_cents: 2237, nte_cents: null },
+        entries,
+        prior_invoices: [],
+      });
+      expect(invoice.lines).toHaveLength(funding.budget_lines.length);
+      const payload = qrPayloadV1(invoice);
+      const matrix = qrMatrix(payload);
+      expect(matrix.length).toBeLessThanOrEqual(97); // version 20
+      expect(decode(matrix)).toBe(payload);
+    },
+  );
 
   it('refuses text outside printable ASCII', () => {
     expect(() => qrMatrix('café')).toThrow();

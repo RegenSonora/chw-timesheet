@@ -1,0 +1,208 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://regensonora.github.io/regen-time-tracking/schemas/roles.schema.json",
+  "title": "Roles",
+  "description": "The shared count list and the roles people pick at setup: each role's funding sources, budget lines, tasks and the counts each task shows (decisions 0027, 0029). Format version 1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format_version", "version", "counts", "roles"],
+  "properties": {
+    "format_version": {
+      "description": "Version of this file format.",
+      "const": 1
+    },
+    "version": {
+      "description": "Release number of this file's content. Bump it when roles or counts change.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "counts": {
+      "description": "Every count any task shows, in display and entry log column order. Add new counts at the end; never delete one, mark it retired (decision 0029).",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "label"],
+        "properties": {
+          "id": {
+            "description": "Entry log column name. Never changes and is never reused.",
+            "type": "string",
+            "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$",
+            "maxLength": 64
+          },
+          "label": { "$ref": "#/$defs/text" },
+          "unit": {
+            "description": "Unit shown after the number, e.g. gal or sq ft. Values are whole numbers.",
+            "$ref": "#/$defs/text"
+          },
+          "retired": {
+            "description": "Taken out of every task. Keeps its entry log column.",
+            "const": true
+          }
+        }
+      }
+    },
+    "roles": {
+      "description": "Roles in the order setup lists them. Roles never name a person (decision 0027).",
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/role" }
+    }
+  },
+  "$defs": {
+    "role": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "code", "name", "employment", "chw", "funding"],
+      "properties": {
+        "id": {
+          "description": "Stable id stored on the profile and entries. Never changes once released.",
+          "$ref": "#/$defs/slug"
+        },
+        "code": {
+          "description": "Short code shown with the name, e.g. CHW-TC01.",
+          "type": "string",
+          "pattern": "^[A-Z0-9][A-Z0-9-]{0,15}$"
+        },
+        "name": { "$ref": "#/$defs/text" },
+        "employment": {
+          "description": "Contractors invoice; employees submit timesheets (decision 0031).",
+          "enum": ["contractor", "employee"]
+        },
+        "chw": {
+          "description": "Turns on the core competency column and the Work Hours Report (decision 0032).",
+          "type": "boolean"
+        },
+        "suggested_rate_cents": {
+          "description": "Rate prefilled at setup when the funding entry has none (decision 0030).",
+          "$ref": "#/$defs/cents"
+        },
+        "certification_step": {
+          "description": "Invoiced or submitted hours after which the person is eligible for certification. Only on chw roles (decision 0032).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["after_quarters", "name"],
+          "properties": {
+            "after_quarters": {
+              "description": "Quarter-hours, e.g. 1920 for 480 hours.",
+              "type": "integer",
+              "minimum": 1
+            },
+            "name": {
+              "description": "Short name on Home, e.g. CHW Cert.",
+              "$ref": "#/$defs/text"
+            }
+          }
+        },
+        "certification_text": {
+          "description": "Overrides the source's certification_text for this role (decision 0031).",
+          "$ref": "#/$defs/text"
+        },
+        "employee_certification_text": {
+          "description": "Overrides the source's employee_certification_text for this role (decision 0031).",
+          "$ref": "#/$defs/text"
+        },
+        "retired": {
+          "description": "No longer offered. People in it move to replaced_by, if set (decision 0027).",
+          "const": true
+        },
+        "replaced_by": {
+          "description": "Id of the active role that people in this retired role move to.",
+          "$ref": "#/$defs/slug"
+        },
+        "funding": {
+          "description": "The sources this role bills, in display order.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/funding" }
+        }
+      }
+    },
+    "funding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_id", "budget_lines"],
+      "properties": {
+        "source_id": { "$ref": "#/$defs/slug" },
+        "rate_cents": {
+          "description": "Rate prefilled at setup for this source (decision 0030).",
+          "$ref": "#/$defs/cents"
+        },
+        "nte_cents": {
+          "description": "Not-to-exceed prefilled at setup. Only for sources with an NTE; employee roles leave it out (decision 0031).",
+          "$ref": "#/$defs/cents"
+        },
+        "rate_step": {
+          "description": "A raise after a number of invoiced or submitted hours on this source. The app reminds; it never changes the rate (decision 0030).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["after_quarters", "rate_cents"],
+          "properties": {
+            "after_quarters": {
+              "description": "Quarter-hours, e.g. 960 for 240 hours.",
+              "type": "integer",
+              "minimum": 1
+            },
+            "rate_cents": { "$ref": "#/$defs/cents" }
+          }
+        },
+        "ends": {
+          "description": "Last day this role can date hours on this source, inside the source's period (decision 0033).",
+          "$ref": "#/$defs/date"
+        },
+        "budget_lines": {
+          "description": "The source's budget lines this role bills, in display order.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "tasks"],
+            "properties": {
+              "id": { "$ref": "#/$defs/slug" },
+              "tasks": {
+                "description": "The source's tasks offered under this line, in display order.",
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["id", "count_ids"],
+                  "properties": {
+                    "id": { "$ref": "#/$defs/slug" },
+                    "count_ids": {
+                      "description": "Counts this task shows, by id from the shared list. May be empty.",
+                      "type": "array",
+                      "items": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "cents": {
+      "description": "Money in whole cents.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 64
+    },
+    "date": {
+      "description": "A calendar date, YYYY-MM-DD.",
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^\\S(.*\\S)?$"
+    }
+  }
+}

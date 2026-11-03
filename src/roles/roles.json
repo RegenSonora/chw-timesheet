@@ -1,0 +1,509 @@
+{
+  "format_version": 1,
+  "version": 1,
+  "counts": [
+    {
+      "id": "contacts",
+      "label": "Contacts"
+    },
+    {
+      "id": "referrals_given",
+      "label": "Referrals given"
+    },
+    {
+      "id": "referral_followups",
+      "label": "Referral follow-ups"
+    },
+    {
+      "id": "rides_provided",
+      "label": "Rides provided"
+    },
+    {
+      "id": "applications_completed",
+      "label": "Applications completed"
+    },
+    {
+      "id": "client_goals_achieved",
+      "label": "Client goals achieved"
+    },
+    {
+      "id": "quick_wins_provided",
+      "label": "Quick wins provided"
+    },
+    {
+      "id": "screenings_conducted",
+      "label": "Screenings conducted"
+    },
+    {
+      "id": "applications_approved",
+      "label": "Applications approved"
+    },
+    {
+      "id": "trailer_loads_removed",
+      "label": "Trailer loads removed"
+    },
+    {
+      "id": "assessments_completed",
+      "label": "Assessments completed"
+    },
+    {
+      "id": "lehr_resets_completed",
+      "label": "LEHR resets completed"
+    },
+    {
+      "id": "plants_propagated",
+      "label": "Plants propagated"
+    },
+    {
+      "id": "trees_planted",
+      "label": "Trees planted"
+    },
+    {
+      "id": "trees_removed",
+      "label": "Trees removed"
+    },
+    {
+      "id": "water_capacity_added",
+      "label": "Water capacity added",
+      "unit": "gal"
+    },
+    {
+      "id": "grow_space_added",
+      "label": "Grow space added",
+      "unit": "sq ft"
+    },
+    {
+      "id": "certifications_earned",
+      "label": "Certifications earned"
+    }
+  ],
+  "roles": [
+    {
+      "id": "chw-tc01",
+      "code": "CHW-TC01",
+      "name": "CHW Trainee (Contractor)",
+      "employment": "contractor",
+      "chw": true,
+      "certification_step": {
+        "after_quarters": 1920,
+        "name": "CHW Cert"
+      },
+      "funding": [
+        {
+          "source_id": "tisupp",
+          "rate_cents": 2000,
+          "nte_cents": 1032000,
+          "rate_step": {
+            "after_quarters": 960,
+            "rate_cents": 2300
+          },
+          "budget_lines": [
+            {
+              "id": "chw-experience-hours",
+              "tasks": [
+                {
+                  "id": "outreach",
+                  "count_ids": ["contacts"]
+                },
+                {
+                  "id": "interview-and-intake",
+                  "count_ids": ["applications_completed", "screenings_conducted"]
+                },
+                {
+                  "id": "screening-and-referrals",
+                  "count_ids": [
+                    "referrals_given",
+                    "referral_followups",
+                    "applications_completed",
+                    "screenings_conducted"
+                  ]
+                },
+                {
+                  "id": "resource-research",
+                  "count_ids": ["contacts", "referral_followups"]
+                },
+                {
+                  "id": "resource-acquisition",
+                  "count_ids": [
+                    "contacts",
+                    "referrals_given",
+                    "referral_followups",
+                    "rides_provided",
+                    "applications_completed",
+                    "client_goals_achieved",
+                    "quick_wins_provided",
+                    "applications_approved"
+                  ]
+                },
+                {
+                  "id": "application-assistance",
+                  "count_ids": [
+                    "referrals_given",
+                    "applications_completed",
+                    "client_goals_achieved",
+                    "quick_wins_provided",
+                    "applications_approved"
+                  ]
+                },
+                {
+                  "id": "transportation",
+                  "count_ids": [
+                    "rides_provided",
+                    "applications_completed",
+                    "client_goals_achieved",
+                    "quick_wins_provided"
+                  ]
+                },
+                {
+                  "id": "advocacy",
+                  "count_ids": [
+                    "referrals_given",
+                    "referral_followups",
+                    "client_goals_achieved",
+                    "quick_wins_provided",
+                    "screenings_conducted",
+                    "applications_approved"
+                  ]
+                },
+                {
+                  "id": "conversational-support",
+                  "count_ids": ["contacts", "referrals_given", "quick_wins_provided"]
+                },
+                {
+                  "id": "supporting-client-self-efficacy",
+                  "count_ids": [
+                    "referrals_given",
+                    "applications_completed",
+                    "client_goals_achieved",
+                    "quick_wins_provided",
+                    "applications_approved"
+                  ]
+                },
+                {
+                  "id": "technical-assistance",
+                  "count_ids": ["client_goals_achieved", "quick_wins_provided"]
+                },
+                {
+                  "id": "client-or-community-workshops",
+                  "count_ids": ["contacts"]
+                },
+                {
+                  "id": "client-check-in",
+                  "count_ids": [
+                    "referrals_given",
+                    "referral_followups",
+                    "applications_completed",
+                    "client_goals_achieved",
+                    "quick_wins_provided"
+                  ]
+                },
+                {
+                  "id": "client-follow-up",
+                  "count_ids": [
+                    "referrals_given",
+                    "referral_followups",
+                    "applications_completed",
+                    "client_goals_achieved",
+                    "quick_wins_provided",
+                    "applications_approved"
+                  ]
+                },
+                {
+                  "id": "re-screening",
+                  "count_ids": ["contacts", "referrals_given", "screenings_conducted"]
+                },
+                {
+                  "id": "planning-and-conducting-surveys",
+                  "count_ids": ["contacts", "referrals_given", "screenings_conducted"]
+                },
+                {
+                  "id": "documentation",
+                  "count_ids": []
+                },
+                {
+                  "id": "data-analysis-and-reporting",
+                  "count_ids": []
+                },
+                {
+                  "id": "developing-tools-processes",
+                  "count_ids": []
+                },
+                {
+                  "id": "meetings",
+                  "count_ids": []
+                },
+                {
+                  "id": "training-continuing-education",
+                  "count_ids": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chw-te01",
+      "code": "CHW-TE01",
+      "name": "CHW Trainee (Employee)",
+      "employment": "employee",
+      "chw": true,
+      "certification_step": {
+        "after_quarters": 1920,
+        "name": "CHW Cert"
+      },
+      "funding": [
+        {
+          "source_id": "tisupp",
+          "rate_cents": 2000,
+          "rate_step": {
+            "after_quarters": 960,
+            "rate_cents": 2300
+          },
+          "budget_lines": [
+            {
+              "id": "chw-experience-hours",
+              "tasks": [
+                {
+                  "id": "outreach",
+                  "count_ids": ["contacts"]
+                },
+                {
+                  "id": "interview-and-intake",
+                  "count_ids": ["applications_completed", "screenings_conducted"]
+                },
+                {
+                  "id": "screening-and-referrals",
+                  "count_ids": [
+                    "referrals_given",
+                    "referral_followups",
+                    "applications_completed",
+                    "screenings_conducted"
+                  ]
+                },
+                {
+                  "id": "resource-research",
+                  "count_ids": ["contacts", "referral_followups"]
+                },
+                {
+                  "id": "resource-acquisition",
+                  "count_ids": [
+                    "contacts",
+                    "referrals_given",
+                    "referral_followups",
+                    "rides_provided",
+                    "applications_completed",
+                    "client_goals_achieved",
+                    "quick_wins_provided",
+                    "applications_approved"
+                  ]
+                },
+                {
+                  "id": "application-assistance",
+                  "count_ids": [
+                    "referrals_given",
+                    "applications_completed",
+                    "client_goals_achieved",
+                    "quick_wins_provided",
+                    "applications_approved"
+                  ]
+                },
+                {
+                  "id": "transportation",
+                  "count_ids": [
+                    "rides_provided",
+                    "applications_completed",
+                    "client_goals_achieved",
+                    "quick_wins_provided"
+                  ]
+                },
+                {
+                  "id": "advocacy",
+                  "count_ids": [
+                    "referrals_given",
+                    "referral_followups",
+                    "client_goals_achieved",
+                    "quick_wins_provided",
+                    "screenings_conducted",
+                    "applications_approved"
+                  ]
+                },
+                {
+                  "id": "conversational-support",
+                  "count_ids": ["contacts", "referrals_given", "quick_wins_provided"]
+                },
+                {
+                  "id": "supporting-client-self-efficacy",
+                  "count_ids": [
+                    "referrals_given",
+                    "applications_completed",
+                    "client_goals_achieved",
+                    "quick_wins_provided",
+                    "applications_approved"
+                  ]
+                },
+                {
+                  "id": "technical-assistance",
+                  "count_ids": ["client_goals_achieved", "quick_wins_provided"]
+                },
+                {
+                  "id": "client-or-community-workshops",
+                  "count_ids": ["contacts"]
+                },
+                {
+                  "id": "client-check-in",
+                  "count_ids": [
+                    "referrals_given",
+                    "referral_followups",
+                    "applications_completed",
+                    "client_goals_achieved",
+                    "quick_wins_provided"
+                  ]
+                },
+                {
+                  "id": "client-follow-up",
+                  "count_ids": [
+                    "referrals_given",
+                    "referral_followups",
+                    "applications_completed",
+                    "client_goals_achieved",
+                    "quick_wins_provided",
+                    "applications_approved"
+                  ]
+                },
+                {
+                  "id": "re-screening",
+                  "count_ids": ["contacts", "referrals_given", "screenings_conducted"]
+                },
+                {
+                  "id": "planning-and-conducting-surveys",
+                  "count_ids": ["contacts", "referrals_given", "screenings_conducted"]
+                },
+                {
+                  "id": "documentation",
+                  "count_ids": []
+                },
+                {
+                  "id": "data-analysis-and-reporting",
+                  "count_ids": []
+                },
+                {
+                  "id": "developing-tools-processes",
+                  "count_ids": []
+                },
+                {
+                  "id": "meetings",
+                  "count_ids": []
+                },
+                {
+                  "id": "training-continuing-education",
+                  "count_ids": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "r-tl01",
+      "code": "R-TL01",
+      "name": "Resilience Team Lead",
+      "employment": "contractor",
+      "chw": false,
+      "funding": [
+        {
+          "source_id": "regen-general-operating",
+          "rate_cents": 2200,
+          "budget_lines": [
+            {
+              "id": "fire-risk-reduction-work",
+              "tasks": [
+                {
+                  "id": "firewise-assessing",
+                  "count_ids": ["trailer_loads_removed", "assessments_completed"]
+                },
+                {
+                  "id": "residential-fuel-reduction",
+                  "count_ids": ["trailer_loads_removed"]
+                },
+                {
+                  "id": "municipal-fuel-reduction",
+                  "count_ids": ["trailer_loads_removed"]
+                },
+                {
+                  "id": "dump-runs",
+                  "count_ids": ["trailer_loads_removed"]
+                }
+              ]
+            },
+            {
+              "id": "maintenance-labor",
+              "tasks": [
+                {
+                  "id": "lehr-maintenance",
+                  "count_ids": ["lehr_resets_completed"]
+                },
+                {
+                  "id": "pinal-garden-maintenance",
+                  "count_ids": []
+                },
+                {
+                  "id": "regen-lot-clean-and-maintenance",
+                  "count_ids": []
+                },
+                {
+                  "id": "transport-and-supply-runs",
+                  "count_ids": []
+                }
+              ]
+            },
+            {
+              "id": "resilient-home-services-contracting",
+              "tasks": [
+                {
+                  "id": "plant-propagation",
+                  "count_ids": ["plants_propagated"]
+                },
+                {
+                  "id": "tree-planting",
+                  "count_ids": ["trees_planted"]
+                },
+                {
+                  "id": "tree-removal",
+                  "count_ids": ["trees_removed"]
+                },
+                {
+                  "id": "water-harvesting",
+                  "count_ids": ["water_capacity_added"]
+                },
+                {
+                  "id": "garden-support",
+                  "count_ids": ["grow_space_added"]
+                }
+              ]
+            },
+            {
+              "id": "team-development",
+              "tasks": [
+                {
+                  "id": "paid-training",
+                  "count_ids": ["certifications_earned"]
+                }
+              ]
+            },
+            {
+              "id": "other-contractors",
+              "tasks": [
+                {
+                  "id": "other",
+                  "count_ids": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
